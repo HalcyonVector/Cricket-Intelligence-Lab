@@ -601,7 +601,56 @@ def build_cohort(conn, spec, names):
             "matchups_top": sorted(matchups, key=lambda x: x["balls"], reverse=True)[:400],
             "outliers": outliers, "bowl_outliers": bowl_outliers, "venues": venues, "records": records,
             "partnerships": top_partnerships(conn, names),
-            "spells": top_spells(conn, names)}
+            "spells": top_spells(conn, names),
+            "teams": team_records(conn)}
+
+
+def team_records(conn):
+    """Win/loss by team over the current cohort scope (sm), mirroring serve.py /api/teams."""
+    rows = _rows(conn, """WITH m AS (SELECT d.team_a a, d.team_b b, d.winner w
+            FROM dim_match d JOIN sm ON sm.match_id=d.match_id)
+        SELECT team, COUNT(*) mp, SUM(win) wins FROM (
+          SELECT a team, CASE WHEN w=a THEN 1 ELSE 0 END win FROM m WHERE a IS NOT NULL
+          UNION ALL SELECT b team, CASE WHEN w=b THEN 1 ELSE 0 END win FROM m WHERE b IS NOT NULL
+        ) GROUP BY team HAVING mp>=3 ORDER BY mp DESC""")
+    return [{"team": r["team"], "matches": r["mp"], "wins": r["wins"] or 0,
+             "winpct": round(100 * (r["wins"] or 0) / r["mp"], 1) if r["mp"] else 0} for r in rows]
+
+
+def global_profiles(conn):
+    """All-format per-batter career (runs by year) and top-14 venues, mirroring serve.py
+    /api/career and /api/venues_player. Computed once over the whole DB, keyed by player id."""
+    LB = "(d.extra_type IS NULL OR d.extra_type<>'wides')"
+    career = defaultdict(list)
+    for r in _rows(conn, f"""SELECT d.batter_id pid, substr(m.match_date,1,4) yr,
+            SUM(d.runs_batter) runs, SUM(CASE WHEN {LB} THEN 1 ELSE 0 END) balls,
+            COUNT(DISTINCT d.match_id||'-'||d.innings_no) inns,
+            SUM(CASE WHEN d.player_out_id=d.batter_id THEN 1 ELSE 0 END) outs
+        FROM fact_delivery d JOIN dim_match m ON m.match_id=d.match_id
+        WHERE m.match_date IS NOT NULL GROUP BY d.batter_id, yr"""):
+        if not r["pid"] or not r["yr"] or not str(r["yr"]).isdigit() or not r["balls"]:
+            continue
+        runs, balls, outs = r["runs"] or 0, r["balls"] or 0, r["outs"] or 0
+        career[r["pid"]].append({"year": int(r["yr"]), "runs": runs, "balls": balls, "inns": r["inns"] or 0,
+            "avg": round(runs / outs, 1) if outs else runs, "sr": round(100 * runs / balls, 1) if balls else 0})
+    vraw = defaultdict(list)
+    for r in _rows(conn, f"""SELECT d.batter_id pid, m.venue venue, m.city city,
+            SUM(d.runs_batter) runs, SUM(CASE WHEN {LB} THEN 1 ELSE 0 END) balls,
+            COUNT(DISTINCT d.match_id||'-'||d.innings_no) inns,
+            SUM(CASE WHEN d.player_out_id=d.batter_id THEN 1 ELSE 0 END) outs
+        FROM fact_delivery d JOIN dim_match m ON m.match_id=d.match_id
+        WHERE m.venue IS NOT NULL AND m.venue<>'' GROUP BY d.batter_id, m.venue"""):
+        if not r["pid"] or not r["balls"]:
+            continue
+        runs, balls, outs = r["runs"] or 0, r["balls"] or 0, r["outs"] or 0
+        vraw[r["pid"]].append({"venue": r["venue"], "city": r["city"] or "", "runs": runs, "balls": balls,
+            "inns": r["inns"] or 0, "avg": round(runs / outs, 1) if outs else runs,
+            "sr": round(100 * runs / balls, 1) if balls else 0})
+    venues = {pid: sorted(v, key=lambda x: -x["runs"])[:14] for pid, v in vraw.items()}
+    # drop trivial samples (<24 balls faced) so the file stays lean and timelines are meaningful
+    career = {pid: ys for pid, ys in career.items() if sum(y["balls"] for y in ys) >= 24}
+    venues = {pid: vs for pid, vs in venues.items() if sum(v["balls"] for v in vs) >= 24}
+    return career, venues
 
 
 def _awrite(path, data):
@@ -649,6 +698,11 @@ def build(db="cil.db", outdir="web/data", jsdir="web/dashboard/cohorts"):
     _awrite(os.path.join(outdir, "index.json"), json.dumps(index, indent=2))
     _awrite(os.path.join(os.path.dirname(jsdir), "index.js"),
             "window.CIL_INDEX=" + json.dumps(index, separators=(",", ":")) + ";")
+    career, venues = global_profiles(conn)
+    _awrite(os.path.join(os.path.dirname(jsdir), "careers.js"),
+            "window.CIL_CAREER=" + json.dumps(career, separators=(",", ":")) + ";\n"
+            + "window.CIL_VENUES=" + json.dumps(venues, separators=(",", ":")) + ";\n")
+    print(f"  careers.js: {len(career)} batters with career, {len(venues)} with venues")
     conn.close()
     return index
 
