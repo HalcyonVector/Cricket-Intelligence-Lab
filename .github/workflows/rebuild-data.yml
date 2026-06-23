@@ -1,0 +1,35 @@
+# #3 — Auto-rebuild the whole dataset from the latest Cricsheet corpus, on a schedule.
+# Downloads all_json.zip, runs build_all.py (which self-verifies), commits the refreshed
+# cohort bundles + careers.js. Free on GitHub Actions for public repos.
+name: Rebuild data from Cricsheet
+
+on:
+  schedule:
+    - cron: "0 5 * * 1"   # every Monday 05:00 UTC (Cricsheet updates ~weekly)
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install build deps
+        run: pip install orjson numpy
+      - name: Download latest Cricsheet corpus
+        run: curl -fsSL -o all_json.zip https://cricsheet.org/downloads/all_json.zip
+      - name: Build (ingest -> SQLite -> bundles -> verify)
+        run: python build_all.py --zip all_json.zip
+      - name: Commit if data changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A    # all_json.zip + cil.db are gitignored, so only the bundles get staged
+          git diff --cached --quiet || git commit -m "Auto-rebuild from latest Cricsheet data"
+          git push

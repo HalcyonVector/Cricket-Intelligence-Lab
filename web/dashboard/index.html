@@ -589,7 +589,7 @@ function init(){
   document.getElementById('modebar').innerHTML=window.MODES.map(([mo])=>`<button class="modebtn" data-m="${mo}">${mo}</button>`).join('');
   document.querySelectorAll('.modebtn').forEach(b=>b.onclick=()=>{const subs=window.MODES.find(x=>x[0]===b.dataset.m)[1];state.view=subs[0][0];state.player=null;state.bowler=null;render();});
   document.getElementById('home').onclick=()=>{state.view="home";state.player=null;state.bowler=null;render();};
-  document.getElementById('srcnote').textContent=`${IDX.cohorts.length} competitions · generated ${(IDX.generated||'').slice(0,10)}`;
+  document.getElementById('srcnote').textContent=`${IDX.cohorts.length} competitions`;
   setupPalette();
   setupSearch();
   if(location.hash.length>1)hashToState();
@@ -1534,27 +1534,20 @@ function _egoNet(c,pid){
 function teamsView(app){
   const c=cur(),m=c.meta;
   app.appendChild($(`<div><h1>Teams</h1><p class="sub">Win-loss record by team for ${gLabel(m)} ${(m.format||'').toUpperCase()}, from ball-by-ball match results.</p></div>`));
-  if(location.protocol.indexOf('http')!==0){app.appendChild($(setupHint('team data')));return;}
-  const box=$('<div class="loadbox"><div class="spinner"></div><div>Computing team records…</div></div>');
-  app.appendChild(box);
-  const qs=new URLSearchParams({fmt:m.format||''});
-  if(m.intl){
-    qs.set('intl','1');
-    if(m.gender)qs.set('gender',m.gender);
-    qs.set('xleagues',IDX.cohorts.filter(x=>!x.intl).map(x=>x.label).filter(Boolean).join('|'));
-  } else {
-    qs.set('league',m.label||'');
-  }
-  fetch('/api/teams?'+qs.toString(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(d=>{
-    box.classList.remove('loadbox');box.innerHTML='';
-    const ts=(d&&d.teams)||[];
-    if(!ts.length){box.innerHTML='<div class="cov">No team data for this dataset (needs cil.db + serve.py).</div>';return;}
+  const render=(ts)=>{
+    if(!ts||!ts.length){app.appendChild($('<div class="cov">No team records yet — run <span class="num">build_all.py</span> to generate them.</div>'));return;}
     const cols=[["team","Team",0],["matches","Matches",1],["wins","Wins",1],["winpct","Win %",1]];
     const dt=dataTable({cols,rows:ts.slice(),sortKey:'matches',per:30,getVal:(v,k)=>v[k],
-      rowHTML:v=>{const mx=ts[0].matches||1;return `<tr><td>${esc(v.team)}</td><td class="n">${v.matches}</td><td class="n">${v.wins}</td><td class="n">${v.winpct}%</td></tr>`;},
-      empty:'no teams'});
-    const panel=$('<div class="panel"></div>');panel.appendChild(dt.el);box.appendChild(panel);
-  }).catch(()=>{box.classList.remove('loadbox');box.innerHTML='<div class="cov">Could not load team data.</div>';});
+      rowHTML:v=>`<tr><td>${esc(v.team)}</td><td class="n">${v.matches}</td><td class="n">${v.wins}</td><td class="n">${v.winpct}%</td></tr>`,empty:'no teams'});
+    const panel=$('<div class="panel"></div>');panel.appendChild(dt.el);app.appendChild(panel);
+  };
+  if(c.teams&&c.teams.length){render(c.teams);return;}                 // static (after rebuild)
+  if(location.protocol.indexOf('http')!==0){render([]);return;}        // file:// and not rebuilt
+  const box=$('<div class="loadbox"><div class="spinner"></div><div>Computing team records…</div></div>');app.appendChild(box);
+  const qs=new URLSearchParams({fmt:m.format||''});
+  if(m.intl){qs.set('intl','1');if(m.gender)qs.set('gender',m.gender);qs.set('xleagues',IDX.cohorts.filter(x=>!x.intl).map(x=>x.label).filter(Boolean).join('|'));}
+  else{qs.set('league',m.label||'');}
+  fetch('/api/teams?'+qs.toString(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(d=>{box.remove();render((d&&d.teams)||[]);}).catch(()=>{box.remove();render([]);});
 }
 function networkView(app){
   const c=cur(),P=c.players||{};
@@ -1570,7 +1563,16 @@ function networkView(app){
   autocomplete(bar.querySelector('#netq'),names,(nm)=>{if(nm&&nameToId[nm]){state.netPlayer=nameToId[nm];render();}});
   panel.querySelectorAll('.netn').forEach(g=>g.onclick=()=>{state.netPlayer=g.getAttribute('data-pid');render();});
 }
-/* ===================== CAREER TIMELINE (serve.py /api/career over cil.db) ===================== */
+/* ===================== CAREER TIMELINE + VENUES (static, lazy-loaded careers.js) ===================== */
+let _carLoading=false,_carWaiters=[];
+function ensureCareers(cb){
+  if(window.CIL_CAREER){cb();return;}
+  _carWaiters.push(cb);
+  if(_carLoading)return;_carLoading=true;
+  const s=document.createElement('script');s.src='careers.js';
+  const done=()=>{window.CIL_CAREER=window.CIL_CAREER||{};window.CIL_VENUES=window.CIL_VENUES||{};_carWaiters.forEach(f=>f());_carWaiters=[];};
+  s.onload=done;s.onerror=done;document.head.appendChild(s);
+}
 function careerSVG(years){
   const W=720,H=210,pad=36,n=years.length;
   const mx=Math.max(...years.map(y=>y.runs||0),1),gap=(W-2*pad)/n,bw=Math.min(34,gap*0.66);
@@ -1580,28 +1582,28 @@ function careerSVG(years){
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block"><line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="#2C3A50"/>${bars}<text x="${pad}" y="18" fill="#8492AB" font-size="10">Peak ${peak.year}: ${peak.runs} runs</text></svg>`;
 }
 function mountCareer(app,pid){
-  if(location.protocol.indexOf('http')!==0)return;
   const w=app.firstElementChild;if(!w)return;
   const panel=document.createElement('div');panel.className='panel';panel.style.marginTop='13px';
   panel.innerHTML='<h2>Career timeline <span class="r">loading…</span></h2>';
   if(w.children.length>1)w.insertBefore(panel,w.children[1]);else w.appendChild(panel);
-  fetch('/api/career?pid='+encodeURIComponent(pid),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(d=>{
-    if(!d||!d.years||!d.years.length){panel.remove();return;}
-    panel.innerHTML='<h2>Career timeline <span class="r">runs per year · gold = peak</span></h2>'+careerSVG(d.years);
-  }).catch(()=>panel.remove());
+  ensureCareers(()=>{
+    const years=(window.CIL_CAREER||{})[pid];
+    if(!years||!years.length){panel.remove();return;}
+    panel.innerHTML='<h2>Career timeline <span class="r">runs per year · gold = peak</span></h2>'+careerSVG(years);
+  });
 }
 function mountVenues(app,pid){
-  if(location.protocol.indexOf('http')!==0)return;
   const w=app.firstElementChild;if(!w)return;
   const panel=document.createElement('div');panel.className='panel';panel.style.marginTop='13px';
   panel.innerHTML='<h2>By venue <span class="r">loading…</span></h2>';
   w.appendChild(panel);
-  fetch('/api/venues_player?pid='+encodeURIComponent(pid),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(d=>{
-    if(!d||!d.venues||!d.venues.length){panel.remove();return;}
-    const mx=Math.max(...d.venues.map(v=>v.runs||0),1);
+  ensureCareers(()=>{
+    const venues=(window.CIL_VENUES||{})[pid];
+    if(!venues||!venues.length){panel.remove();return;}
+    const mx=Math.max(...venues.map(v=>v.runs||0),1);
     panel.innerHTML='<h2>By venue <span class="r">top grounds by runs</span></h2>'+
-      d.venues.map(v=>`<div class="minibar"><span title="${esc(v.venue)}${v.city?', '+esc(v.city):''}" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(v.venue)}</span><div class="bar"><span style="width:${(v.runs/mx*100).toFixed(1)}%"></span></div><span class="num" title="${v.inns} inns · ${v.balls} balls · avg ${v.avg} · SR ${v.sr}">${v.runs}</span></div>`).join('');
-  }).catch(()=>panel.remove());
+      venues.map(v=>`<div class="minibar"><span title="${esc(v.venue)}${v.city?', '+esc(v.city):''}" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(v.venue)}</span><div class="bar"><span style="width:${(v.runs/mx*100).toFixed(1)}%"></span></div><span class="num" title="${v.inns} inns · ${v.balls} balls · avg ${v.avg} · SR ${v.sr}">${v.runs}</span></div>`).join('');
+  });
 }
 init();
 </script>

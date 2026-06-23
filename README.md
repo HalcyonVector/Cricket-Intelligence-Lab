@@ -23,11 +23,11 @@ cd cricket-intelligence-lab
 # then double-click web/dashboard/index.html
 ```
 
-### With live data (optional, Python only)
+### With live scores (optional, Python only)
 
-A few extras — **live scores**, **team win/loss records**, **career timelines** and
-**venue splits** — are served by a small stdlib server that scrapes Cricbuzz and reads
-the local SQLite database.
+**Live scores, schedule and commentary** are fetched in real time from Cricbuzz by a small
+stdlib server. (Team records, career timelines and venue splits are pre-computed into static
+files during the build, so they work *without* the server — only live scores need it.)
 
 ```bash
 pip install requests
@@ -51,6 +51,27 @@ runs `verify_build.py` at the end, so a half-built run can never leave you broke
 
 ---
 
+## Host it for free
+
+`serve.py` reads `PORT` and binds `0.0.0.0`, so it deploys as-is. Easiest free host is
+[Render](https://render.com): **New → Blueprint → pick this repo → Apply** (it reads
+`render.yaml`). You get a public URL where the full dashboard *and* live scores work — no
+install for visitors. (Free tier sleeps after ~15 min idle, so the first hit cold-starts.)
+
+## Auto-updates (GitHub Actions)
+
+Two scheduled workflows keep it current with zero manual work (free on public repos):
+
+- **`rebuild-data.yml`** — weekly: downloads the latest Cricsheet corpus, rebuilds every
+  cohort + `careers.js`, commits the result.
+- **`update-rankings.yml`** — weekly: re-scrapes the ICC rankings.
+
+Each commits only when something changed; Render auto-redeploys on push, so the live site
+updates itself. Enable **Settings → Actions → General → Workflow permissions → Read and write**
+so the jobs can commit.
+
+---
+
 ## What's inside
 
 | Area | What you get |
@@ -63,7 +84,7 @@ runs `verify_build.py` at the end, so a half-built run can never leave you broke
 | **Compare** | Up to four players head-to-head — percentile radar, side-by-side splits, and shared bowler match-ups |
 | **Similarity network** | Each batter linked to their nearest statistical peers across 12 metrics |
 | **Venues & teams** | Ground scoring/result tendencies and team win-loss records |
-| **Live** | Live scores, schedule and full match commentary, scraped from Cricbuzz on demand |
+| **Live** | Live scores, schedule and full match commentary, scraped from Cricbuzz in real time |
 | **UX** | Command palette (Ctrl-K), shareable URL state, instant-boot lazy-loaded cohorts |
 
 ---

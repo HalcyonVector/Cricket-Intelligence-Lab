@@ -15,21 +15,14 @@ web/data/
 # Local server runtime cache (photo URLs etc., created by serve.py)
 .cache/
 
-# Diagnostic dumps from probe/rankings scripts
-scripts/_debug_*.html
-scripts/_espn_*.json
-scripts/_cb_*.html
-probe_output.txt
+# Diagnostic dum
 
-# Old corrupted git history, moved aside during the clean re-init (delete manually)
-.git_old/
-
-# Python / Node / OS junk
+# Sandbox / editor / build junk (never commit)
+.fuse_hidden*
 __pycache__/
 *.pyc
-*.pyo
-.venv/
-venv/
-node_modules/
-.DS_Store
-.env
+*.tmp
+.build.lock
+probe_output.txt
+*.xlsx
+cil.db.building*
