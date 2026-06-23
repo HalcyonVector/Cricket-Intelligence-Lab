@@ -40,6 +40,10 @@ CB_RESULTS = "https://www.cricbuzz.com/cricket-match/live-scores/recent-matches"
 CB_SEARCH = "https://www.cricbuzz.com/search?q={q}"
 CB_PROFILE = "https://www.cricbuzz.com/profiles/{cid}/x"
 CB_MATCH = "https://www.cricbuzz.com/live-cricket-scores/{mid}"
+CB_SCORECARD = "https://www.cricbuzz.com/live-cricket-scorecard/{mid}/{slug}"
+CB_SQUADS_URL = "https://www.cricbuzz.com/cricket-match-squads/{mid}/{slug}"
+CB_COMMENTARY = "https://www.cricbuzz.com/live-cricket-scores/{mid}/{slug}"
+CB_FACTS = "https://www.cricbuzz.com/cricket-match-facts/{mid}/{slug}"
 DB = os.path.join(ROOT, "cil.db")  # ball-by-ball SQLite, present after build_all.py
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -156,6 +160,9 @@ def _object_after(s, key):
 
 def _matches_from_html(html):
     stream = _decode_next_stream(html)
+    slugmap = {}
+    for i, sl in re.findall(r"/live-cricket-scores/(\d+)/([a-z0-9-]+)", html):
+        slugmap.setdefault(i, sl)
     seen = {}
     for raw in _balanced_objects(stream, '{"matchInfo":'):
         try:
@@ -165,6 +172,7 @@ def _matches_from_html(html):
         mi = d.get("matchInfo") or {}
         mid = mi.get("matchId")
         if mid is not None:
+            d["slug"] = slugmap.get(str(mid)) or ""
             seen[mid] = d
     return list(seen.values())
 
@@ -185,7 +193,8 @@ def _innings_str(team_score):
         r, w, o = inn.get("runs"), inn.get("wickets"), inn.get("overs")
         if r is None:
             continue
-        seg = f"{r}/{w}" if w not in (None, 10) else f"{r}"
+        w = 0 if w is None else w
+        seg = f"{r}/{w}"
         if o is not None:
             seg += f" ({o})"
         parts.append(seg)
@@ -227,7 +236,7 @@ def _fmt_match(d):
     title = " vs ".join(t["name"] for t in teams if t["name"])
     if desc:
         title = f"{title} - {desc}" if title else desc
-    return {"id": mi.get("matchId"), "series": mi.get("seriesName") or "", "title": title,
+    return {"id": mi.get("matchId"), "slug": d.get("slug") or "", "series": mi.get("seriesName") or "", "title": title,
             "status": mi.get("status") or mi.get("stateTitle") or mi.get("state") or "",
             "state": mi.get("state") or "", "format": mi.get("matchFormat") or "",
             "venue": _venue(mi), "teams": teams, "note": mi.get("shortStatus") or ""}
@@ -281,10 +290,11 @@ def get_results():
             "matches": [_fmt_match(d) for d in ms if _state(d) in ("complete", "abandon")]}
 
 
-def get_match(mid):
-    """Detail for one match: fetch its own Cricbuzz page (freshest), else fall back to lists."""
+def get_match(mid, slug=None):
+    """Detail for one match: summary + full scorecard (innings/batting/bowling) + playing XIs."""
     def build():
-        for url in (CB_MATCH.format(mid=mid), CB_LIVE, CB_RESULTS):
+        m = None
+        for url in (CB_LIVE, CB_RESULTS, CB_MATCH.format(mid=mid)):
             try:
                 for d in _fetch_matches(url):
                     if str((d.get("matchInfo") or {}).get("matchId")) == str(mid):
@@ -297,13 +307,25 @@ def get_match(mid):
                             m["toss"] = f"{tw} opt to {dec}".strip() if tw else ""
                         else:
                             m["toss"] = str(toss)
-                        date, tm = _epoch_dt(mi)
-                        m["date"], m["time"] = date, tm
-                        return m
+                        m["date"], m["time"] = _epoch_dt(mi)
+                        break
+                if m:
+                    break
             except Exception:
                 continue
-        return None
-    return cached("match:" + str(mid), 25, build)
+        if not m:
+            m = {"id": mid}
+        sl = slug or m.get("slug") or "x"
+        try:
+            m["innings"] = _parse_scorecard(_http_get(CB_SCORECARD.format(mid=mid, slug=sl)))
+        except Exception:
+            m["innings"] = []
+        try:
+            m["squads"] = _parse_squads(_http_get(CB_SQUADS_URL.format(mid=mid, slug=sl)))
+        except Exception:
+            m["squads"] = []
+        return m
+    return cached(f"match:{mid}:{slug or ''}", 25, build)
 
 
 def get_career(pid):
@@ -338,6 +360,129 @@ def get_career(pid):
         return {"pid": pid, "years": years}
     return cached("career:" + pid, 3600, build)
 
+
+
+def _scan_array(s, j):
+    depth, instr, esc, k = 0, False, False, j
+    while k < len(s):
+        c = s[k]
+        if esc:
+            esc = False
+        elif c == "\\":
+            esc = True
+        elif c == '"':
+            instr = not instr
+        elif not instr:
+            if c == "[":
+                depth += 1
+            elif c == "]":
+                depth -= 1
+                if depth == 0:
+                    return s[j:k + 1]
+        k += 1
+    return None
+
+
+def _parse_scorecard(html):
+    s = _decode_next_stream(html)
+    keyn = lambda kv: int(kv[0].split("_")[1]) if "_" in kv[0] else 0
+    inns = []
+    for raw in _balanced_objects(s, '{"matchId":'):
+        try:
+            d = json.loads(raw)
+        except Exception:
+            continue
+        if "batTeamDetails" not in d:
+            continue
+        bt = d.get("batTeamDetails") or {}
+        bw = d.get("bowlTeamDetails") or {}
+        sd = d.get("scoreDetails") or {}
+        ex = d.get("extrasData") or {}
+        wk = d.get("wicketsData") or {}
+        bats = [{"name": b.get("batName"), "capt": b.get("isCaptain"), "keeper": b.get("isKeeper"),
+                 "out": b.get("outDesc") or "", "runs": b.get("runs"), "balls": b.get("balls"),
+                 "fours": b.get("fours"), "sixes": b.get("sixes"), "sr": b.get("strikeRate")}
+                for k, b in sorted((bt.get("batsmenData") or {}).items(), key=keyn)]
+        bowls = [{"name": b.get("bowlName"), "overs": b.get("overs"), "maidens": b.get("maidens"),
+                  "runs": b.get("runs"), "wickets": b.get("wickets"), "econ": b.get("economy")}
+                 for k, b in sorted((bw.get("bowlersData") or {}).items(), key=keyn)]
+        fow = [{"name": w.get("batName"), "over": w.get("wktOver"), "runs": w.get("wktRuns"), "nbr": w.get("wktNbr")}
+               for k, w in sorted((wk or {}).items(), key=keyn)]
+        inns.append({"battingTeam": bt.get("batTeamName") or "", "bowlingTeam": bw.get("bowlTeamName") or "",
+                     "runs": sd.get("runs"), "wickets": sd.get("wickets"), "overs": sd.get("overs"),
+                     "runRate": sd.get("runRate"), "extras": ex.get("total"),
+                     "batsmen": bats, "bowlers": bowls, "fow": fow})
+    return inns
+
+
+def _parse_squads(html):
+    s = _decode_next_stream(html)
+    teams = {}
+    for mm in re.finditer(r'"playing XI":', s):
+        j = s.find("[", mm.end())
+        arr = _scan_array(s, j) if j >= 0 else None
+        if not arr:
+            continue
+        try:
+            players = json.loads(arr)
+        except Exception:
+            continue
+        for pl in players:
+            tn = pl.get("teamName") or "?"
+            img = ""
+            pid = pl.get("id")
+            if pid:
+                img = f"https://i.cricketcb.com/stats/img/faceImages/{pid}.jpg"
+            teams.setdefault(tn, []).append({"name": pl.get("fullName") or pl.get("name"),
+                "role": pl.get("role") or "", "capt": bool(pl.get("captain")),
+                "keeper": bool(pl.get("keeper")), "img": img})
+    return [{"team": k, "players": v} for k, v in teams.items()]
+
+
+def _parse_commentary(html):
+    s = _decode_next_stream(html)
+    ents = []
+    for o in _balanced_objects(s, '{"matchId":'):
+        if '"commText"' not in o:
+            continue
+        try:
+            d = json.loads(o)
+        except Exception:
+            continue
+        txt = d.get("commText") or ""
+        if re.match(r"^\$\w+$", txt.strip()):
+            continue
+        ev = [e for e in (d.get("event") or []) if e not in ("all", "none")]
+        osp = d.get("overSeparator")
+        ov = None
+        if isinstance(osp, dict):
+            bt = osp.get("batTeamObj") or {}
+            ov = {"over": osp.get("overNumber"), "runs": osp.get("overRuns"),
+                  "score": bt.get("teamScore"), "team": bt.get("teamName")}
+        ents.append({"ts": d.get("timestamp") or 0, "inn": d.get("inningsId"),
+                     "text": txt, "events": ev, "over": ov})
+    ents.sort(key=lambda x: x["ts"], reverse=True)
+    return ents
+
+
+def _parse_facts(html):
+    s = _decode_next_stream(html)
+    out, seen = [], set()
+    for lab, val in re.findall(r'"font-bold","children":"([^"]+)"\}\],\["\$","div",null,\{"children":"([^"]*)"', s):
+        if val and lab not in seen:
+            seen.add(lab)
+            out.append({"label": lab, "value": val})
+    return out
+
+
+def get_commentary(mid, slug=None):
+    return cached(f"comm:{mid}:{slug or ''}", 25,
+                  lambda: {"commentary": _parse_commentary(_http_get(CB_COMMENTARY.format(mid=mid, slug=slug or "x")))})
+
+
+def get_facts(mid, slug=None):
+    return cached(f"facts:{mid}:{slug or ''}", 300,
+                  lambda: {"facts": _parse_facts(_http_get(CB_FACTS.format(mid=mid, slug=slug or "x")))})
 
 
 # ---------- player profiles ----------
@@ -532,8 +677,16 @@ class H(BaseHTTPRequestHandler):
                 return self._send(200, get_results())
             if path == "/api/match":
                 mid = g("id")
-                d = get_match(mid) if mid else None
+                d = get_match(mid, g("slug") or None) if mid else None
                 return self._send(200 if d else 404, d or {"error": "match not found"})
+            if path == "/api/commentary":
+                mid = g("id")
+                d = get_commentary(mid, g("slug") or None) if mid else None
+                return self._send(200 if d else 404, d or {"error": "no commentary"})
+            if path == "/api/facts":
+                mid = g("id")
+                d = get_facts(mid, g("slug") or None) if mid else None
+                return self._send(200 if d else 404, d or {"error": "no facts"})
             if path == "/api/career":
                 pid = g("pid")
                 d = get_career(pid) if pid else None
