@@ -79,6 +79,8 @@
  .bar{height:7px;background:var(--panel3);border-radius:5px;overflow:hidden}
  .bar>span{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));transform-origin:left;animation:barIn .7s cubic-bezier(.2,.8,.2,1) both}
  @keyframes barIn{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+ .panel.pcol{display:flex;flex-direction:column}
+ .pcol .pmid{flex:1;display:flex;flex-direction:column;justify-content:center;min-height:0}
  .pctrow{display:grid;grid-template-columns:128px 1fr 38px;gap:9px;align-items:center;margin:7px 0}
  .pctrow .k{color:var(--muted);font-size:11.5px}.pctrow .v{text-align:right}
  .muted{color:var(--muted)}.dim{color:var(--dim)}.pos{color:var(--pos)}.neg{color:var(--neg)}.gold{color:var(--gold)}
@@ -358,11 +360,12 @@
  .comm{display:flex;flex-direction:column;max-width:760px;margin:0 auto}
  .mdetail{max-width:900px;margin:0 auto}
  .comm-over{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11.5px;color:var(--accent2);background:var(--panel2);border:1px solid var(--hair2);border-radius:8px;padding:9px 13px;margin:14px 0 6px;letter-spacing:.04em;font-weight:700}
- .comm-row{font-size:13.5px;line-height:1.65;padding:11px 4px;border-bottom:1px solid var(--hair);color:var(--muted)}
- .comm-row b{color:var(--ink);font-weight:600}
- .comm-row.ev4{border-left:3px solid var(--accent);padding-left:9px}
- .comm-row.ev6{border-left:3px solid #C9A24A;padding-left:9px}
- .comm-row.evw{border-left:3px solid var(--neg);padding-left:9px}
+ .comm-row{display:grid;grid-template-columns:34px 1fr;gap:16px;align-items:start;font-size:13.5px;line-height:1.65;padding:11px 4px 11px 10px;border-left:3px solid transparent;border-bottom:1px solid var(--hair);color:var(--muted)}
+ .comm-bn{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--accent2);text-align:left;padding-top:1px}
+ .comm-tx b{color:var(--ink);font-weight:600}
+ .comm-row.ev4{border-left-color:var(--accent)}
+ .comm-row.ev6{border-left-color:#C9A24A}
+ .comm-row.evw{border-left-color:var(--neg)}
  .facts{display:flex;flex-direction:column}
  .fact-row{display:grid;grid-template-columns:140px 1fr;gap:14px;padding:9px 2px;border-bottom:1px solid var(--hair);font-size:13px}
  .fact-k{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:600;padding-top:1px}
@@ -739,7 +742,8 @@ function playerView(pid){
   const c=cur(),p=c.players[pid];if(!p){state.player=null;return $('<div>not found</div>');}
   const w=$(`<div></div>`);
   const meta=(window.CIL_PLAYERMETA||{})[pid]||{};
-  const photo=meta.photo||playerImg(p.name,meta.unique_name||meta.name)||(location.protocol.indexOf('http')===0?'/api/photo?name='+encodeURIComponent(meta.unique_name||meta.name||p.name):'');
+  const isHttp=location.protocol.indexOf('http')===0;
+  const photo=meta.photo||playerImg(p.name,meta.unique_name||meta.name)||(isHttp?'/api/photo?name='+encodeURIComponent(meta.unique_name||meta.name||p.name):'');
   const ciLink=meta.cricinfo_id?`<a class="pill" href="https://www.espncricinfo.com/ci/content/player/${meta.cricinfo_id}.html" target="_blank" rel="noopener">ESPNcricinfo ↗</a>`:'';
   w.appendChild($(`<div class="row" style="margin-top:20px;align-items:center"><button class="pill" id="back">← back</button>${avatarHTML(p.name,photo)}<div><div class="row" style="gap:9px"><h1 style="margin:0">${esc(p.name)}</h1>${archPill(p.archetype)}${p.qualified?'':'<span class="badge">below rate qualifier</span>'}${meta.country?`<span class="badge">${esc(meta.country)}</span>`:''}${ciLink}</div><div class="dim" style="margin-top:2px">${esc(c.meta.label)}</div></div></div>`));
   const tiles=[["Runs",p.runs],["Average",p.avg],["Strike Rate",p.sr],["Innings",p.innings],["50/100",`${p.fifties}/${p.hundreds}`],["Highest",p.highest],["Boundary %",p.boundary_pct],["Sixes",p.sixes]];
@@ -749,9 +753,9 @@ function playerView(pid){
   const g2=$(`<div class="grid bento" style="margin-top:13px"></div>`);
   const axes=[["avg","Avg"],["sr","SR"],["boundary_pct","Bnd%"],["dot_pct","Dot%"],["consistency","Cons"],["conversion","Conv"]];
   if(p.pct){
-    g2.appendChild($(`<div class="panel s5"><h2>Percentile profile <span class="r">vs ${c.meta.n_qual_bat} rated batters</span></h2>${radar([p],axes,["#6FB0FF"])}</div>`));
+    g2.appendChild($(`<div class="panel s5 pcol"><h2>Percentile profile <span class="r">vs ${c.meta.n_qual_bat} rated batters</span></h2><div class="pmid">${radar([p],axes,["#6FB0FF"])}</div></div>`));
     const pcOrder=[["avg","Average"],["sr","Strike Rate"],["boundary_pct","Boundary %"],["dot_pct","Dot % (inv)"],["consistency","Consistency"],["conversion","Conversion"],["rps","Runs/Scoring"]];
-    g2.appendChild($(`<div class="panel s7"><h2>Percentile ranks</h2>${pcOrder.filter(o=>p.pct[o[0]]!=null).map(o=>`<div class="pctrow"><span class="k">${o[1]}</span><span class="bar"><span style="width:${Math.max(2,p.pct[o[0]])}%;background:${pctColor(p.pct[o[0]])}"></span></span><span class="v num">${p.pct[o[0]].toFixed(0)}</span></div>`).join('')}</div>`));
+    g2.appendChild($(`<div class="panel s7 pcol"><h2>Percentile ranks</h2><div class="pmid">${pcOrder.filter(o=>p.pct[o[0]]!=null).map(o=>`<div class="pctrow"><span class="k">${o[1]}</span><span class="bar"><span style="width:${Math.max(2,p.pct[o[0]])}%;background:${pctColor(p.pct[o[0]])}"></span></span><span class="v num">${p.pct[o[0]].toFixed(0)}</span></div>`).join('')}</div></div>`));
   } else {
     g2.appendChild($(`<div class="panel s12"><h2>Percentile profile</h2><span class="note">This player is below the rate qualifier (${c.meta.rate_min_bat}+ balls), so percentile ranks and archetype aren't computed. Raw totals above are complete.</span></div>`));
   }
@@ -1052,12 +1056,13 @@ function commentaryHTML(d){
   const list=(d&&d.commentary)||[];const full=!!(d&&d.full);
   if(!list.length)return '<div class="cov">No commentary available.</div>';
   const note=full
-    ?'<div class="dim" style="text-align:center;font-size:10.5px;margin-bottom:6px">Full innings commentary</div>'
-    :'<div class="dim" style="text-align:center;font-size:10.5px;margin-bottom:6px">Most recent overs (full ball-by-ball loads once the match is live)</div>';
+    ?'<div class="dim" style="text-align:center;font-size:10.5px;margin-bottom:6px">Full ball-by-ball — built up live while the app watches the match</div>'
+    :'<div class="dim" style="text-align:center;font-size:10.5px;margin-bottom:6px">Latest overs — commentary fills in as the match progresses (keep the app open)</div>';
   const cls=ev=>{ev=ev||[];return ev.includes('six')?'ev6':ev.includes('four')?'ev4':(ev.some(e=>/wicket|out/.test(e)))?'evw':'';};
   return `<div class="panel" style="margin-top:13px">${note}<div class="comm">${list.map(c=>{
     const ov=c.over?`<div class="comm-over"><span>Over ${esc(String(c.over.over??''))}</span><span class="num">${esc(c.over.team||'')} ${esc(c.over.score||'')}</span></div>`:'';
-    return `${ov}<div class="comm-row ${cls(c.events)}">${c.text||''}</div>`;}).join('')}</div></div>`;
+    const bn=(c.ball!=null)?`<div class="comm-bn">${esc(String(c.ball))}</div>`:'<div class="comm-bn"></div>';
+    return `${ov}<div class="comm-row ${cls(c.events)}">${bn}<div class="comm-tx">${c.text||''}</div></div>`;}).join('')}</div></div>`;
 }
 function factsHTML(list){
   if(!list||!list.length)return '<div class="cov">No match info available.</div>';
@@ -1092,16 +1097,25 @@ function showMatchDetail(box,mid,slug){
     function lazy(key,url,build){content.innerHTML='<div class="loadbox"><div class="spinner"></div><div>Loading…</div></div>';
       if(cache[key]!=null){content.innerHTML=cache[key];return;}
       fetch(url,{cache:'no-store'}).then(r=>r.ok?r.json():null).then(d=>{cache[key]=build(d);content.innerHTML=cache[key];}).catch(()=>{content.innerHTML='<div class="cov">Could not load.</div>';});}
+    let commTimer=null;
+    function stopComm(){if(commTimer){clearInterval(commTimer);commTimer=null;}}
+    function loadComm(live){
+      if(!live){content.innerHTML='<div class="loadbox"><div class="spinner"></div><div>Loading…</div></div>';}
+      fetch('/api/commentary?'+q,{cache:'no-store'}).then(r=>r.ok?r.json():null)
+        .then(d=>{content.innerHTML=commentaryHTML(d);})
+        .catch(()=>{if(!live)content.innerHTML='<div class="cov">Could not load.</div>';});
+    }
     function showTab(t){
+      stopComm();
       tabbar.querySelectorAll('.mtab').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
       if(t==='score')renderScore();
       else if(t==='squads'){content.innerHTML=squadsHTML(m.squads);wireXI();}
-      else if(t==='comm')lazy('comm','/api/commentary?'+q,d=>commentaryHTML(d));
+      else if(t==='comm'){loadComm(false);commTimer=setInterval(()=>loadComm(true),20000);}
       else if(t==='info')lazy('info','/api/facts?'+q,d=>factsHTML(d&&d.facts));
     }
     tabbar.querySelectorAll('.mtab').forEach(b=>b.onclick=()=>showTab(b.dataset.t));
     showTab(tabs[0][0]);
-    box.querySelector('#mback').onclick=()=>renderLiveList(box);
+    box.querySelector('#mback').onclick=()=>{stopComm();renderLiveList(box);};
   }).catch(()=>{box.className='';box.innerHTML='<div class="cov">Could not load this match.</div>';});
 }
 function liveView(app){
@@ -1205,17 +1219,17 @@ function discovery(c){
 }
 function scatterSVG(c){
   const o=c.outliers&&c.outliers.avg_vs_sr;if(!o||!o.points||!o.points.length)return '<div class="note">No data.</div>';
-  const pts=o.points,W=560,H=300,pad=38;
+  const pts=o.points.filter(p=>!_isId(p.name)),W=560,H=300,pad=38;
+  if(!pts.length)return '<div class="note">No data.</div>';
   const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y);
   const xmin=Math.min(...xs),xmax=Math.max(...xs),ymin=Math.min(...ys),ymax=Math.max(...ys);
   const X=v=>pad+(v-xmin)/((xmax-xmin)||1)*(W-2*pad),Y=v=>H-pad-(v-ymin)/((ymax-ymin)||1)*(H-2*pad);
   const dots=pts.map(p=>{const fl=p.flag;return `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="${fl?4.4:2.3}" fill="${fl?'#FF6B7E':'#3D8BFF'}" fill-opacity="${fl?0.95:0.38}" ${p.pid?`class="spt" data-pid="${p.pid}"`:''}><title>${esc(p.name)} — avg ${p.x}, SR ${p.y}</title></circle>`;}).join('');
-  const labs=pts.filter(p=>p.flag).sort((a,b)=>Math.abs(b.z)-Math.abs(a.z)).slice(0,6).map(p=>`<text x="${(X(p.x)+6).toFixed(1)}" y="${(Y(p.y)-6).toFixed(1)}" fill="#ECF2FC" font-size="10" font-weight="600">${esc(p.name)}</text>`).join('');
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">
     <line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="#2C3A50"/><line x1="${pad}" y1="${pad}" x2="${pad}" y2="${H-pad}" stroke="#2C3A50"/>
     <text x="${W/2}" y="${H-6}" text-anchor="middle" fill="#5A6884" font-size="10">Average →</text>
     <text x="12" y="${H/2}" transform="rotate(-90 12 ${H/2})" text-anchor="middle" fill="#5A6884" font-size="10">Strike rate →</text>
-    ${dots}${labs}</svg>`;
+    ${dots}</svg>`;
 }
 function galaxySVG(c){
   const ps=Object.entries(c.players||{}).filter(([id,p])=>p.qualified&&p.pct&&p.pct.sr!=null&&p.pct.avg!=null).sort((a,b)=>(b[1].runs||0)-(a[1].runs||0)).slice(0,220);
