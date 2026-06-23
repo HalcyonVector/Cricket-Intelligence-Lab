@@ -1,0 +1,35 @@
+# Large raw inputs & generated DB (exceed GitHub's 100 MB per-file limit)
+all_json.zip
+*.zip
+cil.db
+*.db
+*.db-wal
+*.db-shm
+
+# Superseded monolithic bundle (replaced by cohorts/*.js + index.js)
+web/dashboard/data.js
+
+# API-only per-cohort JSON; regenerate with build_all.py
+web/data/
+
+# Local server runtime cache (photo URLs etc., created by serve.py)
+.cache/
+
+# Diagnostic dumps from probe/rankings scripts
+scripts/_debug_*.html
+scripts/_espn_*.json
+scripts/_cb_*.html
+probe_output.txt
+
+# Old corrupted git history, moved aside during the clean re-init (delete manually)
+.git_old/
+
+# Python / Node / OS junk
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+node_modules/
+.DS_Store
+.env
