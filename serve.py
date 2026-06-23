@@ -43,6 +43,7 @@ CB_MATCH = "https://www.cricbuzz.com/live-cricket-scores/{mid}"
 CB_SCORECARD = "https://www.cricbuzz.com/live-cricket-scorecard/{mid}/{slug}"
 CB_SQUADS_URL = "https://www.cricbuzz.com/cricket-match-squads/{mid}/{slug}"
 CB_COMMENTARY = "https://www.cricbuzz.com/live-cricket-scores/{mid}/{slug}"
+CB_FULLCOMM = "https://www.cricbuzz.com/live-cricket-full-commentary/{mid}/{slug}"
 CB_FACTS = "https://www.cricbuzz.com/cricket-match-facts/{mid}/{slug}"
 DB = os.path.join(ROOT, "cil.db")  # ball-by-ball SQLite, present after build_all.py
 HEADERS = {
@@ -439,30 +440,84 @@ def _parse_squads(html):
     return [{"team": k, "players": v} for k, v in teams.items()]
 
 
-def _parse_commentary(html):
-    s = _decode_next_stream(html)
-    ents = []
-    for o in _balanced_objects(s, '{"matchId":'):
-        if '"commText"' not in o:
+def _all_objects(s):
+    """Yield every balanced {...} object substring in s (all nesting depths),
+    respecting JSON string escaping. Lets us find commentary entries regardless
+    of their key order or how deeply Cricbuzz nests them."""
+    stack = []
+    in_str = False
+    esc = False
+    for i, c in enumerate(s):
+        if in_str:
+            if esc:
+                esc = False
+            elif c == "\\":
+                esc = True
+            elif c == '"':
+                in_str = False
+        else:
+            if c == '"':
+                in_str = True
+            elif c == "{":
+                stack.append(i)
+            elif c == "}" and stack:
+                st = stack.pop()
+                yield s[st:i + 1]
+
+
+def _apply_formats(txt, fmts):
+    """Cricbuzz full-commentary embeds tokens (e.g. B0$) replaced by commentaryFormats."""
+    if not txt or not isinstance(fmts, dict):
+        return txt
+    for info in fmts.values():
+        if not isinstance(info, dict):
             continue
-        try:
-            d = json.loads(o)
-        except Exception:
-            continue
-        txt = d.get("commText") or ""
-        if re.match(r"^\$\w+$", txt.strip()):
-            continue
-        ev = [e for e in (d.get("event") or []) if e not in ("all", "none")]
-        osp = d.get("overSeparator")
-        ov = None
-        if isinstance(osp, dict):
-            bt = osp.get("batTeamObj") or {}
-            ov = {"over": osp.get("overNumber"), "runs": osp.get("overRuns"),
-                  "score": bt.get("teamScore"), "team": bt.get("teamName")}
-        ents.append({"ts": d.get("timestamp") or 0, "inn": d.get("inningsId"),
-                     "text": txt, "events": ev, "over": ov})
+        ids = info.get("formatId") or []
+        vals = info.get("formatValue") or []
+        for i, tok in enumerate(ids):
+            if tok:
+                txt = txt.replace(tok, vals[i] if i < len(vals) else "")
+    return txt
+
+
+def _commentary_entries(s):
+    """Parse commentary from a decoded next-stream. Handles both the live page
+    (flat {"matchId":...commText...} objects, latest ~20 balls) and the full
+    commentary page (nested commentary[].commentaryList[] {"commText":...} entries
+    for the whole innings)."""
+    ents, seen = [], set()
+    for o in _all_objects(s):
+        if o.count('"commText"') == 1:   # innermost commentary entry (not the container)
+            try:
+                d = json.loads(o)
+            except Exception:
+                continue
+            if "commText" not in d:
+                continue
+            txt = _apply_formats(d.get("commText") or "", d.get("commentaryFormats"))
+            t = txt.strip()
+            if not t or re.match(r"^\$\w+$", t):
+                continue
+            ts = d.get("timestamp") or 0
+            key = (ts, d.get("ballNbr"), t[:48])
+            if key in seen:
+                continue
+            seen.add(key)
+            ev = [e for e in (d.get("event") or []) if str(e).lower() not in ("all", "none")]
+            osp = d.get("overSeparator")
+            ov = None
+            if isinstance(osp, dict):
+                bt = osp.get("batTeamObj") or {}
+                ov = {"over": osp.get("overNumber"), "runs": osp.get("overRuns"),
+                      "score": bt.get("teamScore"), "team": bt.get("teamName")}
+            ents.append({"ts": ts, "inn": d.get("inningsId"),
+                         "text": txt, "events": ev, "over": ov})
     ents.sort(key=lambda x: x["ts"], reverse=True)
     return ents
+
+
+def _parse_commentary(html):
+    return _commentary_entries(_decode_next_stream(html))
 
 
 def _parse_facts(html):
@@ -476,8 +531,22 @@ def _parse_facts(html):
 
 
 def get_commentary(mid, slug=None):
-    return cached(f"comm:{mid}:{slug or ''}", 25,
-                  lambda: {"commentary": _parse_commentary(_http_get(CB_COMMENTARY.format(mid=mid, slug=slug or "x")))})
+    def build():
+        slg = slug or "x"
+        full = []
+        try:
+            full = _parse_commentary(_http_get(CB_FULLCOMM.format(mid=mid, slug=slg)))
+        except Exception:
+            full = []
+        live = []
+        if len(full) < 20:  # full page empty/short (e.g. not yet live) -> use live page
+            try:
+                live = _parse_commentary(_http_get(CB_COMMENTARY.format(mid=mid, slug=slg)))
+            except Exception:
+                live = []
+        use_full = len(full) >= len(live)
+        return {"commentary": full if use_full else live, "full": use_full and len(full) >= 20}
+    return cached(f"comm:{mid}:{slug or ''}", 25, build)
 
 
 def get_facts(mid, slug=None):
@@ -603,25 +672,54 @@ def get_player(name=None, url=None, cid=None):
     return cached("pl:" + url, 3600, lambda: _parse_player(_http_get(url)))
 
 
-def get_teams(fmt=None, gender=None, intl=False, league=None):
-    """Team table for a cohort, from cil.db dim_match (matches, wins, win%)."""
+def get_teams(fmt=None, gender=None, intl=False, league=None, xleagues=None):
+    """Team table for a cohort, from cil.db dim_match (matches, wins, win%).
+
+    dim_match has no team_type column. International T20 is format='it20'
+    (domestic T20 is 't20'); ODI/Test are shared between intl and domestic,
+    so for intl ODI/Test we exclude the known domestic-competition leagues
+    (passed by the dashboard as xleagues='League A|League B|...').
+    Domestic cohorts filter directly by league name.
+    """
     if not os.path.isfile(DB):
         return None
-    key = f"teams:{fmt}|{gender}|{intl}|{league}"
+    key = f"teams:{fmt}|{gender}|{intl}|{league}|{hash(xleagues or '')}"
     def build():
         import sqlite3
         con = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
         con.row_factory = sqlite3.Row
+        cols = {r[1] for r in con.execute("PRAGMA table_info(dim_match)")}
+        has_tt = "team_type" in cols   # correct schema (rebuilt via build_all.py)
         where, args = [], []
-        if fmt:
-            where.append("format=?"); args.append(fmt)
-        if intl:
-            where.append("team_type='international'")
+        if has_tt:
+            # Proper classification: fmt is normalized (t20/odi/test); intl vs club
+            # comes straight from Cricsheet's team_type.
+            if fmt:
+                where.append("format=?"); args.append(fmt)
             if gender:
                 where.append("gender=?"); args.append(gender)
-        else:
-            if league:
+            where.append("team_type=?"); args.append("international" if intl else "club")
+            if not intl and league:
                 where.append("league=?"); args.append(league)
+        else:
+            # Stale DB (no team_type): T20Is live under format 'it20' (associates only);
+            # ODI/Test mix intl+domestic, so exclude known domestic leagues for intl.
+            if intl:
+                efmt = "it20" if fmt == "t20" else fmt
+                if efmt:
+                    where.append("format=?"); args.append(efmt)
+                if gender:
+                    where.append("gender=?"); args.append(gender)
+                xs = [x for x in (xleagues or "").split("|") if x.strip()]
+                if xs:
+                    ph = ",".join("?" * len(xs))
+                    where.append(f"(league IS NULL OR league NOT IN ({ph}))")
+                    args.extend(xs)
+            else:
+                if fmt:
+                    where.append("format=?"); args.append(fmt)
+                if league:
+                    where.append("league=?"); args.append(league)
         wsql = (" WHERE " + " AND ".join(where)) if where else ""
         q = f"""WITH m AS (SELECT team_a a, team_b b, winner w FROM dim_match{wsql})
                 SELECT team, COUNT(*) mp, SUM(win) wins FROM (
@@ -693,7 +791,8 @@ class H(BaseHTTPRequestHandler):
                 return self._send(200 if d else 404, d or {"error": "no career data (is cil.db present?)"})
             if path == "/api/teams":
                 d = get_teams(fmt=g("fmt") or None, gender=g("gender") or None,
-                              intl=g("intl") == "1", league=g("league") or None)
+                              intl=g("intl") == "1", league=g("league") or None,
+                              xleagues=g("xleagues") or None)
                 return self._send(200 if d else 404, d or {"error": "no team data (is cil.db present?)"})
             if path == "/api/player":
                 p = get_player(name=g("name"), url=g("url"), cid=g("id"))
