@@ -46,6 +46,12 @@ CB_COMMENTARY = "https://www.cricbuzz.com/live-cricket-scores/{mid}/{slug}"
 CB_FULLCOMM = "https://www.cricbuzz.com/live-cricket-full-commentary/{mid}/{slug}"
 CB_FACTS = "https://www.cricbuzz.com/cricket-match-facts/{mid}/{slug}"
 DB = os.path.join(ROOT, "cil.db")  # ball-by-ball SQLite, present after build_all.py
+_BUILD_LOCK = os.path.join(ROOT, ".build.lock")
+
+
+def _db_ready():
+    """True only when cil.db exists and no build is mid-swap (build_all.py holds .build.lock)."""
+    return os.path.isfile(DB) and not os.path.exists(_BUILD_LOCK)
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                   "(KHTML, like Gecko) Chrome/124.0 Safari/537.36",
@@ -331,7 +337,7 @@ def get_match(mid, slug=None):
 
 def get_career(pid):
     """Per-year batting line for one player, queried live from cil.db (all formats in coverage)."""
-    if not os.path.isfile(DB):
+    if not _db_ready():
         return None
     def build():
         import sqlite3
@@ -360,6 +366,37 @@ def get_career(pid):
                           "sr": round(100 * runs / balls, 1) if balls else 0})
         return {"pid": pid, "years": years}
     return cached("career:" + pid, 3600, build)
+
+
+def get_player_venues(pid):
+    """Per-venue batting line for one player, from cil.db (top venues by runs)."""
+    if not _db_ready():
+        return None
+    def build():
+        import sqlite3
+        con = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
+        con.row_factory = sqlite3.Row
+        q = """SELECT m.venue AS venue, m.city AS city,
+                 SUM(d.runs_batter) AS runs,
+                 SUM(CASE WHEN d.extra_type IS NULL OR d.extra_type<>'wides' THEN 1 ELSE 0 END) AS balls,
+                 COUNT(DISTINCT d.match_id || '-' || d.innings_no) AS inns,
+                 SUM(CASE WHEN d.player_out_id=d.batter_id THEN 1 ELSE 0 END) AS outs
+               FROM fact_delivery d JOIN dim_match m ON d.match_id=m.match_id
+               WHERE d.batter_id=? AND m.venue IS NOT NULL AND m.venue<>''
+               GROUP BY m.venue HAVING balls>0 ORDER BY runs DESC LIMIT 14"""
+        try:
+            rows = con.execute(q, (pid,)).fetchall()
+        finally:
+            con.close()
+        out = []
+        for r in rows:
+            runs, balls, outs, inns = (r["runs"] or 0), (r["balls"] or 0), (r["outs"] or 0), (r["inns"] or 0)
+            out.append({"venue": r["venue"], "city": r["city"] or "", "runs": runs,
+                        "balls": balls, "inns": inns,
+                        "avg": round(runs / outs, 1) if outs else runs,
+                        "sr": round(100 * runs / balls, 1) if balls else 0})
+        return {"pid": pid, "venues": out}
+    return cached("pvenue:" + pid, 3600, build)
 
 
 
@@ -730,7 +767,7 @@ def get_teams(fmt=None, gender=None, intl=False, league=None, xleagues=None):
     (passed by the dashboard as xleagues='League A|League B|...').
     Domestic cohorts filter directly by league name.
     """
-    if not os.path.isfile(DB):
+    if not _db_ready():
         return None
     key = f"teams:{fmt}|{gender}|{intl}|{league}|{hash(xleagues or '')}"
     def build():
@@ -838,6 +875,10 @@ class H(BaseHTTPRequestHandler):
                 pid = g("pid")
                 d = get_career(pid) if pid else None
                 return self._send(200 if d else 404, d or {"error": "no career data (is cil.db present?)"})
+            if path == "/api/venues_player":
+                pid = g("pid")
+                d = get_player_venues(pid) if pid else None
+                return self._send(200 if d else 404, d or {"error": "no venue data (is cil.db present?)"})
             if path == "/api/teams":
                 d = get_teams(fmt=g("fmt") or None, gender=g("gender") or None,
                               intl=g("intl") == "1", league=g("league") or None,
@@ -879,7 +920,7 @@ class H(BaseHTTPRequestHandler):
 def main():
     print(f"Cricket Intelligence Lab  ->  http://127.0.0.1:{PORT}")
     print("(Live / Schedule / Results / Match / Player profiles use Cricbuzz - no browser needed.)")
-    ThreadingHTTPServer(("127.0.0.1", PORT), H).serve_forever()
+    ThreadingHTTPServer(("0.0.0.0", PORT), H).serve_forever()  # 0.0.0.0 so cloud hosts can reach it
 
 
 if __name__ == "__main__":
