@@ -510,7 +510,9 @@ def _commentary_entries(s):
                 bt = osp.get("batTeamObj") or {}
                 ov = {"over": osp.get("overNumber"), "runs": osp.get("overRuns"),
                       "score": bt.get("teamScore"), "team": bt.get("teamName")}
+            bm = d.get("ballMetric")
             ents.append({"ts": ts, "inn": d.get("inningsId"),
+                         "ball": bm if isinstance(bm, (int, float)) else None,
                          "text": txt, "events": ev, "over": ov})
     ents.sort(key=lambda x: x["ts"], reverse=True)
     return ents
@@ -530,23 +532,70 @@ def _parse_facts(html):
     return out
 
 
+# Cricbuzz only server-renders the latest ~2 overs and loads older commentary via
+# internal Next.js server actions (no stable GET endpoint). So we ACCUMULATE: each
+# poll merges the newest balls into a per-match store on disk, building the whole
+# innings over the course of the match. Keyed by (timestamp, ballNbr, text) so
+# repeated polls don't duplicate.
+_comm_store: dict = {}
+_comm_lock = threading.Lock()
+
+
+def _comm_path(mid):
+    return os.path.join(CACHE, f"comm_{mid}.json")
+
+
+def _comm_load(mid):
+    if mid in _comm_store:
+        return _comm_store[mid]
+    d = {}
+    try:
+        with open(_comm_path(mid), encoding="utf-8") as f:
+            for e in json.load(f):
+                d[_comm_key(e)] = e
+    except Exception:
+        pass
+    _comm_store[mid] = d
+    return d
+
+
+def _comm_save(mid, d):
+    try:
+        with open(_comm_path(mid), "w", encoding="utf-8") as f:
+            json.dump(list(d.values()), f)
+    except Exception:
+        pass
+
+
+def _comm_key(e):
+    return f"{e.get('ts')}|{e.get('inn')}|{(e.get('text') or '')[:48]}"
+
+
 def get_commentary(mid, slug=None):
-    def build():
-        slg = slug or "x"
-        full = []
-        try:
-            full = _parse_commentary(_http_get(CB_FULLCOMM.format(mid=mid, slug=slg)))
-        except Exception:
-            full = []
-        live = []
-        if len(full) < 20:  # full page empty/short (e.g. not yet live) -> use live page
+    slg = slug or "x"
+    # poll the live + full pages at most every 20s, merge whatever they expose now
+    def fetch_now():
+        ents = []
+        for url in (CB_COMMENTARY.format(mid=mid, slug=slg),
+                    CB_FULLCOMM.format(mid=mid, slug=slg)):
             try:
-                live = _parse_commentary(_http_get(CB_COMMENTARY.format(mid=mid, slug=slg)))
+                ents += _parse_commentary(_http_get(url))
             except Exception:
-                live = []
-        use_full = len(full) >= len(live)
-        return {"commentary": full if use_full else live, "full": use_full and len(full) >= 20}
-    return cached(f"comm:{mid}:{slug or ''}", 25, build)
+                pass
+        return ents
+    page = cached(f"commpage:{mid}", 20, fetch_now)
+    with _comm_lock:
+        store = _comm_load(mid)
+        changed = False
+        for e in page:
+            k = _comm_key(e)
+            if k not in store:
+                store[k] = e
+                changed = True
+        if changed:
+            _comm_save(mid, store)
+        ents = sorted(store.values(), key=lambda x: x.get("ts") or 0, reverse=True)
+    return {"commentary": ents, "full": len(ents) > 25, "accumulated": len(ents)}
 
 
 def get_facts(mid, slug=None):
