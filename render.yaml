@@ -1,0 +1,9 @@
+# One-click deploy config for Render (https://render.com).
+# Dashboard → New → Blueprint → connect this repo → Apply. Free plan, no card.
+services:
+  - type: web
+    name: cricket-intelligence-lab
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python serve.py

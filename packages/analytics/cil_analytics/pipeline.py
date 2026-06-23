@@ -194,6 +194,88 @@ def linfit(pids, x, y, names, z_thresh=2.5):
     return {"slope": round(float(slope), 4), "intercept": round(float(intercept), 4), "points": pts}
 
 
+def top_partnerships(conn, names, limit=300):
+    """Wicket-delimited partnership stands across the cohort, biggest first.
+    A stand = runs (incl. extras) added while the same two batsmen are at the crease,
+    ended by any dismissal. Walks deliveries in order (cheap single pass)."""
+    rows = _rows(conn, """SELECT match_id, innings_no, over_no, ball_in_over,
+        batter_id, non_striker_id, runs_batter, runs_extras, extra_type, player_out_id
+        FROM sd ORDER BY match_id, innings_no, over_no, ball_in_over""")
+    stands, cur, last_mi = [], None, None
+
+    def flush():
+        nonlocal cur
+        if cur and len(cur["bats"]) == 2:
+            a, b = sorted(cur["bats"])
+            stands.append((a, b, cur["runs"], cur["balls"]))
+        cur = None
+
+    for r in rows:
+        mi = (r["match_id"], r["innings_no"])
+        if mi != last_mi:
+            flush(); last_mi = mi
+        if cur is None:
+            cur = {"runs": 0, "balls": 0, "bats": set()}
+        cur["runs"] += (r["runs_batter"] or 0) + (r["runs_extras"] or 0)
+        if r["extra_type"] in (None, "byes", "legbyes"):
+            cur["balls"] += 1
+        if r["batter_id"]:
+            cur["bats"].add(r["batter_id"])
+        if r["non_striker_id"]:
+            cur["bats"].add(r["non_striker_id"])
+        if r["player_out_id"]:
+            flush()
+    flush()
+    stands.sort(key=lambda s: s[2], reverse=True)
+    out = []
+    for a, b, runs, balls in stands[:limit]:
+        out.append({"p1": a, "p2": b, "n1": names.get(a, a), "n2": names.get(b, b),
+                    "runs": runs, "balls": balls,
+                    "rr": round(100 * runs / balls, 1) if balls else 0})
+    return out
+
+
+def top_spells(conn, names, limit=200, min_balls=12, gap=3):
+    """Best bowling spells. A spell = a bowler's run of overs in one innings with only
+    small gaps between them (they bowl ~every other over from one end); a rest of more
+    than `gap` overs starts a new spell. Runs/balls follow bowling_table convention.
+    Ranked by wickets, then economy."""
+    wkt_bowler = ("bowled", "caught", "lbw", "stumped", "caught and bowled", "hit wicket")
+    rows = _rows(conn, """SELECT match_id, innings_no, over_no, bowler_id,
+        runs_batter, runs_extras, extra_type, wicket_kind FROM sd
+        ORDER BY match_id, innings_no, over_no, ball_in_over""")
+    ov = defaultdict(lambda: defaultdict(lambda: [0, 0, 0]))   # (m,inn,bowler) -> over -> [runs,balls,wkts]
+    for r in rows:
+        if not r["bowler_id"]:
+            continue
+        cell = ov[(r["match_id"], r["innings_no"], r["bowler_id"])][r["over_no"]]
+        cell[0] += (r["runs_batter"] or 0) + (r["runs_extras"] or 0)
+        if r["extra_type"] in (None, "byes", "legbyes"):
+            cell[1] += 1
+        if r["wicket_kind"] in wkt_bowler:
+            cell[2] += 1
+    spells = []
+    for (mid, _inn, bowler), overs in ov.items():
+        cur, prev = None, None
+        for o in sorted(overs):
+            if cur is None or o - prev > gap:
+                if cur and cur["balls"] >= min_balls:
+                    spells.append(cur)
+                cur = {"bowler": bowler, "runs": 0, "balls": 0, "wkts": 0, "overs": 0, "match_id": mid}
+            c = overs[o]
+            cur["runs"] += c[0]; cur["balls"] += c[1]; cur["wkts"] += c[2]; cur["overs"] += 1
+            prev = o
+        if cur and cur["balls"] >= min_balls:
+            spells.append(cur)
+    spells.sort(key=lambda s: (-s["wkts"], s["runs"] / max(s["balls"], 1)))
+    out = []
+    for s in spells[:limit]:
+        out.append({"pid": s["bowler"], "name": names.get(s["bowler"], s["bowler"]),
+                    "overs": s["overs"], "balls": s["balls"], "runs": s["runs"], "wkts": s["wkts"],
+                    "econ": round(6 * s["runs"] / s["balls"], 2) if s["balls"] else 0})
+    return out
+
+
 def build_cohort(conn, spec, names):
     n, cov = make_scope(conn, spec)
     if n == 0:
@@ -423,6 +505,13 @@ def build_cohort(conn, spec, names):
                 "boundary_vs_dot": {"x": "Boundary %", "y": "Dot %", **pair("boundary_pct", "dot_pct")},
                 "avg_vs_consistency": {"x": "Average", "y": "Consistency %", **pair("avg", "consistency")}}
 
+    qbs = [p for p in qbowl if bowl[p].get("bowl_sr") is not None]
+    def bpair(mx, my):
+        return linfit(qbs, [bowl[p][mx] for p in qbs], [bowl[p][my] for p in qbs],
+                      [names.get(p, p) for p in qbs])
+    bowl_outliers = {"econ_vs_sr": {"x": "Economy", "y": "Strike Rate", **bpair("economy", "bowl_sr")},
+                     "dot_vs_econ": {"x": "Dot %", "y": "Economy", **bpair("dot_pct", "economy")}}
+
     venues = []
     CV = "TRIM(CASE WHEN instr(m.venue,',')>0 THEN substr(m.venue,1,instr(m.venue,',')-1) ELSE m.venue END)"
     vcounts = _rows(conn, f"""SELECT {CV} v, MAX(m.city) city, COUNT(*) c
@@ -510,7 +599,19 @@ def build_cohort(conn, spec, names):
                      "archetypes": dict(arch_dist)},
             "players": bat, "bowlers": bowl,
             "matchups_top": sorted(matchups, key=lambda x: x["balls"], reverse=True)[:400],
-            "outliers": outliers, "venues": venues, "records": records}
+            "outliers": outliers, "bowl_outliers": bowl_outliers, "venues": venues, "records": records,
+            "partnerships": top_partnerships(conn, names),
+            "spells": top_spells(conn, names)}
+
+
+def _awrite(path, data):
+    """Atomic write: temp file + fsync + os.replace, so a reader never sees a half-written file."""
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
+        f.write(data)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, path)
 
 
 def build(db="cil.db", outdir="web/data", jsdir="web/dashboard/cohorts"):
@@ -531,12 +632,11 @@ def build(db="cil.db", outdir="web/data", jsdir="web/dashboard/cohorts"):
         if not b or b["meta"]["n_batters"] < 4:
             print(f"  {spec['key']}: too small, skipped"); continue
         payload = json.dumps(b, separators=(",", ":"))
-        with open(jpath, "w") as f:
-            f.write(payload)
-        with open(os.path.join(jsdir, f"{spec['key']}.js"), "w") as f:
-            f.write(f"window.__cohortLoaded({json.dumps(spec['key'])},{payload});")
-        with open(os.path.join(outdir, f"{spec['key']}.meta.json"), "w") as f:
-            json.dump({**b["meta"], "bytes": len(payload)}, f)
+        _awrite(jpath, payload)
+        _awrite(os.path.join(jsdir, f"{spec['key']}.js"),
+                f"window.__cohortLoaded({json.dumps(spec['key'])},{payload});")
+        _awrite(os.path.join(outdir, f"{spec['key']}.meta.json"),
+                json.dumps({**b["meta"], "bytes": len(payload)}))
         print(f"  {spec['key']}: {b['meta']['n_batters']}bat/{b['meta']['n_bowlers']}bowl "
               f"({b['meta']['n_qual_bat']}q) {b['meta']['matches']}m "
               f"{b['meta']['coverage_from']}..{b['meta']['coverage_to']} {len(payload)//1024}KB {time.time()-t:.1f}s")
@@ -546,10 +646,9 @@ def build(db="cil.db", outdir="web/data", jsdir="web/dashboard/cohorts"):
         mp = os.path.join(outdir, f"{spec['key']}.meta.json")
         if os.path.exists(mp):
             index["cohorts"].append(json.load(open(mp)))
-    with open(os.path.join(outdir, "index.json"), "w") as f:
-        json.dump(index, f, indent=2)
-    with open(os.path.join(os.path.dirname(jsdir), "index.js"), "w") as f:
-        f.write("window.CIL_INDEX=" + json.dumps(index, separators=(",", ":")) + ";")
+    _awrite(os.path.join(outdir, "index.json"), json.dumps(index, indent=2))
+    _awrite(os.path.join(os.path.dirname(jsdir), "index.js"),
+            "window.CIL_INDEX=" + json.dumps(index, separators=(",", ":")) + ";")
     conn.close()
     return index
 

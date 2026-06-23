@@ -216,6 +216,14 @@
  .dcard .dic{color:var(--muted);height:16px;line-height:0}
  .dic-svg{vertical-align:-3px}
  .trh .dic-svg,.dtop .dic-svg{vertical-align:-2px}
+ .trend{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+ .trcol{min-width:0}
+ .trh{display:flex;align-items:center;gap:7px;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:8px}
+ .trrow{display:flex;align-items:center;gap:10px;padding:7px 2px;border-bottom:1px solid var(--hair)}
+ .trrow .plink{flex:1;min-width:0;color:var(--ink);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+ .trrow .plink:hover{color:var(--accent2)}
+ .trrow .num{color:var(--muted);font-weight:700;flex:none}
+ @media(max-width:820px){.trend{grid-template-columns:1fr}}
  .dcard .dt{font-weight:720;font-size:13.5px;margin-top:6px}
  .dcard .dd{color:var(--dim);font-size:11px;margin-top:1px}
  .dcard .dtop{margin-top:9px;font-size:11.5px;color:var(--muted);border-top:1px solid var(--hair);padding-top:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -374,6 +382,31 @@
  input,textarea{background:var(--panel2);color:var(--ink);border:1px solid var(--hair2);border-radius:8px;padding:9px 11px;font-size:12.5px;outline:none;font-family:inherit}
  input::placeholder,textarea::placeholder{color:var(--dim)}
  input:focus,textarea:focus{border-color:#3A4760}
+
+ .cmdk-ov{position:fixed;inset:0;background:rgba(3,6,12,.66);backdrop-filter:blur(3px);z-index:200;display:none;align-items:flex-start;justify-content:center}
+ .cmdk-ov.on{display:flex}
+ .cmdk{margin-top:11vh;width:min(620px,92vw);background:linear-gradient(180deg,var(--panel),#0A0F18);border:1px solid var(--hair2);border-radius:14px;box-shadow:0 28px 90px rgba(0,0,0,.6);overflow:hidden}
+ .cmdk input{width:100%;border:none;border-bottom:1px solid var(--hair);background:transparent;color:var(--ink);font-size:15px;padding:15px 17px;outline:none;font-family:inherit}
+ .cmdk-list{max-height:52vh;overflow:auto;padding:6px}
+ .cmdk-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;cursor:pointer}
+ .cmdk-item.sel{background:var(--panel2)}
+ .cmdk-item .ci-l{color:var(--ink);font-size:13.5px}
+ .cmdk-item .ci-t{font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--dim);font-family:var(--mono)}
+ .cmdk-hint{padding:8px 13px;border-top:1px solid var(--hair);color:var(--dim);font-size:10.5px;display:flex;gap:16px}
+ .cmdk-hint b{color:var(--muted);font-weight:600}
+
+/* discovery hero (restored) */
+ .dhero{position:relative;border:1px solid var(--hair2);border-radius:18px;padding:26px 28px;margin-top:18px;overflow:hidden;
+   background:radial-gradient(900px 300px at 12% -40%,rgba(61,139,255,.18),transparent 60%),linear-gradient(135deg,rgba(155,123,255,.10),rgba(10,15,24,.4)),var(--panel)}
+ .dh-kic{font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:.22em;color:var(--accent2);opacity:.8}
+ .dh-lbl{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);font-weight:700;margin-top:12px}
+ .dh-head{font-size:27px;font-weight:780;letter-spacing:-.02em;margin:6px 0 8px;line-height:1.15;max-width:880px;background:linear-gradient(90deg,#fff,#cfe0ff);-webkit-background-clip:text;background-clip:text;color:transparent;cursor:pointer}
+ .dh-body{color:var(--muted);font-size:15px;line-height:1.6;max-width:820px}
+ .dh-meta{display:flex;gap:12px;align-items:center;margin-top:14px}
+ .conf{font-family:var(--mono);font-size:10px;font-weight:800;letter-spacing:.08em;padding:4px 10px;border-radius:999px;text-transform:uppercase}
+ .conf-high{background:rgba(51,209,122,.13);color:#33D17A;border:1px solid rgba(51,209,122,.3)}
+ .conf-medium{background:rgba(255,180,84,.13);color:#FFB454;border:1px solid rgba(255,180,84,.3)}
+ .conf-low{background:rgba(138,148,166,.13);color:#8A94A6;border:1px solid rgba(138,148,166,.3)}
 </style>
 </head>
 <body>
@@ -422,7 +455,7 @@ const COH = {};                 // lazily loaded cohort bundles, keyed by cohort
 window.__cohortLoaded=(k,d)=>{ COH[k]=d; };
 
 const ARCH_COLOR={Anchor:"#6FB0FF",Accumulator:"#33D17A",Aggressor:"#FF6B7E",Finisher:"#FFB454",Rotator:"#8A94A6"};
-const CRED_NOTE='Credibility weighting: rate metrics are regressed toward the cohort mean by w = cr\u00b2, where cr = balls \u00f7 (balls + K) and K is a format-aware sample size (K\u2248 1800 balls for T20, 3500 ODI, 5000 Test). Small samples are pulled to the mean so they cannot top the boards.';
+const CRED_NOTE='Rate-stat boards rank by the value shown. A format-aware minimum-ball qualifier (noted above) is applied first, so two-ball wonders are excluded while the order matches the displayed number.';
 const FMT_COLOR={t20:"#FF6B7E",odi:"#33D17A",test:"#FFB454"};
 const METRICS=[["avg","Average"],["sr","Strike Rate"],["boundary_pct","Boundary %"],["dot_pct","Dot %"],
  ["rps","Runs/Scoring Shot"],["boundary_dep","Boundary Dependency %"],["consistency","Consistency"],
@@ -432,7 +465,30 @@ const METRICS=[["avg","Average"],["sr","Strike Rate"],["boundary_pct","Boundary 
  ["pressure_sr","Pressure SR (chase)"],["clutch_index","Clutch Index"],["win_sr_ratio","Win-SR Ratio"],["era_index","Era-Adjusted Index"],["collapse_resist","Collapse Resistance"],["partner_dep","Partnership Dependence"]];
 function mval(p,k){ if(k==="death_sr") return p.phases&&p.phases.death?p.phases.death.sr:null; return p[k]; }
 
-let state={cohort:(IDX.cohorts[0]||{}).key,view:"home",player:null};
+let state={cohort:(IDX.cohorts[0]||{}).key,view:"home",player:null,bowler:null};
+let _hashLock=false;
+let _liveTimers=[];
+function regTimer(id){_liveTimers.push(id);return id;}
+function clearLiveTimers(){_liveTimers.forEach(clearInterval);_liveTimers=[];}
+function stateToHash(){
+  const q=new URLSearchParams();
+  if(state.cohort)q.set('c',state.cohort);
+  if(state.view&&state.view!=='home')q.set('v',state.view);
+  if(state.player)q.set('p',state.player);
+  if(state.bowler)q.set('b',state.bowler);
+  if(state.netPlayer&&state.view==='network')q.set('n',state.netPlayer);
+  const h='#'+q.toString();
+  if(location.hash!==h){_hashLock=true;location.hash=h;}
+}
+function hashToState(){
+  const q=new URLSearchParams(location.hash.replace(/^#/,''));
+  const c=q.get('c');
+  if(c&&IDX.cohorts.some(x=>x.key===c))state.cohort=c;
+  state.view=q.get('v')||'home';
+  state.player=q.get('p')||null;
+  state.bowler=q.get('b')||null;
+  state.netPlayer=q.get('n')||null;
+}
 const meta=(k)=>IDX.cohorts.find(c=>c.key===k)||{};
 const cur=()=>COH[state.cohort];
 const $=(h)=>{const t=document.createElement('template');t.innerHTML=h.trim();return t.content.firstChild;};
@@ -444,7 +500,7 @@ const hideTip=()=>tip.style.display='none';
 function _isId(n){return /^[0-9a-f]{6,}$/i.test((n||'').trim());}
 function initials(name){return (name||"?").replace(/[^A-Za-z ]/g,"").split(/\s+/).filter(Boolean).map(x=>x[0]).slice(0,2).join("").toUpperCase()||"?";}
 function _imgKeys(name){const t=(name||'').toLowerCase().replace(/[^a-z ]/g,'').split(/\s+/).filter(Boolean);if(!t.length)return [];return [t.join(''),t[t.length-1]+'|'+t[0][0]];}
-function playerImg(name,metaName){const M=window.CIL_PLAYERIMG||{};for(const n of [metaName,name]){if(!n)continue;for(const k of _imgKeys(n))if(M[k])return M[k];}return '';}
+function playerImg(name,metaName,pid){const M=window.CIL_PLAYERIMG||{},B=window.CIL_IMGBLOCK||{},BY=window.CIL_PLAYERIMG_BYID||{};if(pid!=null&&pid!==''){const k=BY[pid];return (k&&M[k])?M[k]:'';}for(const n of [metaName,name]){if(!n)continue;const ks=_imgKeys(n);for(let i=0;i<ks.length;i++){if(i===1&&B[ks[0]])continue;if(M[ks[i]])return M[ks[i]];}}return '';}
 function avatarHTML(name,url){return `<div class="avatar">${url?`<img src="${esc(url)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()"/>`:""}<span class="avini">${esc(initials(name))}</span></div>`;}
 function archPill(a){return a?`<span class="arch" style="background:${(ARCH_COLOR[a]||'#888')}22;color:${ARCH_COLOR[a]||'#aaa'}">${a}</span>`:'<span class="badge">unrated</span>';}
 function pctColor(p){return p>=66?'var(--pos)':p<=33?'var(--neg)':'var(--accent2)';}
@@ -472,33 +528,82 @@ function dropdown(items,value,onpick){
   el.setValue=v=>{const c=items.find(x=>String(x.v)===String(v));if(c)el.querySelector('.drop-cur').textContent=c.label;menu.querySelectorAll('.drop-o').forEach(o=>o.classList.toggle('on',o.dataset.v===String(v)));};
   return el;
 }
+function buildPaletteIndex(){
+  const items=[];
+  (window.MODES||[]).forEach(([mode,subs])=>subs.forEach(([v,lab])=>items.push({t:'view',k:v,label:lab,sub:mode})));
+  items.push({t:'view',k:'home',label:'Home',sub:'Discover'});
+  IDX.cohorts.forEach(c=>items.push({t:'cohort',k:c.key,label:c.label,sub:'Dataset'}));
+  const C=COH[state.cohort];
+  if(C&&C.players)for(const id in C.players){const pl=C.players[id];if(pl.name&&!_isId(pl.name))items.push({t:'player',k:id,label:pl.name,sub:pl.archetype||'Player'});}
+  if(C&&C.bowlers)for(const id in C.bowlers){const bl=C.bowlers[id];if(bl.name&&!_isId(bl.name))items.push({t:'bowler',k:id,label:bl.name,sub:'Bowler'});}
+  return items;
+}
+function setupPalette(){
+  const ov=document.createElement('div');ov.className='cmdk-ov';
+  ov.innerHTML=`<div class="cmdk"><input type="text" placeholder="Jump to a player, dataset, or view…" spellcheck="false"/><div class="cmdk-list"></div><div class="cmdk-hint"><span><b>↑↓</b> navigate</span><span><b>↵</b> open</span><span><b>esc</b> close</span><span style="margin-left:auto">players from current dataset</span></div></div>`;
+  document.body.appendChild(ov);
+  const inp=ov.querySelector('input'),list=ov.querySelector('.cmdk-list');
+  let items=[],filt=[],sel=0;
+  const scrollSel=()=>{const sx=list.querySelector('.cmdk-item.sel');if(sx&&sx.scrollIntoView)sx.scrollIntoView({block:'nearest'});};
+  function open(){items=buildPaletteIndex();inp.value='';sel=0;ov.classList.add('on');filter();setTimeout(()=>inp.focus(),0);}
+  function close(){ov.classList.remove('on');}
+  function filter(){const q=inp.value.toLowerCase().trim();
+    filt=!q?items.filter(i=>i.t!=='player').slice(0,40):items.filter(i=>i.label.toLowerCase().includes(q)).slice(0,50);
+    sel=0;draw();}
+  function draw(){
+    list.innerHTML=filt.map((i,n)=>`<div class="cmdk-item${n===sel?' sel':''}" data-n="${n}"><span class="ci-l">${esc(i.label)}</span><span class="ci-t">${esc(i.sub||i.t)}</span></div>`).join('')||'<div class="cmdk-item"><span class="ci-l note">No matches</span></div>';
+    list.querySelectorAll('.cmdk-item[data-n]').forEach(el=>{el.onmousemove=()=>{sel=+el.dataset.n;mark();};el.onclick=()=>activate(filt[+el.dataset.n]);});
+    scrollSel();}
+  function mark(){list.querySelectorAll('.cmdk-item').forEach((el,n)=>el.classList.toggle('sel',n===sel));}
+  function activate(it){if(!it)return;close();
+    if(it.t==='player'){state.player=it.k;state.bowler=null;}
+    else if(it.t==='bowler'){state.bowler=it.k;state.player=null;}
+    else if(it.t==='cohort'){state.cohort=it.k;state.player=null;state.bowler=null;}
+    else if(it.t==='view'){state.view=it.k;state.player=null;state.bowler=null;}
+    render();}
+  inp.oninput=filter;
+  ov.onclick=e=>{if(e.target===ov)close();};
+  document.addEventListener('keydown',e=>{
+    if((e.ctrlKey||e.metaKey)&&(e.key==='k'||e.key==='K')){e.preventDefault();ov.classList.contains('on')?close():open();return;}
+    if(!ov.classList.contains('on'))return;
+    if(e.key==='Escape'){e.preventDefault();close();}
+    else if(e.key==='ArrowDown'){e.preventDefault();sel=Math.min(sel+1,filt.length-1);mark();scrollSel();}
+    else if(e.key==='ArrowUp'){e.preventDefault();sel=Math.max(sel-1,0);mark();scrollSel();}
+    else if(e.key==='Enter'){e.preventDefault();activate(filt[sel]);}
+  });
+}
 function init(){
   if(!IDX.cohorts.length){document.getElementById('app').innerHTML='<div class="cov" style="margin-top:30px">No data found. Run <b>build_all.py</b> to generate cohort bundles, then open this file.</div>';return;}
   const groups=[["Men's Internationals",c=>c.intl&&c.gender==='male'],["Women's Internationals",c=>c.intl&&c.gender==='female'],
     ["Men's Domestic & Franchise",c=>!c.intl&&c.gender==='male'],["Women's Domestic & Franchise",c=>!c.intl&&c.gender==='female']];
   const ditems=[];groups.forEach(([lab,f])=>IDX.cohorts.filter(f).forEach(c=>ditems.push({v:c.key,label:c.label,group:lab})));
-  window._scopeDrop=dropdown(ditems,state.cohort,v=>{state.cohort=v;state.player=null;render();});
+  window._scopeDrop=dropdown(ditems,state.cohort,v=>{state.cohort=v;state.player=null;state.bowler=null;render();});
   document.getElementById('scopeHost').appendChild(window._scopeDrop);
   window.MODES=[
     ["DISCOVER",[["home","Overview"]]],
-    ["ANALYZE",[["players","Players"],["teams","Teams"],["compare","Compare"],["matchups","Matchups"],["network","Network"],["venues","Venues"]]],
+    ["ANALYZE",[["players","Batters"],["bowlers","Bowlers"],["teams","Teams"],["compare","Compare"],["matchups","Matchups"],["network","Network"],["venues","Venues"]]],
     ["RESEARCH",[["research","Research Lab"],["records","Records"]].concat(window.CIL_RANKINGS?[["rankings","ICC Rankings"]]:[])],
     ["LIVE",[["live","Live Scores"],["schedule","Schedule"]]],
   ];
   window.VIEW_MODE={};window.MODES.forEach(([mo,subs])=>subs.forEach(([v])=>window.VIEW_MODE[v]=mo));
   document.getElementById('modebar').innerHTML=window.MODES.map(([mo])=>`<button class="modebtn" data-m="${mo}">${mo}</button>`).join('');
-  document.querySelectorAll('.modebtn').forEach(b=>b.onclick=()=>{const subs=window.MODES.find(x=>x[0]===b.dataset.m)[1];state.view=subs[0][0];state.player=null;render();});
-  document.getElementById('home').onclick=()=>{state.view="home";state.player=null;render();};
+  document.querySelectorAll('.modebtn').forEach(b=>b.onclick=()=>{const subs=window.MODES.find(x=>x[0]===b.dataset.m)[1];state.view=subs[0][0];state.player=null;state.bowler=null;render();});
+  document.getElementById('home').onclick=()=>{state.view="home";state.player=null;state.bowler=null;render();};
   document.getElementById('srcnote').textContent=`${IDX.cohorts.length} competitions · generated ${(IDX.generated||'').slice(0,10)}`;
-  setupSearch();render();
+  setupPalette();
+  setupSearch();
+  if(location.hash.length>1)hashToState();
+  window.addEventListener('hashchange',()=>{if(_hashLock){_hashLock=false;return;}hashToState();render();});
+  render();
 }
 
 function render(){
+  stateToHash();
   const cm=(window.VIEW_MODE&&window.VIEW_MODE[state.view])||'DISCOVER';
   const subs=((window.MODES||[]).find(x=>x[0]===cm)||(window.MODES||[['',[]]])[0])[1]||[];
   const nav=document.getElementById('nav');
   nav.innerHTML=subs.map(([v,lab])=>`<button data-v="${v}">${esc(lab)}</button>`).join('');
-  nav.querySelectorAll('button').forEach(b=>b.onclick=()=>{state.view=b.dataset.v;state.player=null;render();});
+  nav.querySelectorAll('button').forEach(b=>b.onclick=()=>{state.view=b.dataset.v;state.player=null;state.bowler=null;render();});
   nav.style.display=subs.length>1?'flex':'none';
   document.querySelectorAll('.modebtn').forEach(b=>b.classList.toggle('on',b.dataset.m===cm));
   nav.querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.v===state.view));
@@ -515,9 +620,11 @@ function render(){
   paint(app);
 }
 function paint(app){
+  clearLiveTimers();
   app.innerHTML='';
-  if(state.player){app.appendChild(playerView(state.player));try{mountCareer(app,state.player);}catch(e){}}
-  else ({home:homeView,players:playersView,compare:compareView,matchups:matchupsView,
+  if(state.player){app.appendChild(playerView(state.player));try{mountCareer(app,state.player);}catch(e){}try{mountVenues(app,state.player);}catch(e){}}
+  else if(state.bowler){app.appendChild(bowlerProfile(state.bowler));}
+  else ({home:homeView,players:playersView,bowlers:bowlersView,compare:compareView,matchups:matchupsView,
     research:researchView,records:recordsView,venues:venuesView,rankings:rankingsView,live:liveView,schedule:scheduleView,network:networkView,teams:teamsView}[state.view]||homeView)(app);
   try{animateCounts(app);}catch(e){}
   window.scrollTo({top:0,behavior:'smooth'});
@@ -692,7 +799,7 @@ function homeView(app){
   // compact competition switcher
   const sw=$(`<div><div class="sechead">Switch competition · ${IDX.cohorts.length}</div><div class="compstrip"></div></div>`);
   sw.querySelector('.compstrip').innerHTML=IDX.cohorts.map(mm=>`<button class="cchip${mm.key===state.cohort?' on':''}" data-k="${mm.key}"><b>${esc(mm.label)}</b><span>${(mm.format||'').toUpperCase()} · ${(mm.matches||0).toLocaleString()}m</span></button>`).join('');
-  sw.querySelectorAll('.cchip').forEach(x=>x.onclick=()=>{state.cohort=x.dataset.k;state.player=null;render();});
+  sw.querySelectorAll('.cchip').forEach(x=>x.onclick=()=>{state.cohort=x.dataset.k;state.player=null;state.bowler=null;render();});
   app.appendChild(sw);
   wirePlinks(app);
 }
@@ -712,7 +819,7 @@ function donut(dist){
 function playersView(app){
   const c=cur(),m=c.meta;
   Object.entries(c.players).forEach(([id,p])=>{p._id=id;});
-  app.appendChild($(`<div><h1>Player Intelligence</h1><p class="sub">All ${m.n_batters.toLocaleString()} batters in coverage. Filter, sort any column, page through below. Click a row for the full report.</p></div>`));
+  app.appendChild($(`<div><h1>Batter Intelligence</h1><p class="sub">All ${m.n_batters.toLocaleString()} batters in coverage. Filter, sort any column, page through below. Click a row for the full report.</p></div>`));
   const archs=['All',...[...new Set(Object.values(c.players).map(p=>p.archetype).filter(Boolean))]];
   const panel=$(`<div class="panel">
     <div class="toolbar">
@@ -737,13 +844,62 @@ function playersView(app){
   panel.querySelectorAll('#pseg button').forEach(b=>b.onclick=()=>{rated=b.dataset.v==='rated';panel.querySelectorAll('#pseg button').forEach(x=>x.classList.toggle('on',x===b));refresh();});
 }
 
+/* ================= BOWLING ================= */
+function bowlersView(app){
+  const c=cur(),m=c.meta,B=c.bowlers||{};
+  Object.entries(B).forEach(([id,b])=>{b._id=id;});
+  app.appendChild($(`<div><h1>Bowling Intelligence</h1><p class="sub">All ${(m.n_bowlers||Object.keys(B).length).toLocaleString()} bowlers in coverage. Sort any column, page below. Click a row for the full report.</p></div>`));
+  const panel=$(`<div class="panel"><div class="toolbar">
+    <div class="field"><span class="flab">Search</span><div class="swrap2"><input id="bq" placeholder="bowler name…"/></div></div>
+    <div class="field"><span class="flab">Sample</span><div class="seg" id="bseg"><button data-v="all" class="on">All bowlers</button><button data-v="rated">Rated (${m.rate_min_bowl}+ balls)</button></div></div>
+    <span class="count" id="bc"></span>
+  </div><div id="bt"></div></div>`);
+  app.appendChild(panel);
+  const cols=[["name","Bowler",0],["wickets","Wkts",1],["balls","Balls",1],["economy","Econ",1],["bowl_avg","Avg",1],["bowl_sr","SR",1],["dot_pct","Dot%",1],["bnd_pct","Bnd%",1],["era_index","Era",1]];
+  let q='',rated=false;
+  const rowsOf=()=>Object.values(B).filter(b=>b.name&&!_isId(b.name)&&(!rated||b.qualified)&&(!q||b.name.toLowerCase().includes(q)));
+  const dt=dataTable({cols,rows:rowsOf(),sortKey:'wickets',per:25,
+    getVal:(b,k)=>k==='name'?b.name:b[k],
+    rowHTML:(b)=>`<tr class="cl" data-pid="${b._id}"><td>${esc(b.name)} ${b.qualified?'':'<span class="badge">low n</span>'}</td><td class="n">${b.wickets}</td><td class="n dim">${b.balls.toLocaleString()}</td><td class="n"><b>${fmtN(b.economy)}</b></td><td class="n">${fmtN(b.bowl_avg)}</td><td class="n">${fmtN(b.bowl_sr)}</td><td class="n">${fmtN(b.dot_pct)}</td><td class="n">${fmtN(b.bnd_pct)}</td><td class="n">${b.era_index==null?'—':b.era_index}</td></tr>`,
+    onRow:(b,tr)=>{tr.onclick=()=>{state.player=null;state.bowler=b._id;render();};},empty:'no bowlers match these filters'});
+  panel.querySelector('#bt').appendChild(dt.el);
+  const refresh=()=>{const r=rowsOf();panel.querySelector('#bc').textContent=`${r.length.toLocaleString()} shown`;dt.setRows(r);};
+  refresh();
+  panel.querySelector('#bq').oninput=e=>{q=e.target.value.toLowerCase().trim();refresh();};
+  panel.querySelectorAll('#bseg button').forEach(x=>x.onclick=()=>{rated=x.dataset.v==='rated';panel.querySelectorAll('#bseg button').forEach(y=>y.classList.toggle('on',y===x));refresh();});
+}
+function bowlerProfile(id){
+  const c=cur(),b=(c.bowlers||{})[id];if(!b){state.bowler=null;return $('<div>not found</div>');}
+  const w=$(`<div></div>`);
+  const meta=(window.CIL_PLAYERMETA||{})[id]||{};
+  const isHttp=location.protocol.indexOf('http')===0;
+  const photo=meta.photo||playerImg(b.name,meta.unique_name||meta.name,id)||(isHttp?'/api/photo?name='+encodeURIComponent(meta.unique_name||meta.name||b.name):'');
+  w.appendChild($(`<div class="row" style="margin-top:20px;align-items:center"><button class="pill" id="bback">← back</button>${avatarHTML(b.name,photo)}<div><div class="row" style="gap:9px"><h1 style="margin:0">${esc(b.name)}</h1><span class="badge">Bowler</span>${b.qualified?'':'<span class="badge">below rate qualifier</span>'}</div><div class="dim" style="margin-top:2px">${esc(c.meta.label)}</div></div></div>`));
+  const tiles=[["Wickets",b.wickets],["Economy",b.economy],["Average",b.bowl_avg],["Strike Rate",b.bowl_sr],["Balls",b.balls],["Runs",b.runs],["Dot %",b.dot_pct],["Boundary %",b.bnd_pct]];
+  const g=$(`<div class="grid bento" style="margin-top:14px"></div>`);
+  g.innerHTML=tiles.map(t=>`<div class="s3"><div class="panel kpi"><div class="l">${t[0]}</div><div class="n"${typeof t[1]==='number'?' data-count':''}>${fmtN(t[1])}</div></div></div>`).join('');
+  w.appendChild(g);
+  const g2=$(`<div class="grid bento" style="margin-top:13px"></div>`);
+  if(b.pct){
+    const pcOrder=[["economy","Economy"],["bowl_sr","Strike Rate"],["dot_pct","Dot %"],["era_index","Era Index"]];
+    g2.appendChild($(`<div class="panel s6 pcol"><h2>Percentile ranks <span class="r">vs ${c.meta.n_qual_bowl} rated bowlers</span></h2><div class="pmid">${pcOrder.filter(o=>b.pct[o[0]]!=null).map(o=>`<div class="pctrow"><span class="k">${o[1]}</span><span class="bar"><span style="width:${Math.max(2,b.pct[o[0]])}%;background:${pctColor(b.pct[o[0]])}"></span></span><span class="v num">${b.pct[o[0]].toFixed(0)}</span></div>`).join('')}</div><div class="note" style="margin-top:6px">Higher = better (economy & strike rate already inverted).</div></div>`));
+  } else {
+    g2.appendChild($(`<div class="panel s6"><h2>Percentile ranks</h2><span class="note">Below the rate qualifier (${c.meta.rate_min_bowl}+ balls), so percentiles aren't computed. Raw totals above are complete.</span></div>`));
+  }
+  const phs=["powerplay","middle","death"].filter(x=>b.phases&&b.phases[x]);
+  const phLab={powerplay:'Powerplay',middle:'Middle',death:'Death'};
+  g2.appendChild($(`<div class="panel s6 pcol"><h2>Phase economy</h2><div class="pmid">${phs.length?`<table class="sc"><thead><tr><th>Phase</th><th class="n">Balls</th><th class="n">Wkts</th><th class="n">Econ</th><th class="n">Dot%</th></tr></thead><tbody>${phs.map(x=>{const v=b.phases[x];return `<tr><td>${phLab[x]}</td><td class="n dim">${v.balls}</td><td class="n">${v.wickets}</td><td class="n"><b>${fmtN(v.economy)}</b></td><td class="n">${fmtN(v.dot_pct)}</td></tr>`;}).join('')}</tbody></table>`:'<span class="note">n/a</span>'}</div></div>`));
+  w.appendChild(g2);
+  w.querySelector('#bback').onclick=()=>{state.bowler=null;render();};
+  return w;
+}
 /* ================= PLAYER DETAIL ================= */
 function playerView(pid){
-  const c=cur(),p=c.players[pid];if(!p){state.player=null;return $('<div>not found</div>');}
+  const c=cur(),p=c.players[pid];if(!p){state.player=null;state.bowler=null;return $('<div>not found</div>');}
   const w=$(`<div></div>`);
   const meta=(window.CIL_PLAYERMETA||{})[pid]||{};
   const isHttp=location.protocol.indexOf('http')===0;
-  const photo=meta.photo||playerImg(p.name,meta.unique_name||meta.name)||(isHttp?'/api/photo?name='+encodeURIComponent(meta.unique_name||meta.name||p.name):'');
+  const photo=meta.photo||playerImg(p.name,meta.unique_name||meta.name,pid)||(isHttp?'/api/photo?name='+encodeURIComponent(meta.unique_name||meta.name||p.name):'');
   const ciLink=meta.cricinfo_id?`<a class="pill" href="https://www.espncricinfo.com/ci/content/player/${meta.cricinfo_id}.html" target="_blank" rel="noopener">ESPNcricinfo ↗</a>`:'';
   w.appendChild($(`<div class="row" style="margin-top:20px;align-items:center"><button class="pill" id="back">← back</button>${avatarHTML(p.name,photo)}<div><div class="row" style="gap:9px"><h1 style="margin:0">${esc(p.name)}</h1>${archPill(p.archetype)}${p.qualified?'':'<span class="badge">below rate qualifier</span>'}${meta.country?`<span class="badge">${esc(meta.country)}</span>`:''}${ciLink}</div><div class="dim" style="margin-top:2px">${esc(c.meta.label)}</div></div></div>`));
   const tiles=[["Runs",p.runs],["Average",p.avg],["Strike Rate",p.sr],["Innings",p.innings],["50/100",`${p.fifties}/${p.hundreds}`],["Highest",p.highest],["Boundary %",p.boundary_pct],["Sixes",p.sixes]];
@@ -763,7 +919,8 @@ function playerView(pid){
   const g3=$(`<div class="grid bento" style="margin-top:13px"></div>`);
   const phs=["powerplay","middle","death"].filter(x=>p.phases&&p.phases[x]);
   const maxSR=Math.max(...phs.map(x=>p.phases[x].sr),1);
-  g3.appendChild($(`<div class="panel s4"><h2>Phase profile</h2>${phs.map(x=>{const v=p.phases[x];return `<div style="margin:9px 0"><div class="row" style="justify-content:space-between"><span class="muted" style="text-transform:capitalize">${x}</span><span class="num"><b>${v.sr}</b> SR · ${v.avg} avg</span></div><div class="bar"><span style="width:${v.sr/maxSR*100}%"></span></div></div>`;}).join('')||'<span class="note">n/a</span>'}</div>`));
+  const phLab={powerplay:'Powerplay',middle:'Middle',death:'Death'};
+  g3.appendChild($(`<div class="panel s4"><h2>Phase profile</h2>${phs.length?`<table class="sc"><thead><tr><th>Phase</th><th class="n">Runs</th><th class="n">Balls</th><th class="n">Avg</th><th class="n">SR</th><th class="n">Bnd%</th></tr></thead><tbody>${phs.map(x=>{const v=p.phases[x];return `<tr><td>${phLab[x]||x}</td><td class="n">${v.runs}</td><td class="n dim">${v.balls}</td><td class="n">${v.avg}</td><td class="n"><b>${v.sr}</b></td><td class="n">${v.boundary_pct}</td></tr>`;}).join('')}</tbody></table><div style="margin-top:9px">${phs.map(x=>{const v=p.phases[x];return `<div style="margin:7px 0"><div class="row" style="justify-content:space-between;font-size:11px"><span class="muted">${phLab[x]||x}</span><span class="num">${v.sr} SR</span></div><div class="bar"><span style="width:${v.sr/maxSR*100}%"></span></div></div>`;}).join('')}</div>`:'<span class="note">n/a (needs rate qualifier)</span>'}</div>`));
   const ctx=p.context||{};
   g3.appendChild($(`<div class="panel s4"><h2>Context splits</h2><table><thead><tr><th>Split</th><th class="n">Avg</th><th class="n">SR</th><th class="n">Balls</th></tr></thead><tbody>${Object.entries(ctx).map(([k,v])=>`<tr><td style="text-transform:capitalize">${k}</td><td class="n">${v.avg}</td><td class="n">${v.sr}</td><td class="n dim">${v.balls}</td></tr>`).join('')||'<tr><td class="note">n/a</td></tr>'}</tbody></table></div>`));
   const sims=(p.similar||[]).map(s=>`<div class="ledrow"><a class="plink" data-pid="${s.pid}">${esc(s.name)}</a><span class="num muted">${(s.score*100).toFixed(0)}%</span></div>`).join('');
@@ -792,25 +949,50 @@ function playerView(pid){
   const g4=$(`<div class="grid bento" style="margin-top:13px"></div>`);
   g4.appendChild($(muTbl(best,"Dominates (top matchups)")));g4.appendChild($(muTbl(worst,"Struggles against")));
   w.appendChild(g4);
-  w.querySelector('#back').onclick=()=>{state.player=null;render();};
+  w.querySelector('#back').onclick=()=>{state.player=null;state.bowler=null;render();};
   wirePlinks(w);return w;
 }
 
 /* ================= COMPARE ================= */
 function compareView(app){
   const c=cur(),players=Object.entries(c.players).filter(([id,p])=>p.qualified).sort((a,b)=>b[1].runs-a[1].runs);
-  app.appendChild($(`<div><h1>Comparison Lab</h1><p class="sub">Up to 4 rated players · radar = percentile ranks.</p></div>`));
-  const opt=()=>`<select class="cmp"><option value="">— select —</option>${players.map(([id,p])=>`<option value="${id}">${esc(p.name)}</option>`).join('')}</select>`;
-  const picker=$(`<div class="panel"><div class="row">${opt()+opt()+opt()+opt()}</div></div>`);app.appendChild(picker);
+  app.appendChild($(`<div><h1>Comparison Lab</h1><p class="sub">Up to 4 rated players · search to add · radar = percentile ranks.</p></div>`));
+  const names=players.map(([id,p])=>p.name),nameToId={};players.forEach(([id,p])=>{if(!(p.name in nameToId))nameToId[p.name]=id;});
+  const prefer=["V Kohli","RG Sharma","JC Buttler","DA Warner","KS Williamson","SPD Smith"];
+  let picked=[];prefer.forEach(nm=>{if(picked.length<2&&nameToId[nm]&&!picked.includes(nameToId[nm]))picked.push(nameToId[nm]);});
+  for(let i=0;picked.length<2&&i<players.length;i++){if(!picked.includes(players[i][0]))picked.push(players[i][0]);}
+  while(picked.length<4)picked.push(null);
+  const nameOf=i=>c.players[i]?c.players[i].name:'';
+  const picker=$(`<div class="panel"><div class="row" style="gap:10px;flex-wrap:wrap">${[0,1,2,3].map(s=>`<div class="swrap2 ac" data-s="${s}" style="position:relative;flex:1;min-width:150px"><input class="cmpq" placeholder="Search player ${s+1}…" autocomplete="off" value="${esc(picked[s]?nameOf(picked[s]):'')}"/><div class="aclist" style="display:none"></div></div>`).join('')}</div></div>`);app.appendChild(picker);
   const out=$(`<div style="margin-top:13px"></div>`);app.appendChild(out);
   const cols=["#6FB0FF","#33D17A","#FFB454","#FF6B7E"];
-  function draw(){const ids=[...picker.querySelectorAll('.cmp')].map(s=>s.value).filter(Boolean);
+  function draw(){const ids=picked.filter(Boolean);
     if(!ids.length){out.innerHTML='<p class="note">Select players.</p>';return;}
+    const sn=i=>esc((c.players[i].name.split(' ').slice(-1)[0])||c.players[i].name);
+    const hdr=ids.map((i,x)=>`<th class="n" style="color:${cols[x]}">${sn(i)}</th>`).join('');
     const axes=[["avg","Avg"],["sr","SR"],["boundary_pct","Bnd%"],["dot_pct","Dot%"],["consistency","Cons"],["conversion","Conv"]];
-    out.innerHTML=`<div class="grid bento"><div class="panel s5"><h2>Percentile radar</h2>${radar(ids.map(i=>c.players[i]),axes,cols)}</div>
-     <div class="panel s7"><h2>Side by side</h2><table><thead><tr><th>Metric</th>${ids.map((i,x)=>`<th class="n" style="color:${cols[x]}">${esc(c.players[i].name.split(' ').slice(-1))}</th>`).join('')}</tr></thead><tbody>${[["runs","Runs"],["avg","Average"],["sr","Strike Rate"],["boundary_pct","Boundary %"],["dot_pct","Dot %"],["consistency","Consistency"],["conversion","Conversion %"],["hundreds","100s"]].map(mm=>`<tr><td>${mm[1]}</td>${ids.map(i=>`<td class="n">${fmtN(c.players[i][mm[0]])}</td>`).join('')}</tr>`).join('')}</tbody></table></div></div>`;}
-  picker.querySelectorAll('.cmp').forEach(s=>s.onchange=draw);
-  const sels=picker.querySelectorAll('.cmp');if(players[0])sels[0].value=players[0][0];if(players[1])sels[1].value=players[1][0];draw();
+    const sbs=[["runs","Runs"],["avg","Average"],["sr","Strike Rate"],["boundary_pct","Boundary %"],["dot_pct","Dot %"],["consistency","Consistency"],["conversion","Conversion %"],["hundreds","100s"]].map(mm=>`<tr><td>${mm[1]}</td>${ids.map(i=>`<td class="n">${fmtN(c.players[i][mm[0]])}</td>`).join('')}</tr>`).join('');
+    const phaseOrder=[["powerplay","Powerplay"],["middle","Middle"],["death","Death"]];
+    const phRows=phaseOrder.filter(([k])=>ids.some(i=>c.players[i].phases&&c.players[i].phases[k])).map(([k,lab])=>`<tr><td>${lab}</td>${ids.map(i=>{const v=c.players[i].phases&&c.players[i].phases[k];return `<td class="n">${v?`<b>${v.sr}</b> <span class="dim">${v.avg}</span>`:'—'}</td>`;}).join('')}</tr>`).join('');
+    const ctxOrder=[["chase","Chasing"],["defend","Defending"],["win","In wins"],["loss","In losses"]];
+    const ctxRows=ctxOrder.filter(([k])=>ids.some(i=>c.players[i].context&&c.players[i].context[k])).map(([k,lab])=>`<tr><td>${lab}</td>${ids.map(i=>{const v=c.players[i].context&&c.players[i].context[k];return `<td class="n">${v?`<b>${v.sr}</b> <span class="dim">${v.avg}</span>`:'—'}</td>`;}).join('')}</tr>`).join('');
+    let muPanel='';
+    if(ids.length>=2){
+      const maps=ids.map(i=>{const m={};(c.players[i].matchups||[]).forEach(x=>m[x.bowler_name]=x);return m;});
+      let common=Object.keys(maps[0]||{}).filter(bn=>maps.every(m=>m[bn]));
+      common.sort((a,b)=>maps.reduce((t,m)=>t+(m[b].balls||0),0)-maps.reduce((t,m)=>t+(m[a].balls||0),0));
+      common=common.slice(0,10);
+      muPanel=`<div class="panel s12"><h2>Shared matchups <span class="r">bowlers all selected have faced</span></h2>${common.length?`<table><thead><tr><th>Bowler</th>${hdr}</tr></thead><tbody>${common.map(bn=>`<tr><td>${esc(bn)}</td>${ids.map((i,x)=>{const mu=maps[x][bn];return `<td class="n">${mu.runs}/${mu.outs} <span class="dim">(${mu.balls}b)</span> · <b>${mu.sr}</b></td>`;}).join('')}</tr>`).join('')}</tbody></table><div class="note" style="margin-top:6px">Runs/outs (balls) · strike rate, vs bowlers every selected player has faced.</div>`:'<span class="note">No common bowlers among the selected players in this dataset.</span>'}</div>`;
+    }
+    out.innerHTML=`<div class="grid bento">
+      <div class="panel s5 pcol"><h2>Percentile radar</h2><div class="pmid">${radar(ids.map(i=>c.players[i]),axes,cols)}</div></div>
+      <div class="panel s7"><h2>Side by side</h2><table><thead><tr><th>Metric</th>${hdr}</tr></thead><tbody>${sbs}</tbody></table></div>
+      ${phRows?`<div class="panel s6"><h2>By phase <span class="r">SR · avg</span></h2><table><thead><tr><th>Phase</th>${hdr}</tr></thead><tbody>${phRows}</tbody></table></div>`:''}
+      ${ctxRows?`<div class="panel s6"><h2>By context <span class="r">SR · avg</span></h2><table><thead><tr><th>Situation</th>${hdr}</tr></thead><tbody>${ctxRows}</tbody></table></div>`:''}
+      ${muPanel}
+    </div>`;}
+  picker.querySelectorAll('.ac').forEach(slot=>{const s=+slot.dataset.s,inp=slot.querySelector('.cmpq');autocomplete(inp,names,(nm)=>{picked[s]=(nm&&nameToId[nm])?nameToId[nm]:null;draw();});});
+  draw();
 }
 function radar(players,axes,cols){
   const N=axes.length,cx=150,cy=145,R=108,ang=i=>(-Math.PI/2)+i*2*Math.PI/N;
@@ -925,10 +1107,17 @@ function scatter(pts,slope,inter,colmode,xl,yl){
 
 /* ================= RECORDS (15/page paginated cards) ================= */
 function _shrinkRows(c,rows,kind,asc){
-  const fmt=c.meta.format,src=kind==='bowl'?(c.bowlers||{}):(c.players||{});
-  const vals=rows.map(x=>x.value),mean=vals.reduce((a,b)=>a+b,0)/(vals.length||1);
-  return rows.map(x=>{const p=src[x.pid]||{},cr=cred(p,fmt,kind);return Object.assign({},x,{_adj:mean+(x.value-mean)*cr*cr});})
-    .sort((a,b)=>asc?a._adj-b._adj:b._adj-a._adj);
+  // rank by the value actually shown; the minimum-ball qualifier (applied upstream) keeps out tiny samples
+  return rows.slice().sort((a,b)=>asc?a.value-b.value:b.value-a.value);
+}
+function wireBlinks(root){root.querySelectorAll('.blink').forEach(a=>{if(a.dataset.pid)a.onclick=()=>{state.player=null;state.bowler=a.dataset.pid;render();};});}
+function recCard(title,sub,rows,rowHTML,wire){
+  const per=15,card=$(`<div class="panel s4"><h2>${title}${sub?` <span class="r">${sub}</span>`:''}</h2><div class="body"></div><div class="pgmini"><button class="pv">‹</button><span class="lab"></span><button class="nx">›</button></div></div>`);
+  let page=0;const pages=Math.max(1,Math.ceil(rows.length/per));
+  const body=card.querySelector('.body'),lb=card.querySelector('.lab'),pv=card.querySelector('.pv'),nx=card.querySelector('.nx');
+  function d(){const off=page*per;body.innerHTML=rows.slice(off,off+per).map((x,i)=>rowHTML(x,off+i)).join('');lb.textContent=`${page+1} / ${pages}`;pv.disabled=page===0;nx.disabled=page>=pages-1;if(wire)wire(body);}
+  pv.onclick=()=>{if(page>0){page--;d();}};nx.onclick=()=>{if(page<pages-1){page++;d();}};d();
+  return card;
 }
 function recordsView(app){
   const c=cur(),r=c.records,m=c.meta;
@@ -950,7 +1139,7 @@ function recordsView(app){
   }
   const g=$(`<div class="grid bento"></div>`);
   Object.keys(lab).filter(k=>r[k]&&filterRows(k,r[k]).length).forEach(k=>{
-    const card=$(`<div class="panel s4"><h2>${lab[k]} <span class="r">${r[k].length}</span></h2><div class="body"></div><div class="pgmini"><button class="pv">‹</button><span class="lab"></span><button class="nx">›</button></div></div>`);
+    const card=$(`<div class="panel s4"><h2>${lab[k]}</h2><div class="body"></div><div class="pgmini"><button class="pv">‹</button><span class="lab"></span><button class="nx">›</button></div></div>`);
     let rows=filterRows(k,r[k]);
     if(RATE_BAT.has(k)||RATE_BOWL.has(k))rows=_shrinkRows(c,rows,RATE_BOWL.has(k)?'bowl':'bat',ASC.has(k));
     let page=0;const per=15;const pages=Math.ceil(rows.length/per);
@@ -960,6 +1149,18 @@ function recordsView(app){
     pv.onclick=()=>{if(page>0){page--;d();}};nx.onclick=()=>{if(page<pages-1){page++;d();}};d();
     g.appendChild(card);
   });
+  if(c.partnerships&&c.partnerships.length)
+    g.appendChild(recCard('Top Partnerships','biggest stands',c.partnerships,
+      (x,i)=>`<div class="ledrow"><span class="row" style="gap:7px;min-width:0;flex:1"><span class="rank ${i<3?'r'+(i+1):''}">${i+1}</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0"><a class="plink" data-pid="${x.p1}">${esc(x.n1)}</a> <span class="muted">&</span> <a class="plink" data-pid="${x.p2}">${esc(x.n2)}</a></span></span><b class="num" title="${x.balls}b · ${x.rr} rr">${x.runs}</b></div>`, wirePlinks));
+  if(c.spells&&c.spells.length)
+    g.appendChild(recCard('Best Bowling Spells','wickets, then economy',c.spells,
+      (x,i)=>`<div class="ledrow"><span class="row" style="gap:8px"><span class="rank ${i<3?'r'+(i+1):''}">${i+1}</span><a class="blink" data-pid="${x.pid}">${esc(x.name)}</a></span><b class="num" title="${x.overs}ov · ${x.econ} econ">${x.wkts}/${x.runs}</b></div>`, wireBlinks));
+  {const fl=((c.outliers&&c.outliers.avg_vs_sr&&c.outliers.avg_vs_sr.points)||[]).filter(p=>p.flag).sort((a,b)=>Math.abs(b.z)-Math.abs(a.z));
+   if(fl.length)g.appendChild(recCard('Batting outliers','average ↔ strike rate',fl,
+      (p,i)=>`<div class="ledrow"><span class="row" style="gap:8px"><span class="rank">${i+1}</span><a class="plink" data-pid="${p.pid}">${esc(p.name)}</a></span><span class="num ${p.z>0?'pos':'neg'}">${p.z>0?'+':''}${p.z}σ</span></div>`, wirePlinks));}
+  {const fl=((c.bowl_outliers&&c.bowl_outliers.econ_vs_sr&&c.bowl_outliers.econ_vs_sr.points)||[]).filter(p=>p.flag).sort((a,b)=>Math.abs(b.z)-Math.abs(a.z));
+   if(fl.length)g.appendChild(recCard('Bowling outliers','economy ↔ strike rate',fl,
+      (p,i)=>`<div class="ledrow"><span class="row" style="gap:8px"><span class="rank">${i+1}</span><a class="blink" data-pid="${p.pid}">${esc(p.name)}</a></span><span class="num ${p.z>0?'neg':'pos'}">${p.z>0?'+':''}${p.z}σ</span></div>`, wireBlinks));}
   app.appendChild(g);
 }
 
@@ -1075,11 +1276,17 @@ function showMatchDetail(box,mid,slug){
     box.className='';if(!m){box.innerHTML='<div class="cov">Could not load this match.</div>';return;}
     box.innerHTML='';
     const mw=$('<div class="mdetail"></div>');box.appendChild(mw);
-    mw.appendChild($(`<div class="row" style="gap:9px;align-items:center;margin-bottom:10px"><button class="pill" id="mback">← back</button><span class="dim">${esc(m.format||'')} · ${esc(m.state||'')}</span></div>`));
-    mw.appendChild($(`<div class="panel"><h2>${esc(m.series||'')} <span class="r">${esc(m.status||'')}</span></h2>
+    const topbar=$(`<div class="row" style="gap:9px;align-items:center;margin-bottom:10px"><button class="pill" id="mback">← back</button><span class="dim" id="mstate"></span></div>`);
+    mw.appendChild(topbar);
+    const summ=$('<div class="panel"></div>');mw.appendChild(summ);
+    function fillSummary(){
+      topbar.querySelector('#mstate').textContent=`${m.format||''} · ${m.state||''}`;
+      summ.innerHTML=`<h2>${esc(m.series||'')} <span class="r">${esc(m.status||'')}</span></h2>
       <div style="font-weight:760;font-size:16px;margin:4px 0 12px">${esc(m.title||'')}</div>
       ${(m.teams||[]).map(t=>`<div class="ledrow" style="font-size:14px"><span>${esc(t.name||'')}</span><b class="num">${esc(t.score||'—')}</b></div>`).join('')}
-      ${m.venue?`<div class="dim" style="margin-top:8px">${esc(m.venue)}${m.date?` · ${esc(m.date)} ${esc(m.time||'')}`:''}</div>`:''}</div>`));
+      ${m.venue?`<div class="dim" style="margin-top:8px">${esc(m.venue)}${m.date?` · ${esc(m.date)} ${esc(m.time||'')}`:''}</div>`:''}`;
+    }
+    fillSummary();
     const tabs=[['info','Info'],['comm','Commentary']];
     if((m.innings||[]).length)tabs.push(['score','Scorecard']);
     if((m.squads||[]).length)tabs.push(['squads','Playing XI']);
@@ -1110,12 +1317,19 @@ function showMatchDetail(box,mid,slug){
       tabbar.querySelectorAll('.mtab').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
       if(t==='score')renderScore();
       else if(t==='squads'){content.innerHTML=squadsHTML(m.squads);wireXI();}
-      else if(t==='comm'){loadComm(false);commTimer=setInterval(()=>loadComm(true),20000);}
+      else if(t==='comm'){loadComm(false);commTimer=regTimer(setInterval(()=>loadComm(true),20000));}
       else if(t==='info')lazy('info','/api/facts?'+q,d=>factsHTML(d&&d.facts));
     }
+    const liveish=/progress|innings break|rain|delay|drinks|tea|lunch|stumps|\blive\b/i.test((m.state||'')+' '+(m.status||''));
+    let scoreTimer=null;
+    function stopScore(){if(scoreTimer){clearInterval(scoreTimer);scoreTimer=null;}}
+    function refreshScore(){fetch('/api/match?'+q,{cache:'no-store'}).then(r=>r.ok?r.json():null).then(nm=>{
+      if(!nm)return;m.teams=nm.teams||m.teams;m.status=nm.status||m.status;m.state=nm.state||m.state;m.innings=nm.innings||m.innings;fillSummary();
+    }).catch(()=>{});}
+    if(liveish)scoreTimer=regTimer(setInterval(refreshScore,25000));
     tabbar.querySelectorAll('.mtab').forEach(b=>b.onclick=()=>showTab(b.dataset.t));
     showTab(tabs[0][0]);
-    box.querySelector('#mback').onclick=()=>{stopComm();renderLiveList(box);};
+    box.querySelector('#mback').onclick=()=>{stopComm();stopScore();renderLiveList(box);};
   }).catch(()=>{box.className='';box.innerHTML='<div class="cov">Could not load this match.</div>';});
 }
 function liveView(app){
@@ -1168,7 +1382,7 @@ function autocomplete(inp,items,onpick){
 function setupSearch(){
   const inp=document.getElementById('search'),res=document.getElementById('searchAc');
   if(!inp)return;
-  const PAGES=[["players","Players"],["teams","Teams"],["compare","Compare"],["matchups","Matchups"],["network","Network"],["venues","Venues"],["records","Records"],["research","Research Lab"],["live","Live Scores"],["schedule","Schedule"]];
+  const PAGES=[["players","Batters"],["teams","Teams"],["compare","Compare"],["matchups","Matchups"],["network","Network"],["venues","Venues"],["records","Records"],["research","Research Lab"],["live","Live Scores"],["schedule","Schedule"]];
   inp.oninput=()=>{
     const q=inp.value.toLowerCase().trim();
     if(!q){res.style.display='none';res.innerHTML='';return;}
@@ -1186,8 +1400,8 @@ function setupSearch(){
     res.querySelectorAll('.sr').forEach(d=>d.onclick=()=>{
       const t=d.dataset.t,k=d.dataset.k;res.style.display='none';inp.value='';
       if(t==='player')state.player=k;
-      else if(t==='cohort'){state.cohort=k;state.player=null;}
-      else if(t==='page'){state.view=k;state.player=null;}
+      else if(t==='cohort'){state.cohort=k;state.player=null;state.bowler=null;}
+      else if(t==='page'){state.view=k;state.player=null;state.bowler=null;}
       render();
     });
   };
@@ -1283,7 +1497,7 @@ function homeView(app){
   const rest=IDX.cohorts.length-keyCohorts.length;
   const sw=$(`<div><div class="sechead">Competitions <span class="dim">· ${keyCohorts.length} shown${rest>0?` · ${rest} more in the selector above`:''}</span></div><div class="cohort-cards"></div></div>`);
   sw.querySelector('.cohort-cards').innerHTML=keyCohorts.map(mm=>`<div class="ccard${mm.key===state.cohort?' on':''}" data-k="${mm.key}"><span class="fmtpill" style="background:${(FMT_COLOR[mm.format]||'#888')}22;color:${FMT_COLOR[mm.format]||'#aaa'}">${(mm.format||'').toUpperCase()}</span><div class="t">${esc(mm.label)}</div><div class="m">${(mm.n_batters||0).toLocaleString()} batters · ${(mm.matches||0).toLocaleString()} matches${mm.coverage_from?` · ${String(mm.coverage_from).slice(0,4)}–${String(mm.coverage_to).slice(0,4)}`:''}</div></div>`).join('');
-  sw.querySelectorAll('.ccard').forEach(z=>z.onclick=()=>{state.cohort=z.dataset.k;state.player=null;render();});
+  sw.querySelectorAll('.ccard').forEach(z=>z.onclick=()=>{state.cohort=z.dataset.k;state.player=null;state.bowler=null;render();});
   app.appendChild(sw);
   wirePlinks(app);wireSpt(app);
 }
@@ -1337,7 +1551,7 @@ function teamsView(app){
     if(!ts.length){box.innerHTML='<div class="cov">No team data for this dataset (needs cil.db + serve.py).</div>';return;}
     const cols=[["team","Team",0],["matches","Matches",1],["wins","Wins",1],["winpct","Win %",1]];
     const dt=dataTable({cols,rows:ts.slice(),sortKey:'matches',per:30,getVal:(v,k)=>v[k],
-      rowHTML:v=>{const mx=ts[0].matches||1;return `<tr><td>${esc(v.team)}</td><td class="num">${v.matches}</td><td class="num">${v.wins}</td><td class="num">${v.winpct}%</td></tr>`;},
+      rowHTML:v=>{const mx=ts[0].matches||1;return `<tr><td>${esc(v.team)}</td><td class="n">${v.matches}</td><td class="n">${v.wins}</td><td class="n">${v.winpct}%</td></tr>`;},
       empty:'no teams'});
     const panel=$('<div class="panel"></div>');panel.appendChild(dt.el);box.appendChild(panel);
   }).catch(()=>{box.classList.remove('loadbox');box.innerHTML='<div class="cov">Could not load team data.</div>';});
@@ -1376,26 +1590,20 @@ function mountCareer(app,pid){
     panel.innerHTML='<h2>Career timeline <span class="r">runs per year · gold = peak</span></h2>'+careerSVG(d.years);
   }).catch(()=>panel.remove());
 }
-
+function mountVenues(app,pid){
+  if(location.protocol.indexOf('http')!==0)return;
+  const w=app.firstElementChild;if(!w)return;
+  const panel=document.createElement('div');panel.className='panel';panel.style.marginTop='13px';
+  panel.innerHTML='<h2>By venue <span class="r">loading…</span></h2>';
+  w.appendChild(panel);
+  fetch('/api/venues_player?pid='+encodeURIComponent(pid),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(d=>{
+    if(!d||!d.venues||!d.venues.length){panel.remove();return;}
+    const mx=Math.max(...d.venues.map(v=>v.runs||0),1);
+    panel.innerHTML='<h2>By venue <span class="r">top grounds by runs</span></h2>'+
+      d.venues.map(v=>`<div class="minibar"><span title="${esc(v.venue)}${v.city?', '+esc(v.city):''}" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(v.venue)}</span><div class="bar"><span style="width:${(v.runs/mx*100).toFixed(1)}%"></span></div><span class="num" title="${v.inns} inns · ${v.balls} balls · avg ${v.avg} · SR ${v.sr}">${v.runs}</span></div>`).join('');
+  }).catch(()=>panel.remove());
+}
 init();
 </script>
-<style>
- .dhero{position:relative;border:1px solid var(--hair2);border-radius:18px;padding:26px 28px;margin-top:18px;overflow:hidden;
-   background:radial-gradient(900px 300px at 12% -40%,rgba(61,139,255,.18),transparent 60%),linear-gradient(135deg,rgba(155,123,255,.10),rgba(10,15,24,.4)),var(--panel)}
- .dh-kic{font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:.22em;color:var(--accent2);opacity:.8}
- .dh-lbl{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);font-weight:700;margin-top:12px}
- .dh-head{font-size:27px;font-weight:780;letter-spacing:-.02em;margin:6px 0 8px;line-height:1.15;max-width:880px;background:linear-gradient(90deg,#fff,#cfe0ff);-webkit-background-clip:text;background-clip:text;color:transparent;cursor:pointer}
- .dh-body{color:var(--muted);font-size:15px;line-height:1.6;max-width:820px}
- .dh-meta{display:flex;gap:12px;align-items:center;margin-top:14px}
- .conf{font-family:var(--mono);font-size:10px;font-weight:800;letter-spacing:.08em;padding:4px 10px;border-radius:999px;text-transform:uppercase}
- .conf-high{background:rgba(51,209,122,.13);color:#33D17A;border:1px solid rgba(51,209,122,.3)}
- .conf-medium{background:rgba(255,180,84,.13);color:#FFB454;border:1px solid rgba(255,180,84,.3)}
- .conf-low{background:rgba(138,148,166,.13);color:#8A94A6;border:1px solid rgba(138,148,166,.3)}
- .trend{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
- .trh{font-size:12.5px;font-weight:720;margin-bottom:9px;color:var(--ink)}
- .trrow{display:flex;align-items:center;gap:9px;padding:5px 0;border-bottom:1px solid var(--hair)}
- .trrow .plink{flex:1;font-size:12.5px}
- .trrow .num{color:var(--muted);font-size:11.5px}
- @media(max-width:760px){.trend{grid-template-columns:1fr;gap:16px}}
- .legend{display:flex;flex-wrap:wrap;gap:13px;font-size:11px;color:var(--muted)}
- .legend .sw{display:inline-block;width:9px;height:9px;border-radius:5
+</body>
+</html>
