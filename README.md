@@ -14,6 +14,7 @@ Ball-by-ball cricket intelligence across **48 competitions, 22,000+ matches, and
 - **Live Scores & Commentary** — Real-time scores, match schedule, and full ball-by-ball commentary from Cricbuzz
 - **Command Palette & Search** — Ctrl-K for instant player lookup, shareable URL state for reproducible links
 ### Dashboard Sections
+- **Landing Page** — Animated marketing front page (`web/landing.html`) with a scroll-driven gradient and editorial type; served at `/` when hosted and links through to the dashboard
 - **Cohort Selector** — Switch between competitions in one click; all data pre-computed and offline-ready
 - **Leaderboard Grid** — Sortable player tables with clickable profiles
 - **Player Profiles** — Historical timeline, venue breakdown, phase splits (powerplay/middle/death), archetype radar
@@ -50,7 +51,7 @@ Simply clone the repo and open the HTML file:
 ```bash
 git clone https://github.com/<you>/cricket-intelligence-lab.git
 cd cricket-intelligence-lab
-# then double-click web/dashboard/index.html in Finder / Explorer
+# open web/landing.html for the front page, or web/dashboard/index.html to go straight to the app
 ```
 
 All cohorts, leaderboards, player profiles, and comparisons work fully offline. Player photos load from Cricbuzz's CDN.
@@ -64,7 +65,7 @@ python serve.py
 # then open http://127.0.0.1:5000
 ```
 
-The server binds to `0.0.0.0:5000`. Historical analytics remain static; only live data is streamed.
+`serve.py` serves the `web/` folder: the **landing page** is at `/` and the **dashboard** at `/dashboard/`. The server binds to `0.0.0.0:5000`. Historical analytics remain static; only live data is streamed.
 
 ### Option 3: Rebuild from Raw Data (Full Rebuild)
 Download the latest Cricsheet corpus and regenerate all cohort bundles:
@@ -131,8 +132,9 @@ cricket-intelligence-lab/
 │       └── pipeline.py           # Full orchestration
 │
 ├── web/
+│   ├── landing.html             # Animated marketing landing page (served at /)
 │   └── dashboard/
-│       ├── index.html            # Single-file interactive app
+│       ├── index.html            # Single-file interactive app (served at /dashboard/)
 │       ├── style.css             # All styling (responsive dark theme)
 │       ├── script.js             # Dashboard logic, search, filtering, exports
 │       ├── index.js              # Cohort manifest loader
@@ -205,7 +207,7 @@ python serve.py  # Runs on http://127.0.0.1:5000
 3. Select this repo → **Apply**
 4. `render.yaml` configures the build; Render auto-deploys on push
 
-The free tier sleeps after ~15 min idle; first hit will cold-start (~30s).
+Once live, the **landing page** is at the site root (`/`) and the **dashboard** at `/dashboard/`. The free tier sleeps after ~15 min idle; first hit will cold-start (~30s).
 
 ### GitHub Actions Auto-Updates
 Two workflows run weekly at no cost:
