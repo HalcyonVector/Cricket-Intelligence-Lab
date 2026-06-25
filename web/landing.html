@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Cricket Intelligence Lab</title>
+<meta name="description" content="Ball-by-ball cricket analytics across 48 competitions, 22,000+ matches and 11.2 million deliveries. Runs from a single HTML file."/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#F7EEE7;--muted:#C7A99B;--dim:#8A6557;
+  --ember:#EBA24C;--rust:#D2682E;--wine:#8A2E3C;--gold:#F2C079;
+  --line:rgba(255,255,255,.09);--line2:rgba(255,235,220,.18);
+  --glass:rgba(26,10,12,.5);
+  --serif:'Fraunces',Georgia,'Times New Roman',serif;
+  --sans:'Space Grotesk',ui-sans-serif,system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;background:#0a0608}
+body{
+  color:var(--ink);font-family:var(--sans);line-height:1.55;overflow-x:hidden;-webkit-font-smoothing:antialiased;
+  /* warm vertical story: black -> wine -> deep ember (kept dark at the bottom, not light) */
+  background:
+    linear-gradient(180deg,
+      #0A0608 0%,
+      #120709 8%,
+      #1C0A11 18%,
+      #290D15 29%,
+      #38101A 40%,
+      #4A141B 51%,
+      #5C1A18 62%,
+      #6A2414 73%,
+      #6E2E12 84%,
+      #5E2A10 100%);
+}
+.grain{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.05;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>")}
+.vignette{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(120% 80% at 50% 0%,transparent 56%,rgba(0,0,0,.5) 100%)}
+.glow{position:fixed;z-index:0;pointer-events:none;width:90vw;height:90vw;max-width:1100px;max-height:1100px;
+  left:50%;top:-22vw;transform:translateX(-50%);border-radius:50%;filter:blur(82px);opacity:.4;
+  background:radial-gradient(circle,var(--gnow,rgba(210,104,46,.8)),transparent 62%);transition:background .25s linear}
+
+.progress{position:fixed;top:0;left:0;height:2px;width:0;z-index:100;
+  background:linear-gradient(90deg,var(--wine),var(--rust),var(--ember),var(--gold));box-shadow:0 0 14px rgba(235,162,76,.5)}
+
+/* ============ NAV ============ */
+nav{position:fixed;top:0;left:0;right:0;z-index:60;display:flex;align-items:center;gap:14px;
+  padding:18px 34px;transition:padding .3s,background .3s,border-color .3s;border-bottom:1px solid transparent}
+nav.shrink{padding:11px 34px;background:rgba(14,7,8,.62);backdrop-filter:blur(16px) saturate(1.4);border-color:var(--line)}
+.brand{display:flex;align-items:center;gap:11px;opacity:0;transform:translateY(-8px);transition:opacity .7s ease .1s,transform .7s ease .1s}
+.go .brand{opacity:1;transform:none}
+.brand .mark{width:36px;height:36px;display:grid;place-items:center;border-radius:11px;font-size:18px;
+  background:linear-gradient(140deg,var(--gold),var(--rust));box-shadow:0 8px 24px -8px rgba(210,104,46,.7)}
+.brand b{font-family:var(--sans);font-weight:700;font-size:19px;letter-spacing:-.01em;color:var(--ink)}
+.navlinks{margin-left:auto;display:flex;gap:4px;align-items:center;opacity:0;transition:opacity .7s ease .25s}
+.go .navlinks{opacity:1}
+.navlinks a{color:var(--muted);text-decoration:none;font-size:14px;font-weight:500;padding:9px 15px;border-radius:10px;transition:.18s}
+.navlinks a:hover{color:var(--ink);background:rgba(255,255,255,.06)}
+.btn{display:inline-flex;align-items:center;gap:8px;font-family:var(--sans);font-weight:600;font-size:14.5px;text-decoration:none;
+  padding:12px 24px;border-radius:12px;cursor:pointer;border:none;transition:transform .2s,box-shadow .2s}
+.btn-primary{color:#2A0C06;font-weight:700;background:linear-gradient(135deg,#FBD79C,#F0A94E);
+  box-shadow:0 14px 34px -12px rgba(235,162,76,.7)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 20px 46px -12px rgba(235,162,76,.7)}
+.btn-ghost{color:var(--ink);background:rgba(255,255,255,.06);border:1px solid var(--line2)}
+.btn-ghost:hover{transform:translateY(-2px);border-color:var(--ember)}
+@media(max-width:760px){.navlinks a:not(.btn){display:none}}
+
+/* ============ LAYOUT ============ */
+.wrap{max-width:1160px;margin:0 auto;padding:0 30px;position:relative;z-index:2}
+section{position:relative;z-index:2}
+.eyebrow{display:inline-flex;align-items:center;gap:9px;font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--ink);background:rgba(255,255,255,.05);border:1px solid var(--line2);padding:7px 16px;border-radius:999px}
+.eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--ember);box-shadow:0 0 0 0 rgba(235,162,76,.6);animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(235,162,76,.5)}70%{box-shadow:0 0 0 7px rgba(235,162,76,0)}100%{box-shadow:0 0 0 0 rgba(235,162,76,0)}}
+
+h1,h2,h3,h4{font-family:var(--serif);font-weight:600;letter-spacing:-.02em;line-height:1.05}
+.disp-i{font-style:italic;font-weight:400;color:var(--gold)}
+
+/* ---------- HERO ---------- */
+.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:150px 30px 90px}
+.hero h1{font-size:clamp(46px,8.2vw,104px);margin:26px 0 0;color:#FFF4EA}
+/* line-mask reveal */
+.line{display:block;overflow:hidden;padding:.06em .14em;margin:-.06em -.14em}
+.line>span{display:inline-block;transform:translateY(115%) rotate(3deg);opacity:0;filter:blur(12px);will-change:transform,filter}
+.go .hero h1 .line:nth-child(1)>span{animation:lineUp 1.15s cubic-bezier(.19,1,.22,1) .18s forwards}
+.go .hero h1 .line:nth-child(2)>span{animation:lineUp 1.15s cubic-bezier(.19,1,.22,1) .34s forwards}
+@keyframes lineUp{60%{filter:blur(0)}to{transform:translateY(0) rotate(0);opacity:1;filter:blur(0)}}
+/* shimmer that sweeps the headline once after it settles */
+.hero h1::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+  background:linear-gradient(105deg,transparent 38%,rgba(255,230,190,.55) 50%,transparent 62%);
+  background-size:280% 100%;background-position:180% 0;mix-blend-mode:overlay;opacity:0}
+.go .hero h1{position:relative}
+.go .hero h1::after{animation:sweep 1.4s ease 1.25s 1}
+@keyframes sweep{0%{opacity:0;background-position:180% 0}25%{opacity:1}100%{opacity:0;background-position:-120% 0}}
+
+.fade{opacity:0;transform:translateY(20px)}
+.go .fade{opacity:1;transform:none;transition:opacity .9s ease,transform .9s cubic-bezier(.19,1,.22,1)}
+.go .f1{transition-delay:.55s}.go .f2{transition-delay:.7s}.go .f3{transition-delay:.85s}.go .f4{transition-delay:1s}
+
+.hero .lede{max-width:600px;color:var(--muted);font-size:clamp(16px,2.1vw,19px);margin:26px auto 0;font-weight:400}
+.hero .cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:40px}
+.scroll-ind{position:absolute;bottom:34px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:9px;color:var(--dim);font-size:11px;letter-spacing:.2em;opacity:0}
+.go .scroll-ind{opacity:1;transition:opacity 1s ease 1.4s}
+.mouse{width:22px;height:36px;border:1.5px solid var(--line2);border-radius:14px;position:relative}
+.mouse::after{content:"";position:absolute;top:6px;left:50%;transform:translateX(-50%);width:4px;height:7px;border-radius:3px;background:var(--ember);animation:wheel 1.7s ease-in-out infinite}
+@keyframes wheel{0%{opacity:0;top:6px}40%{opacity:1}100%{opacity:0;top:18px}}
+
+.ticker{display:flex;flex-wrap:wrap;justify-content:center;margin-top:54px;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:var(--glass);backdrop-filter:blur(10px)}
+.ticker .ti{text-align:center;padding:22px 40px;border-right:1px solid var(--line)}
+.ticker .ti:last-child{border-right:none}
+.ticker .ti .n{font-family:var(--serif);font-size:clamp(28px,4vw,44px);font-weight:600;color:#fff}
+.ticker .ti .l{font-family:var(--sans);font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.16em;margin-top:6px}
+@media(max-width:620px){.ticker .ti{padding:18px 26px}}
+
+.marquee{margin-top:56px;width:100vw;max-width:1000px;overflow:hidden;
+  -webkit-mask:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent);mask:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent)}
+.mtrack{display:flex;align-items:center;width:max-content;animation:marq 48s linear infinite}
+.marquee:hover .mtrack{animation-play-state:paused}
+.mitem{font-family:var(--serif);font-size:clamp(17px,2.2vw,22px);font-weight:500;font-style:italic;color:var(--muted);white-space:nowrap;display:inline-flex;align-items:center}
+.mitem::after{content:"";width:5px;height:5px;border-radius:50%;background:var(--ember);opacity:.55;margin:0 30px}
+@keyframes marq{to{transform:translateX(-50%)}}
+@media(prefers-reduced-motion:reduce){.mtrack{animation:none}}
+
+.reveal{opacity:0;transform:translateY(50px) scale(.965);filter:blur(8px);
+  transition:opacity 1.5s cubic-bezier(.33,0,.2,1),transform 1.7s cubic-bezier(.33,0,.2,1),filter 1.5s cubic-bezier(.33,0,.2,1);will-change:transform,opacity,filter}
+.reveal.in{opacity:1;transform:none;filter:none}
+
+.sec-head{text-align:center;max-width:720px;margin:0 auto 60px}
+.sec-head h2{font-size:clamp(34px,5.5vw,62px);margin:20px 0 0}
+.sec-head p{color:var(--muted);font-size:18px;margin-top:18px;font-weight:400}
+.pad{padding:130px 0}
+
+.bento{display:grid;grid-template-columns:repeat(6,1fr);gap:18px}
+.card{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:22px;padding:30px;
+  background:var(--glass);backdrop-filter:blur(12px);transition:transform .35s cubic-bezier(.16,.8,.3,1),border-color .35s,box-shadow .35s}
+.card:hover{transform:translateY(-6px);border-color:var(--line2);box-shadow:0 30px 70px -34px rgba(210,104,46,.75)}
+.card::before{content:"";position:absolute;inset:0;opacity:0;transition:opacity .35s;pointer-events:none;
+  background:radial-gradient(440px circle at var(--mx,50%) var(--my,0%),rgba(235,162,76,.14),transparent 60%)}
+.card:hover::before{opacity:1}
+.card.span3{grid-column:span 3}.card.span2{grid-column:span 2}
+.ico{width:50px;height:50px;border-radius:14px;display:grid;place-items:center;font-size:23px;margin-bottom:20px;
+  background:linear-gradient(140deg,rgba(138,46,60,.32),rgba(235,162,76,.2));border:1px solid var(--line2)}
+.card h3{font-size:22px;margin-bottom:9px}
+.card p{color:var(--muted);font-size:14.5px;line-height:1.6;font-weight:400}
+@media(max-width:900px){.bento{grid-template-columns:repeat(2,1fr)}.card.span3,.card.span2{grid-column:span 2}}
+@media(max-width:560px){.bento{grid-template-columns:1fr}.card.span3,.card.span2{grid-column:span 1}}
+
+.band{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:rgba(20,8,10,.34);backdrop-filter:blur(6px)}
+.statgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:30px;padding:80px 0}
+.statgrid .s{text-align:center}
+.statgrid .s .n{font-family:var(--serif);font-size:clamp(40px,5.5vw,70px);font-weight:600;color:#fff;line-height:1}
+.statgrid .s .l{font-family:var(--sans);color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.14em;margin-top:10px}
+@media(max-width:760px){.statgrid{grid-template-columns:repeat(2,1fr);gap:40px}}
+
+.steps{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:start}
+.steps .sticky{position:sticky;top:130px}
+.steps .sticky h2{font-size:clamp(34px,5vw,56px)}
+.steps .sticky p{color:var(--muted);font-size:18px;margin-top:20px;max-width:430px;font-weight:400}
+.steplist{display:flex;flex-direction:column;gap:20px}
+.step{border:1px solid var(--line);border-radius:20px;padding:28px 28px 28px 74px;position:relative;background:var(--glass);backdrop-filter:blur(10px)}
+.step .no{position:absolute;left:24px;top:28px;width:36px;height:36px;border-radius:11px;display:grid;place-items:center;
+  font-family:var(--serif);font-weight:600;font-size:16px;color:#2A0C06;background:linear-gradient(140deg,var(--gold),var(--rust))}
+.step h4{font-size:19px;margin-bottom:7px}
+.step p{color:var(--muted);font-size:14.5px;font-weight:400}
+@media(max-width:860px){.steps{grid-template-columns:1fr;gap:40px}.steps .sticky{position:static}}
+
+.chips{display:flex;flex-wrap:wrap;gap:13px;justify-content:center;margin-top:12px}
+.chip{padding:11px 22px;border-radius:999px;border:1px solid var(--line2);font-family:var(--sans);font-weight:500;font-size:15px;background:var(--glass);backdrop-filter:blur(8px);transition:.22s}
+.chip:hover{transform:translateY(-3px);border-color:var(--ember);color:var(--gold)}
+
+.finalcta{text-align:center;border:1px solid var(--line2);border-radius:30px;padding:80px 34px;position:relative;overflow:hidden;background:rgba(34,12,12,.42);backdrop-filter:blur(14px)}
+.finalcta h2{font-size:clamp(36px,6vw,70px)}
+.finalcta p{color:var(--muted);font-size:18px;margin:20px auto 36px;max-width:520px;font-weight:400}
+.finalcta .cglow{position:absolute;width:560px;height:560px;border-radius:50%;left:50%;bottom:-60%;transform:translateX(-50%);background:radial-gradient(circle,rgba(235,162,76,.45),transparent 60%);filter:blur(50px)}
+
+footer{padding:60px 0;border-top:1px solid var(--line);color:var(--dim);font-size:13.5px;text-align:center;font-family:var(--sans)}
+footer .fb{display:flex;justify-content:center;gap:10px;align-items:center;margin-bottom:11px;color:var(--muted)}
+footer .fb b{font-weight:700;letter-spacing:.06em;color:var(--ink);font-size:16px}
+
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}
+  .reveal,.fade,.line>span,.brand,.navlinks,.scroll-ind{opacity:1!important;transform:none!important;filter:none!important}}
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<div class="vignette"></div>
+<div class="glow" id="glow"></div>
+<div class="progress" id="progress"></div>
+
+<nav id="nav">
+  <div class="brand"><span class="mark">🏏</span><b>Cricket Intelligence Lab</b></div>
+  <div class="navlinks">
+    <a href="#features">The dashboard</a>
+    <a href="#data">Coverage</a>
+    <a href="#how">Under the hood</a>
+    <a class="btn btn-primary" href="dashboard/index.html">Open dashboard →</a>
+  </div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<header class="hero">
+  <div class="fade f1"><span class="eyebrow"><span class="dot"></span>Since 2002 · 48 competitions</span></div>
+  <h1>
+    <span class="line"><span>Look up any cricketer,</span></span>
+    <span class="line"><span class="disp-i">down to the ball.</span></span>
+  </h1>
+  <p class="lede fade f2">Profiles, records and matchups built from 11.2 million deliveries. No login, nothing to install, and it works with the Wi-Fi off.</p>
+  <div class="cta fade f3">
+    <a class="btn btn-primary" href="dashboard/index.html">Open the dashboard →</a>
+    <a class="btn btn-ghost" href="#features">See what's inside</a>
+  </div>
+  <div class="marquee fade f4">
+    <div class="mtrack">
+      <span class="mitem">Indian Premier League</span><span class="mitem">Men's T20Is</span><span class="mitem">Big Bash League</span><span class="mitem">Women's ODIs</span><span class="mitem">Caribbean Premier League</span><span class="mitem">County Championship</span><span class="mitem">Major League Cricket</span><span class="mitem">Men's Tests</span><span class="mitem">Lanka Premier League</span><span class="mitem">International League T20</span><span class="mitem">Women's T20Is</span><span class="mitem">Bangladesh Premier League</span>
+      <span class="mitem">Indian Premier League</span><span class="mitem">Men's T20Is</span><span class="mitem">Big Bash League</span><span class="mitem">Women's ODIs</span><span class="mitem">Caribbean Premier League</span><span class="mitem">County Championship</span><span class="mitem">Major League Cricket</span><span class="mitem">Men's Tests</span><span class="mitem">Lanka Premier League</span><span class="mitem">International League T20</span><span class="mitem">Women's T20Is</span><span class="mitem">Bangladesh Premier League</span>
+    </div>
+  </div>
+</header>
+
+<!-- ============ FEATURES ============ -->
+<section id="features" class="pad">
+  <div class="wrap">
+    <div class="sec-head reveal"><span class="eyebrow">The dashboard</span><h2>Everything the <span class="disp-i">scorecard</span> leaves out</h2><p>Pick any of the 48 competitions and the same depth follows it. Every batter and bowler is ranked, sortable and one click from a full profile.</p></div>
+    <div class="bento">
+      <div class="card span3 reveal"><div class="ico">🎯</div><h3>Player profiles</h3><p>Click a name and you get percentile ranks, powerplay / middle / death splits, opposition and venue breakdowns, and a career timeline that moves.</p></div>
+      <div class="card span3 reveal d1"><div class="ico">🏆</div><h3>Records that re-sort</h3><p>Most runs, most wickets, best averages and strike rates. Click a column and the ranking follows it, era-adjusted where the era matters.</p></div>
+      <div class="card span2 reveal"><div class="ico">🕸️</div><h3>Who bats like who</h3><p>Pick a batter and the dashboard surfaces their closest statistical neighbours, scored across twelve metrics.</p></div>
+      <div class="card span2 reveal d1"><div class="ico">⚖️</div><h3>Four-way compare</h3><p>Stack up to four players on one radar and see the bowlers every one of them has faced.</p></div>
+      <div class="card span2 reveal d2"><div class="ico">📡</div><h3>Live, when it's on</h3><p>Live scores, the fixture list and full ball-by-ball commentary while the server is running.</p></div>
+      <div class="card span3 reveal"><div class="ico">📈</div><h3>Find the outliers</h3><p>Average against strike rate, economy against strike rate — the players sitting furthest from the trend line, plotted.</p></div>
+      <div class="card span3 reveal d1"><div class="ico">🏟️</div><h3>Grounds &amp; teams</h3><p>How each venue scores and how often the chase wins, plus head-to-head team records by format.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ COVERAGE ============ -->
+<section class="band" id="data">
+  <div class="wrap"><div class="statgrid">
+    <div class="s reveal"><div class="n" data-count="48">0</div><div class="l">Competitions</div></div>
+    <div class="s reveal d1"><div class="n" data-count="22000" data-suffix="+">0</div><div class="l">Matches</div></div>
+    <div class="s reveal d2"><div class="n" data-count="11.2" data-decimals="1" data-suffix="M">0</div><div class="l">Deliveries</div></div>
+    <div class="s reveal d3"><div class="n" data-text="2002→now">0</div><div class="l">Years Covered</div></div>
+  </div></div>
+</section>
+
+<!-- ============ UNDER THE HOOD ============ -->
+<section id="how" class="pad">
+  <div class="wrap"><div class="steps">
+    <div class="sticky reveal">
+      <span class="eyebrow">Under the hood</span>
+      <h2>Why it opens <span class="disp-i">instantly</span>.</h2>
+      <p>Nothing is calculated in your browser. Every number is worked out ahead of time and saved, so the dashboard is only ever reading finished results.</p>
+    </div>
+    <div class="steplist">
+      <div class="step reveal"><div class="no">1</div><h4>Ingest</h4><p>Every Cricsheet match is streamed into SQLite, one delivery at a time.</p></div>
+      <div class="step reveal d1"><div class="no">2</div><h4>Compute</h4><p>Percentiles, splits, similarity and era indices are calculated once, across all 48 cohorts.</p></div>
+      <div class="step reveal d2"><div class="no">3</div><h4>Bundle</h4><p>Each competition is saved as its own ~500 KB file, checked for correctness before it ships.</p></div>
+      <div class="step reveal d3"><div class="no">4</div><h4>Open</h4><p>Your browser just loads the file. No backend to wait on, no database to spin up.</p></div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ============ ARCHETYPES ============ -->
+<section class="pad" style="padding-top:0">
+  <div class="wrap">
+    <div class="sec-head reveal"><span class="eyebrow">Archetypes</span><h2>Every batter gets a <span class="disp-i">label</span></h2><p>Not by reputation — by how they actually bat: how fast they score, how long they stay, and when they do their damage.</p></div>
+    <div class="chips reveal d1">
+      <span class="chip">🪨 Anchor</span><span class="chip">🔄 Rotator</span><span class="chip">📊 Accumulator</span><span class="chip">⚡ Aggressor</span><span class="chip">🎬 Finisher</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FINAL CTA ============ -->
+<section class="pad" style="padding-top:0">
+  <div class="wrap"><div class="finalcta reveal">
+    <div class="cglow"></div>
+    <h2>Go open it.</h2>
+    <p>Pick a competition and start reading. It's free, it's fast, and it works with the Wi-Fi off.</p>
+    <a class="btn btn-primary" href="dashboard/index.html" style="font-size:16px;padding:15px 32px">Open the dashboard →</a>
+  </div></div>
+</section>
+
+<footer>
+  <div class="fb"><span class="mark" style="width:24px;height:24px;font-size:13px;border-radius:8px;display:grid;place-items:center;background:linear-gradient(140deg,var(--gold),var(--rust))">🏏</span><b>Cricket Intelligence Lab</b></div>
+  Ball-by-ball analytics · Data from Cricsheet &amp; Cricbuzz · Built zero-build.<br/>
+  <span style="display:inline-block;margin-top:10px;color:var(--muted)">Made by <a href="https://github.com/halcyonvector" target="_blank" rel="noopener" style="color:var(--gold);font-weight:700;letter-spacing:.01em;text-decoration:none;border-bottom:1px solid rgba(235,162,76,.4)">Halcyon Vector</a></span>
+</footer>
+
+<script>
+const prog=document.getElementById('progress'),nav=document.getElementById('nav'),glow=document.getElementById('glow');
+// warm glow that tracks the gradient: wine-red at top -> ember at the bottom
+const stops=[[150,52,55],[180,80,46],[210,116,52],[235,162,76]];
+function lerp(a,b,t){return Math.round(a+(b-a)*t)}
+function glowColor(p){
+  const seg=p*(stops.length-1),i=Math.min(Math.floor(seg),stops.length-2),t=seg-i;
+  const c=stops[i],n=stops[i+1];
+  return `rgba(${lerp(c[0],n[0],t)},${lerp(c[1],n[1],t)},${lerp(c[2],n[2],t)},.8)`;
+}
+function onScroll(){
+  const h=document.documentElement,sc=h.scrollTop||document.body.scrollTop,max=h.scrollHeight-h.clientHeight;
+  const p=max>0?sc/max:0;
+  prog.style.width=(p*100)+'%';
+  nav.classList.toggle('shrink',sc>40);
+  glow.style.setProperty('--gnow',glowColor(p));
+}
+addEventListener('scroll',onScroll,{passive:true});onScroll();
+
+// fire the hero entrance once fonts are ready (so the mask reveal lands on the real typeface)
+function startHero(){document.body.classList.add('go');}
+if(document.fonts&&document.fonts.ready){document.fonts.ready.then(()=>setTimeout(startHero,60));setTimeout(startHero,900);}
+else{addEventListener('load',startHero);}
+
+const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){
+  const el=e.target;
+  const sibs=[...el.parentElement.children].filter(c=>c.classList.contains('reveal'));
+  const i=Math.max(0,sibs.indexOf(el));
+  el.style.transitionDelay=(i*0.18)+'s';
+  el.classList.add('in');
+  io.unobserve(el);
+}});},{threshold:.12,rootMargin:'0px 0px -12% 0px'});
+document.querySelectorAll('.reveal:not(.in)').forEach(el=>io.observe(el));
+
+function animateCount(el){
+  if(el.dataset.text){el.textContent=el.dataset.text;return;}
+  const target=parseFloat(el.dataset.count),dec=parseInt(el.dataset.decimals||'0'),suf=el.dataset.suffix||'';
+  const dur=1700,t0=performance.now();
+  function tick(now){
+    const p=Math.min((now-t0)/dur,1),e=1-Math.pow(1-p,3),v=target*e;
+    el.textContent=(dec?v.toFixed(dec):Math.round(v).toLocaleString('en-US'))+suf;
+    if(p<1)requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+const cio=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){animateCount(e.target);cio.unobserve(e.target);}});},{threshold:.6});
+document.querySelectorAll('[data-count],[data-text]').forEach(el=>cio.observe(el));
+// hero ticker is above the fold — make sure it counts even before any scroll
+setTimeout(()=>document.querySelectorAll('.ticker [data-count]').forEach(animateCount),1400);
+
+document.querySelectorAll('.card').forEach(c=>{
+  c.addEventListener('pointermove',e=>{const r=c.getBoundingClientRect();c.style.setProperty('--mx',(e.clientX-r.left)+'px');c.style.setProperty('--my',(e.clientY-r.top)+'px');});
+});
+</script>
+</body>
+</html>
