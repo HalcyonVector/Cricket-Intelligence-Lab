@@ -6,62 +6,62 @@
 <title>Cricket Intelligence Lab</title>
 <style>
  :root{
-  --base:#06080D;--panel:#0D121C;--panel2:#141C2A;--panel3:#1A2536;--hair:#1F2A3B;--hair2:#2C3A50;
-  --ink:#ECF2FC;--muted:#8492AB;--dim:#5A6884;
-  --accent:#3D8BFF;--accent2:#6FB0FF;--violet:#9B7BFF;--teal:#2BD4B6;--amber:#FFB454;
+  --base:#0A0608;--panel:#16100E;--panel2:#1F1512;--panel3:#2A1B16;--hair:#3A241E;--hair2:#4A2E22;
+  --ink:#F7EEE7;--muted:#C7A99B;--dim:#A6816E;
+  --accent:#D2682E;--accent2:#EBA24C;--violet:#8A2E3C;--teal:#E8B24A;--amber:#FFB454;
   --pos:#33D17A;--neg:#FF6B7E;--gold:#F0C040;
   --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
  }
  *{box-sizing:border-box}
  html,body{margin:0;min-height:100%;background:
-   radial-gradient(1300px 780px at 84% -12%,rgba(124,92,255,.34),transparent 58%),
-   radial-gradient(1150px 720px at -8% 2%,rgba(46,118,255,.20),transparent 55%),
-   radial-gradient(1000px 760px at 60% 122%,rgba(34,206,190,.15),transparent 60%),
-   radial-gradient(860px 600px at 10% 86%,rgba(255,72,150,.14),transparent 62%),
-   linear-gradient(165deg,#0F1124 0%,#0B0D18 46%,#070810 100%);background-attachment:fixed;
+   radial-gradient(1300px 780px at 84% -12%,rgba(210,104,46,.30),transparent 58%),
+   radial-gradient(1150px 720px at -8% 2%,rgba(138,46,60,.26),transparent 55%),
+   radial-gradient(1000px 760px at 60% 122%,rgba(235,162,76,.15),transparent 60%),
+   radial-gradient(860px 600px at 10% 86%,rgba(110,46,18,.20),transparent 62%),
+   linear-gradient(165deg,#1C0A11 0%,#120709 50%,#0A0608 100%);background-attachment:fixed;
    color:var(--ink);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:13.5px;line-height:1.5}
  a{color:var(--accent2);text-decoration:none;cursor:pointer}
  .num{font-variant-numeric:tabular-nums;font-family:var(--mono)}
  .wrap{max-width:1340px;margin:0 auto;padding:0 22px 110px;position:relative;z-index:1}
- header{position:sticky;top:0;z-index:40;background:linear-gradient(180deg,rgba(8,12,20,.92),rgba(6,8,13,.7));backdrop-filter:blur(22px) saturate(1.6);border-bottom:1px solid transparent}
+ header{position:sticky;top:0;z-index:40;background:linear-gradient(180deg,rgba(20,9,11,.92),rgba(14,7,8,.7));backdrop-filter:blur(22px) saturate(1.6);border-bottom:1px solid transparent}
  header::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
-   background:radial-gradient(420px 120px at 18% 0,rgba(61,139,255,.16),transparent 70%),radial-gradient(420px 120px at 72% 0,rgba(155,123,255,.12),transparent 70%),radial-gradient(340px 110px at 95% 0,rgba(43,212,182,.10),transparent 70%)}
- header::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1.5px;background:linear-gradient(90deg,transparent,rgba(61,139,255,.9),rgba(155,123,255,.7),rgba(43,212,182,.6),transparent);background-size:220% 100%;animation:sheen 6s linear infinite}
+   background:radial-gradient(420px 120px at 18% 0,rgba(210,104,46,.16),transparent 70%),radial-gradient(420px 120px at 72% 0,rgba(235,162,76,.12),transparent 70%),radial-gradient(340px 110px at 95% 0,rgba(232,178,74,.10),transparent 70%)}
+ header::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1.5px;background:linear-gradient(90deg,transparent,rgba(210,104,46,.9),rgba(235,162,76,.7),rgba(232,178,74,.6),transparent);background-size:220% 100%;animation:sheen 6s linear infinite}
  @keyframes sheen{from{background-position:0 0}to{background-position:220% 0}}
  .hbar{max-width:1340px;margin:0 auto;padding:11px 22px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:relative}
- .livepill{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--teal);background:rgba(43,212,182,.08);border:1px solid rgba(43,212,182,.25);padding:4px 9px;border-radius:999px}
- .livepill .dotled{width:6px;height:6px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 0 rgba(43,212,182,.6);animation:pulse 1.8s infinite}
- @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(43,212,182,.55)}70%{box-shadow:0 0 0 6px rgba(43,212,182,0)}100%{box-shadow:0 0 0 0 rgba(43,212,182,0)}}
+ .livepill{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--teal);background:rgba(232,178,74,.08);border:1px solid rgba(232,178,74,.25);padding:4px 9px;border-radius:999px}
+ .livepill .dotled{width:6px;height:6px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 0 rgba(232,178,74,.6);animation:pulse 1.8s infinite}
+ @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(232,178,74,.55)}70%{box-shadow:0 0 0 6px rgba(232,178,74,0)}100%{box-shadow:0 0 0 0 rgba(232,178,74,0)}}
  .brand{display:flex;align-items:center;gap:10px;cursor:pointer;white-space:nowrap}
- .mark{width:30px;height:30px;filter:drop-shadow(0 0 10px rgba(61,139,255,.7));transition:transform .6s;animation:floaty 5s ease-in-out infinite}
+ .mark{width:30px;height:30px;filter:drop-shadow(0 0 10px rgba(210,104,46,.7));transition:transform .6s;animation:floaty 5s ease-in-out infinite}
  @keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
  .brand:hover .mark{transform:rotate(180deg)}
  .logo{font-weight:800;letter-spacing:-.02em;font-size:15.5px}
- .logo b{background:linear-gradient(90deg,#86C0FF,#3D8BFF);-webkit-background-clip:text;background-clip:text;color:transparent}
+ .logo b{background:linear-gradient(90deg,#F2C079,#D2682E);-webkit-background-clip:text;background-clip:text;color:transparent}
  .logo .dot{color:var(--teal)}
  select,input,button{font-family:inherit}
  .cwrap,.swrap{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--hair2);border-radius:10px;padding:0 9px;transition:.15s}
- .cwrap:focus-within,.swrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(61,139,255,.18)}
+ .cwrap:focus-within,.swrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(210,104,46,.18)}
  .cwrap svg,.swrap svg{width:14px;height:14px;color:var(--dim);flex:none}
  .cwrap select,.swrap input{background:transparent;border:none;padding:9px 4px;font-size:12.5px;color:var(--ink);outline:none}
- .cwrap select{font-weight:600;max-width:260px} select option,optgroup{background:#0D121C;color:var(--ink)}
+ .cwrap select{font-weight:600;max-width:260px} select option,optgroup{background:#16100E;color:var(--ink)}
  .ctrl select,.ctrl input,.row select,.pg select{background:var(--panel2);color:var(--ink);border:1px solid var(--hair2);border-radius:8px;padding:7px 10px;font-size:12.5px;outline:none}
  nav{display:flex;gap:2px;flex-wrap:wrap;margin-left:auto;background:var(--panel);border:1px solid var(--hair);border-radius:12px;padding:3px}
  nav button{background:transparent;color:var(--muted);border:none;border-radius:9px;padding:7px 13px;font-size:12.5px;cursor:pointer;font-weight:600;transition:.15s}
  nav button:hover{color:var(--ink);background:var(--panel2)}
- nav button.active{color:#fff;background:linear-gradient(135deg,var(--accent2),var(--accent) 60%,var(--violet));box-shadow:0 8px 22px -8px var(--accent),inset 0 1px 0 rgba(255,255,255,.25)}
+ nav button.active{color:#2A0C06;font-weight:700;background:linear-gradient(135deg,var(--accent2),var(--accent));box-shadow:0 8px 22px -8px var(--accent),inset 0 1px 0 rgba(255,255,255,.25)}
  @keyframes fadeUp{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
  #app>*{animation:fadeUp .3s ease both}
- h1{font-size:24px;margin:22px 0 3px;letter-spacing:-.02em;font-weight:760;background:linear-gradient(90deg,#fff,#c7d6ee);-webkit-background-clip:text;background-clip:text;color:transparent}
+ h1{font-size:24px;margin:22px 0 3px;letter-spacing:-.02em;font-weight:760;background:linear-gradient(90deg,#fff,#ECC9B0);-webkit-background-clip:text;background-clip:text;color:transparent}
  .sub{color:var(--muted);font-size:13px;margin:0 0 16px}
  .grid{display:grid;gap:13px}.bento{grid-template-columns:repeat(12,1fr)}
  .s3{grid-column:span 3}.s4{grid-column:span 4}.s5{grid-column:span 5}.s6{grid-column:span 6}.s7{grid-column:span 7}.s8{grid-column:span 8}.s12{grid-column:span 12}
  @media(max-width:980px){.s3,.s4,.s5,.s6,.s7,.s8{grid-column:span 12}}
- .panel{background:linear-gradient(180deg,var(--panel),#0A0F18);border:1px solid var(--hair);border-radius:14px;padding:15px;transition:border-color .15s,box-shadow .15s,transform .15s}
- .panel:hover{border-color:var(--hair2);box-shadow:0 14px 40px -26px rgba(61,139,255,.6)}
+ .panel{background:linear-gradient(180deg,var(--panel),#140C0A);border:1px solid var(--hair);border-radius:14px;padding:15px;transition:border-color .15s,box-shadow .15s,transform .15s}
+ .panel:hover{border-color:var(--hair2);box-shadow:0 14px 40px -26px rgba(210,104,46,.6)}
  .panel h2{color:var(--muted);text-transform:uppercase;font-size:10.5px;letter-spacing:.11em;font-weight:700;margin:0 0 12px;display:flex;justify-content:space-between;align-items:center}
  .panel h2 .r{color:var(--dim);font-weight:600;letter-spacing:.04em;text-transform:none}
- .kpi .n{font-size:27px;font-weight:780;letter-spacing:-.02em;background:linear-gradient(180deg,#fff,#a9c8ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+ .kpi .n{font-size:27px;font-weight:780;letter-spacing:-.02em;background:linear-gradient(180deg,#fff,#F2C079);-webkit-background-clip:text;background-clip:text;color:transparent}
  .kpi .l{color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.07em}
  .kpi .s{color:var(--dim);font-size:11px}
  table{width:100%;border-collapse:collapse;font-size:12.5px}
@@ -89,8 +89,8 @@
  .cov{background:linear-gradient(90deg,rgba(255,180,84,.10),transparent);border:1px solid var(--hair2);border-left:3px solid var(--amber);border-radius:10px;padding:10px 13px;font-size:12px;color:var(--muted);margin:12px 0}
  .cov b{color:var(--ink)}
  .hero{position:relative;overflow:hidden;border:1px solid var(--hair);border-radius:18px;padding:28px;
-   background:linear-gradient(120deg,rgba(61,139,255,.17),rgba(155,123,255,.07) 45%,rgba(10,15,24,.4) 70%),var(--panel);margin-top:18px}
- .hero h1{margin:0 0 6px;font-size:32px;background:linear-gradient(90deg,#fff 24%,#86C0FF);-webkit-background-clip:text;background-clip:text;color:transparent}
+   background:linear-gradient(120deg,rgba(210,104,46,.17),rgba(235,162,76,.07) 45%,rgba(18,9,8,.4) 70%),var(--panel);margin-top:18px}
+ .hero h1{margin:0 0 6px;font-size:32px;background:linear-gradient(90deg,#fff 24%,#F2C079);-webkit-background-clip:text;background-clip:text;color:transparent}
  .hero .tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
  .tag{font-size:11px;padding:4px 11px;border-radius:8px;background:rgba(255,255,255,.05);border:1px solid var(--hair2);color:var(--muted)}
  .tag b{color:var(--ink)}
@@ -111,7 +111,7 @@
  .ledrow:last-child{border:none}
  .rank{display:inline-flex;align-items:center;justify-content:center;width:21px;height:21px;border-radius:6px;font-size:10.5px;font-weight:800;font-family:var(--mono);background:var(--panel3);color:var(--dim);flex:none}
  .rank.r1{background:linear-gradient(180deg,#F7D774,#E0A100);color:#1a1500}
- .rank.r2{background:linear-gradient(180deg,#D7E0EC,#9AA8BD);color:#10151f}
+ .rank.r2{background:linear-gradient(180deg,#D7E0EC,#9AA8BD);color:#1C0E0B}
  .rank.r3{background:linear-gradient(180deg,#E0A270,#B26A36);color:#1a0d00}
  .minibar{display:grid;grid-template-columns:140px 1fr 56px;gap:8px;align-items:center;margin:5px 0;font-size:12px}
  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -122,7 +122,7 @@
  .ac{position:relative}
  .aclist{position:absolute;z-index:30;background:var(--panel2);border:1px solid var(--hair2);border-radius:9px;margin-top:4px;max-height:300px;overflow:auto;min-width:250px}
  .aclist div{padding:7px 11px;cursor:pointer;font-size:12.5px}.aclist div:hover{background:var(--accent)}
- .tooltip{position:fixed;pointer-events:none;background:#0a1220;border:1px solid var(--hair2);border-radius:9px;padding:8px 11px;font-size:11.5px;z-index:60;display:none;box-shadow:0 10px 30px rgba(0,0,0,.65)}
+ .tooltip{position:fixed;pointer-events:none;background:#1A0F0C;border:1px solid var(--hair2);border-radius:9px;padding:8px 11px;font-size:11.5px;z-index:60;display:none;box-shadow:0 10px 30px rgba(0,0,0,.65)}
  .legend{display:flex;gap:13px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin-top:8px}
  .sw{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;vertical-align:middle}
  .ctrl{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:13px}
@@ -145,10 +145,10 @@
  .loadbox{display:flex;flex-direction:column;align-items:center;gap:14px;padding:80px 0;color:var(--muted)}
  .spinner{width:38px;height:38px;border:3px solid var(--hair2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
  @keyframes spin{to{transform:rotate(360deg)}}
- ::selection{background:rgba(61,139,255,.35)}
+ ::selection{background:rgba(210,104,46,.35)}
  ::-webkit-scrollbar{width:11px;height:11px}
- ::-webkit-scrollbar-thumb{background:#1F2A3B;border-radius:7px;border:3px solid var(--base)}
- ::-webkit-scrollbar-thumb:hover{background:#2C3A50}
+ ::-webkit-scrollbar-thumb{background:#3A241E;border-radius:7px;border:3px solid var(--base)}
+ ::-webkit-scrollbar-thumb:hover{background:#4A2E22}
  footer{color:var(--dim);font-size:11.5px;text-align:center;margin-top:46px;padding-top:20px;border-top:1px solid var(--hair)}
 
  /* toolbar & filter controls */
@@ -157,15 +157,15 @@
  .flab{font-size:9.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--dim);font-weight:700}
  .swrap2{display:flex;align-items:center;background:var(--panel2);border:1px solid var(--hair2);border-radius:9px;padding:0 11px;transition:.15s}
  .swrap2 input{background:transparent;border:none;outline:none;color:var(--ink);padding:9px 2px;font-size:12.5px;width:210px}
- .swrap2:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(61,139,255,.16)}
+ .swrap2:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(210,104,46,.16)}
  .selwrap{position:relative;display:inline-flex}
  .selwrap select{appearance:none;-webkit-appearance:none;background:var(--panel2);border:1px solid var(--hair2);border-radius:9px;padding:9px 32px 9px 12px;font-size:12.5px;color:var(--ink);outline:none;cursor:pointer;font-weight:600;min-width:140px}
  .selwrap::after{content:"▾";position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--dim);pointer-events:none;font-size:10px}
- .selwrap select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(61,139,255,.16)}
+ .selwrap select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(210,104,46,.16)}
  .seg{display:inline-flex;border:1px solid var(--hair2);border-radius:9px;overflow:hidden;background:var(--panel2)}
  .seg button{background:transparent;border:none;color:var(--muted);padding:9px 14px;font-size:12px;cursor:pointer;font-weight:600;transition:.12s}
  .seg button:not(:last-child){border-right:1px solid var(--hair2)}
- .seg button.on{background:linear-gradient(180deg,var(--accent2),var(--accent));color:#fff}
+ .seg button.on{background:linear-gradient(180deg,var(--accent2),var(--accent));color:#2A0C06;font-weight:700}
  .count{font-size:11.5px;color:var(--dim);margin-left:auto;align-self:center;font-variant-numeric:tabular-nums}
  .tablewrap{overflow-x:auto}
  .tablewrap table{min-width:680px}
@@ -184,7 +184,7 @@
  /* schedule grouped-by-date */
  .schd{margin-top:14px;display:flex;flex-direction:column;gap:18px}
  .schd-date{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--accent2);margin-bottom:8px;padding-bottom:7px;border-bottom:1px solid var(--hair)}
- .schd-row{display:grid;grid-template-columns:64px 1fr auto;gap:14px;align-items:center;padding:11px 13px;border:1px solid var(--hair);border-radius:11px;background:linear-gradient(180deg,var(--panel),#0A0F18);margin-bottom:8px;transition:.14s}
+ .schd-row{display:grid;grid-template-columns:64px 1fr auto;gap:14px;align-items:center;padding:11px 13px;border:1px solid var(--hair);border-radius:11px;background:linear-gradient(180deg,var(--panel),#140C0A);margin-bottom:8px;transition:.14s}
  .schd-row:hover{border-color:var(--hair2);transform:translateX(2px)}
  .schd-time{font-weight:700;color:var(--ink)}
  .schd-title{font-weight:650}
@@ -197,8 +197,8 @@
  /* ===== intelligence homepage ===== */
  .pitchbg{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;pointer-events:none;opacity:.045}
  .term{position:relative;border:1px solid var(--hair);border-radius:16px;padding:22px 24px;margin-top:18px;overflow:hidden;
-   background:linear-gradient(135deg,rgba(61,139,255,.12),rgba(155,123,255,.06) 46%,rgba(10,15,24,.35)),var(--panel)}
- .term-kic{font-family:var(--mono);font-size:21px;font-weight:800;letter-spacing:.05em;background:linear-gradient(90deg,#fff,#86C0FF);-webkit-background-clip:text;background-clip:text;color:transparent}
+   background:linear-gradient(135deg,rgba(210,104,46,.12),rgba(235,162,76,.06) 46%,rgba(18,9,8,.35)),var(--panel)}
+ .term-kic{font-family:var(--mono);font-size:21px;font-weight:800;letter-spacing:.05em;background:linear-gradient(90deg,#fff,#F2C079);-webkit-background-clip:text;background-clip:text;color:transparent}
  .term-sub{color:var(--muted);font-size:12.5px;margin-top:4px}
  .fstats{display:flex;flex-wrap:wrap;gap:24px 30px;margin-top:16px}
  .fstat .fsv{font-size:22px;font-weight:780;letter-spacing:-.02em;color:var(--ink)}
@@ -211,7 +211,7 @@
  .ins-line{color:var(--muted);font-size:13.5px;max-width:780px;line-height:1.55}
  .sechead{margin:22px 0 10px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
  .disc{display:grid;grid-template-columns:repeat(auto-fill,minmax(192px,1fr));gap:11px}
- .dcard{border:1px solid var(--hair);border-radius:12px;padding:13px 14px;cursor:pointer;transition:.15s;background:linear-gradient(180deg,var(--panel),#0A0F18)}
+ .dcard{border:1px solid var(--hair);border-radius:12px;padding:13px 14px;cursor:pointer;transition:.15s;background:linear-gradient(180deg,var(--panel),#140C0A)}
  .dcard:hover,.dcard.on{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 12px 30px -16px var(--accent)}
  .dcard .dic{color:var(--muted);height:16px;line-height:0}
  .dic-svg{vertical-align:-3px}
@@ -232,7 +232,7 @@
  .cchip{display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px;background:var(--panel2);border:1px solid var(--hair2);border-radius:9px;padding:6px 11px;cursor:pointer;color:var(--ink)}
  .cchip span{font-size:8.5px;letter-spacing:.06em;color:var(--dim)}
  .cchip b{font-size:11.5px;font-weight:650}
- .cchip.on{border-color:var(--accent);background:rgba(61,139,255,.12)}
+ .cchip.on{border-color:var(--accent);background:rgba(210,104,46,.12)}
  .aclist .sr{display:flex;align-items:center;gap:8px}
  .srt{font-family:var(--mono);font-size:8.5px;font-weight:800;letter-spacing:.08em;color:var(--accent2);background:var(--panel3);padding:2px 6px;border-radius:5px;flex:none}
  table.sc{margin-top:4px} table.sc td,table.sc th{padding:8px 10px}
@@ -244,7 +244,7 @@
  .dsstat span{white-space:nowrap}.dsstat b{color:var(--ink);font-weight:700;font-size:12.5px}
  .herowrap{max-width:1340px;margin:0 auto;padding:2px 22px 11px}
  .herosearch{display:flex;align-items:center;gap:11px;background:var(--panel2);border:1px solid var(--hair2);border-radius:13px;padding:0 15px;position:relative;transition:.15s}
- .herosearch:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(61,139,255,.12)}
+ .herosearch:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(210,104,46,.12)}
  .herosearch>svg{width:18px;height:18px;color:var(--dim);flex:none}
  .herosearch input{flex:1;background:transparent;border:none;outline:none;color:var(--ink);font-size:15px;padding:13px 2px}
  .herosearch .aclist{left:0;right:auto;min-width:340px}
@@ -269,7 +269,7 @@
  .dspill select{appearance:none;-webkit-appearance:none;background:var(--panel2);border:1px solid var(--hair2);border-radius:999px;padding:5px 16px;font-size:11.5px;color:var(--ink);font-weight:650;cursor:pointer;outline:none;text-align:center}
  .dspill select:hover{border-color:var(--hair2)}
  /* ===== command-center header (flat, terminal) ===== */
- header{background:#0A0E16!important;border-bottom:1px solid var(--hair)!important;backdrop-filter:none!important;box-shadow:none}
+ header{background:#130C0A!important;border-bottom:1px solid var(--hair)!important;backdrop-filter:none!important;box-shadow:none}
  header::before,header::after{content:none!important;display:none!important;background:none!important;animation:none!important}
  header .cbar{max-width:1340px;margin:0 auto;padding:10px 22px;display:flex;align-items:center;gap:16px}
  header .cbar-l{display:flex;align-items:center;gap:13px;flex:none}
@@ -278,7 +278,7 @@
  header .scope select{appearance:none;-webkit-appearance:none;background:transparent;border:none;color:var(--muted);font-family:var(--mono);font-size:12px;font-weight:600;cursor:pointer;outline:none;max-width:230px;padding-right:2px}
  header .scope select:hover{color:var(--ink)}
  header .cmd{flex:1;display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--hair2);border-radius:9px;padding:0 12px;position:relative;transition:border-color .15s}
- header .cmd:focus-within{border-color:#3A4760}
+ header .cmd:focus-within{border-color:#4A2E22}
  header .cmd>svg{width:16px;height:16px;color:var(--dim);flex:none}
  header .cmd input{flex:1;background:transparent;border:none;outline:none;color:var(--ink);font-size:13.5px;padding:11px 0}
  header .cmd .kbd{font-family:var(--mono);font-size:10px;color:var(--dim);border:1px solid var(--hair2);border-radius:5px;padding:2px 6px;flex:none}
@@ -302,8 +302,8 @@
  header .scope select{color:#C9A24A!important;font-weight:700!important;max-width:200px}
  header .cmd{flex:1 1 auto;padding:0 13px}
  header .cmd input{padding:12px 0;font-size:14px}
- header .statusbar{max-width:1340px;margin:0 auto;padding:0 22px 9px;font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;color:#4E5C76;display:flex;gap:8px;flex-wrap:wrap}
- header .statusbar .dot{color:#2C3A50}
+ header .statusbar{max-width:1340px;margin:0 auto;padding:0 22px 9px;font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;color:#5C3A2C;display:flex;gap:8px;flex-wrap:wrap}
+ header .statusbar .dot{color:#4A2E22}
  header .modebtn{color:var(--dim)!important;letter-spacing:.18em}
  header .modebtn:hover{color:var(--muted)!important}
  header .modebtn.on{color:#fff!important;border-bottom-color:#C9A24A!important}
@@ -318,8 +318,8 @@
  header .scope{position:relative;display:inline-flex;align-items:center}
  header .scope select{color:#C9A24A!important;font-weight:700!important;font-size:14.5px!important;padding:2px 24px 2px 0!important;max-width:300px}
  header .scope .chev{position:absolute;right:3px;width:14px;height:14px;color:#C9A24A;pointer-events:none}
- header .statusbar{max-width:none!important;margin:0!important;padding:5px 0 0!important;font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;color:#4E5C76;display:flex;gap:8px;flex-wrap:wrap}
- header .statusbar .dot{color:#2C3A50}
+ header .statusbar{max-width:none!important;margin:0!important;padding:5px 0 0!important;font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;color:#5C3A2C;display:flex;gap:8px;flex-wrap:wrap}
+ header .statusbar .dot{color:#4A2E22}
  header .modebar{gap:6px!important}
  header .modebtn{color:var(--dim)!important;font-size:12.5px!important;font-weight:700;letter-spacing:.2em!important;padding:13px 22px!important;position:relative;border-bottom:none!important;transition:color .15s}
  header .modebtn:hover{color:var(--ink)!important}
@@ -336,8 +336,8 @@
  header .scope select{color:#C9A24A!important;font-weight:700!important;font-size:13px!important;padding:2px 22px 2px 0!important;max-width:240px}
  header .scope .chev{position:absolute;right:3px;width:13px;height:13px;color:#C9A24A;pointer-events:none}
  header .cmd{flex:1 1 auto!important;margin-left:0!important;max-width:none!important;min-width:0!important;padding:0 13px}
- header .cbar-r{flex:none;font-family:var(--mono);font-size:11px;color:#5A6884;display:flex;gap:8px;white-space:nowrap}
- header .cbar-r .dot{color:#2C3A50}
+ header .cbar-r{flex:none;font-family:var(--mono);font-size:11px;color:#A6816E;display:flex;gap:8px;white-space:nowrap}
+ header .cbar-r .dot{color:#4A2E22}
  header .raterow{border-top:1px solid var(--hair)!important;margin-top:9px!important}
  @media(max-width:980px){header .cbar-r{display:none}}
  /* ===== custom dropdown ===== */
@@ -347,15 +347,15 @@
  .drop-btn .chev{width:13px;height:13px;color:#C9A24A;transition:transform .16s}
  .drop.open .drop-btn .chev{transform:rotate(180deg)}
  .drop-menu{position:absolute;top:calc(100% + 9px);left:0;z-index:1000;min-width:262px;max-height:64vh;overflow:auto;
-   background:linear-gradient(180deg,#111422,#0B0E18);border:1px solid #283248;border-radius:12px;padding:6px;z-index:2001;
-   box-shadow:0 22px 60px -20px rgba(0,0,0,.85),0 0 0 1px rgba(124,92,255,.06)}
+   background:linear-gradient(180deg,#1A110E,#120A09);border:1px solid #33201A;border-radius:12px;padding:6px;z-index:2001;
+   box-shadow:0 22px 60px -20px rgba(0,0,0,.85),0 0 0 1px rgba(138,46,60,.06)}
  .drop-g{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);padding:10px 11px 5px}
  .drop-o{padding:8px 11px;border-radius:8px;font-size:12.5px;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:9px;transition:background .1s,color .1s}
  .drop-o::before{content:"";width:5px;height:5px;border-radius:50%;background:transparent;flex:none;transition:.1s}
  .drop-o:hover{background:rgba(255,255,255,.04);color:var(--ink)}
  .drop-o.on{color:#E8C66A;background:rgba(201,162,74,.12)}
  .drop-o.on::before{background:#C9A24A;box-shadow:0 0 8px rgba(201,162,74,.7)}
- .drop-menu::-webkit-scrollbar{width:9px}.drop-menu::-webkit-scrollbar-thumb{background:#283248;border-radius:6px;border:2px solid transparent;background-clip:padding-box}
+ .drop-menu::-webkit-scrollbar{width:9px}.drop-menu::-webkit-scrollbar-thumb{background:#33201A;border-radius:6px;border:2px solid transparent;background-clip:padding-box}
  /* fix: custom dropdown chevron sits right after the label, tracks its length */
  header .scope{position:static!important;display:inline-flex;align-items:center;flex:none}
  header .scope .chev{position:static!important;right:auto!important}
@@ -381,11 +381,11 @@
  @media(max-width:600px){.fact-row{grid-template-columns:1fr}}
  input,textarea{background:var(--panel2);color:var(--ink);border:1px solid var(--hair2);border-radius:8px;padding:9px 11px;font-size:12.5px;outline:none;font-family:inherit}
  input::placeholder,textarea::placeholder{color:var(--dim)}
- input:focus,textarea:focus{border-color:#3A4760}
+ input:focus,textarea:focus{border-color:#4A2E22}
 
- .cmdk-ov{position:fixed;inset:0;background:rgba(3,6,12,.66);backdrop-filter:blur(3px);z-index:200;display:none;align-items:flex-start;justify-content:center}
+ .cmdk-ov{position:fixed;inset:0;background:rgba(10,6,7,.66);backdrop-filter:blur(3px);z-index:200;display:none;align-items:flex-start;justify-content:center}
  .cmdk-ov.on{display:flex}
- .cmdk{margin-top:11vh;width:min(620px,92vw);background:linear-gradient(180deg,var(--panel),#0A0F18);border:1px solid var(--hair2);border-radius:14px;box-shadow:0 28px 90px rgba(0,0,0,.6);overflow:hidden}
+ .cmdk{margin-top:11vh;width:min(620px,92vw);background:linear-gradient(180deg,var(--panel),#140C0A);border:1px solid var(--hair2);border-radius:14px;box-shadow:0 28px 90px rgba(0,0,0,.6);overflow:hidden}
  .cmdk input{width:100%;border:none;border-bottom:1px solid var(--hair);background:transparent;color:var(--ink);font-size:15px;padding:15px 17px;outline:none;font-family:inherit}
  .cmdk-list{max-height:52vh;overflow:auto;padding:6px}
  .cmdk-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;cursor:pointer}
@@ -397,21 +397,21 @@
 
 /* discovery hero (restored) */
  .dhero{position:relative;border:1px solid var(--hair2);border-radius:18px;padding:26px 28px;margin-top:18px;overflow:hidden;
-   background:radial-gradient(900px 300px at 12% -40%,rgba(61,139,255,.18),transparent 60%),linear-gradient(135deg,rgba(155,123,255,.10),rgba(10,15,24,.4)),var(--panel)}
+   background:radial-gradient(900px 300px at 12% -40%,rgba(210,104,46,.18),transparent 60%),linear-gradient(135deg,rgba(235,162,76,.10),rgba(18,9,8,.4)),var(--panel)}
  .dh-kic{font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:.22em;color:var(--accent2);opacity:.8}
  .dh-lbl{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);font-weight:700;margin-top:12px}
- .dh-head{font-size:27px;font-weight:780;letter-spacing:-.02em;margin:6px 0 8px;line-height:1.15;max-width:880px;background:linear-gradient(90deg,#fff,#cfe0ff);-webkit-background-clip:text;background-clip:text;color:transparent;cursor:pointer}
+ .dh-head{font-size:27px;font-weight:780;letter-spacing:-.02em;margin:6px 0 8px;line-height:1.15;max-width:880px;background:linear-gradient(90deg,#fff,#F3DCC8);-webkit-background-clip:text;background-clip:text;color:transparent;cursor:pointer}
  .dh-body{color:var(--muted);font-size:15px;line-height:1.6;max-width:820px}
  .dh-meta{display:flex;gap:12px;align-items:center;margin-top:14px}
  .conf{font-family:var(--mono);font-size:10px;font-weight:800;letter-spacing:.08em;padding:4px 10px;border-radius:999px;text-transform:uppercase}
  .conf-high{background:rgba(51,209,122,.13);color:#33D17A;border:1px solid rgba(51,209,122,.3)}
  .conf-medium{background:rgba(255,180,84,.13);color:#FFB454;border:1px solid rgba(255,180,84,.3)}
- .conf-low{background:rgba(138,148,166,.13);color:#8A94A6;border:1px solid rgba(138,148,166,.3)}
+ .conf-low{background:rgba(138,148,166,.13);color:#B49A8C;border:1px solid rgba(138,148,166,.3)}
 </style>
 </head>
 <body>
 <svg class="pitchbg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
- <g fill="none" stroke="#9FB4D6" stroke-width="1">
+ <g fill="none" stroke="#C7A99B" stroke-width="1">
   <ellipse cx="870" cy="250" rx="70" ry="52"/><ellipse cx="868" cy="248" rx="135" ry="100"/>
   <ellipse cx="872" cy="252" rx="205" ry="150"/><ellipse cx="866" cy="246" rx="280" ry="205"/>
   <ellipse cx="874" cy="254" rx="360" ry="262"/><ellipse cx="864" cy="248" rx="448" ry="322"/>
@@ -454,7 +454,7 @@ const IDX = window.CIL_INDEX || {cohorts:[]};
 const COH = {};                 // lazily loaded cohort bundles, keyed by cohort key
 window.__cohortLoaded=(k,d)=>{ COH[k]=d; };
 
-const ARCH_COLOR={Anchor:"#6FB0FF",Accumulator:"#33D17A",Aggressor:"#FF6B7E",Finisher:"#FFB454",Rotator:"#8A94A6"};
+const ARCH_COLOR={Anchor:"#EBA24C",Accumulator:"#33D17A",Aggressor:"#FF6B7E",Finisher:"#FFB454",Rotator:"#B49A8C"};
 const CRED_NOTE='Rate-stat boards rank by the value shown. A format-aware minimum-ball qualifier (noted above) is applied first, so two-ball wonders are excluded while the order matches the displayed number.';
 const FMT_COLOR={t20:"#FF6B7E",odi:"#33D17A",test:"#FFB454"};
 const METRICS=[["avg","Average"],["sr","Strike Rate"],["boundary_pct","Boundary %"],["dot_pct","Dot %"],
@@ -811,7 +811,7 @@ function donut(dist){
     const xi1=cx+ir*Math.cos(b),yi1=cy+ir*Math.sin(b),xi2=cx+ir*Math.cos(a),yi2=cy+ir*Math.sin(a);
     const large=ang>Math.PI?1:0;
     svg+=`<path d="M${x1},${y1} A${r},${r} 0 ${large} 1 ${x2},${y2} L${xi1},${yi1} A${ir},${ir} 0 ${large} 0 ${xi2},${yi2} Z" fill="${ARCH_COLOR[k]||'#888'}"/>`;a=b;});
-  svg+=`<text x="${cx}" y="${cy-2}" text-anchor="middle" fill="#ECF2FC" font-size="15" font-weight="700" font-family="var(--mono)">${total}</text><text x="${cx}" y="${cy+12}" text-anchor="middle" fill="#8492AB" font-size="8" letter-spacing="1">RATED</text></svg>`;
+  svg+=`<text x="${cx}" y="${cy-2}" text-anchor="middle" fill="#F7EEE7" font-size="15" font-weight="700" font-family="var(--mono)">${total}</text><text x="${cx}" y="${cy+12}" text-anchor="middle" fill="#C7A99B" font-size="8" letter-spacing="1">RATED</text></svg>`;
   return `<div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding-top:4px">${svg}<div class="legend" style="justify-content:center">${entries.map(([k,v])=>`<span><span class="sw" style="background:${ARCH_COLOR[k]||'#888'}"></span>${k} ${v}</span>`).join('')}</div></div>`;
 }
 
@@ -909,7 +909,7 @@ function playerView(pid){
   const g2=$(`<div class="grid bento" style="margin-top:13px"></div>`);
   const axes=[["avg","Avg"],["sr","SR"],["boundary_pct","Bnd%"],["dot_pct","Dot%"],["consistency","Cons"],["conversion","Conv"]];
   if(p.pct){
-    g2.appendChild($(`<div class="panel s5 pcol"><h2>Percentile profile <span class="r">vs ${c.meta.n_qual_bat} rated batters</span></h2><div class="pmid">${radar([p],axes,["#6FB0FF"])}</div></div>`));
+    g2.appendChild($(`<div class="panel s5 pcol"><h2>Percentile profile <span class="r">vs ${c.meta.n_qual_bat} rated batters</span></h2><div class="pmid">${radar([p],axes,["#EBA24C"])}</div></div>`));
     const pcOrder=[["avg","Average"],["sr","Strike Rate"],["boundary_pct","Boundary %"],["dot_pct","Dot % (inv)"],["consistency","Consistency"],["conversion","Conversion"],["rps","Runs/Scoring"]];
     g2.appendChild($(`<div class="panel s7 pcol"><h2>Percentile ranks</h2><div class="pmid">${pcOrder.filter(o=>p.pct[o[0]]!=null).map(o=>`<div class="pctrow"><span class="k">${o[1]}</span><span class="bar"><span style="width:${Math.max(2,p.pct[o[0]])}%;background:${pctColor(p.pct[o[0]])}"></span></span><span class="v num">${p.pct[o[0]].toFixed(0)}</span></div>`).join('')}</div></div>`));
   } else {
@@ -965,7 +965,7 @@ function compareView(app){
   const nameOf=i=>c.players[i]?c.players[i].name:'';
   const picker=$(`<div class="panel"><div class="row" style="gap:10px;flex-wrap:wrap">${[0,1,2,3].map(s=>`<div class="swrap2 ac" data-s="${s}" style="position:relative;flex:1;min-width:150px"><input class="cmpq" placeholder="Search player ${s+1}…" autocomplete="off" value="${esc(picked[s]?nameOf(picked[s]):'')}"/><div class="aclist" style="display:none"></div></div>`).join('')}</div></div>`);app.appendChild(picker);
   const out=$(`<div style="margin-top:13px"></div>`);app.appendChild(out);
-  const cols=["#6FB0FF","#33D17A","#FFB454","#FF6B7E"];
+  const cols=["#EBA24C","#33D17A","#FFB454","#FF6B7E"];
   function draw(){const ids=picked.filter(Boolean);
     if(!ids.length){out.innerHTML='<p class="note">Select players.</p>';return;}
     const sn=i=>esc((c.players[i].name.split(' ').slice(-1)[0])||c.players[i].name);
@@ -997,8 +997,8 @@ function compareView(app){
 function radar(players,axes,cols){
   const N=axes.length,cx=150,cy=145,R=108,ang=i=>(-Math.PI/2)+i*2*Math.PI/N;
   let svg=`<svg viewBox="0 0 300 290" width="100%" style="max-width:330px">`;
-  for(let g=1;g<=4;g++){let pts='';for(let i=0;i<N;i++){const r=R*g/4;pts+=`${cx+r*Math.cos(ang(i))},${cy+r*Math.sin(ang(i))} `;}svg+=`<polygon points="${pts}" fill="none" stroke="#1F2A3B"/>`;}
-  for(let i=0;i<N;i++){svg+=`<line x1="${cx}" y1="${cy}" x2="${cx+R*Math.cos(ang(i))}" y2="${cy+R*Math.sin(ang(i))}" stroke="#1F2A3B"/><text x="${cx+(R+15)*Math.cos(ang(i))}" y="${cy+(R+15)*Math.sin(ang(i))}" fill="#8492AB" font-size="9.5" text-anchor="middle">${axes[i][1]}</text>`;}
+  for(let g=1;g<=4;g++){let pts='';for(let i=0;i<N;i++){const r=R*g/4;pts+=`${cx+r*Math.cos(ang(i))},${cy+r*Math.sin(ang(i))} `;}svg+=`<polygon points="${pts}" fill="none" stroke="#3A241E"/>`;}
+  for(let i=0;i<N;i++){svg+=`<line x1="${cx}" y1="${cy}" x2="${cx+R*Math.cos(ang(i))}" y2="${cy+R*Math.sin(ang(i))}" stroke="#3A241E"/><text x="${cx+(R+15)*Math.cos(ang(i))}" y="${cy+(R+15)*Math.sin(ang(i))}" fill="#C7A99B" font-size="9.5" text-anchor="middle">${axes[i][1]}</text>`;}
   players.forEach((p,pi)=>{let pts='';for(let i=0;i<N;i++){const v=(p.pct&&p.pct[axes[i][0]]!=null?p.pct[axes[i][0]]:50)/100;pts+=`${cx+R*v*Math.cos(ang(i))},${cy+R*v*Math.sin(ang(i))} `;}svg+=`<polygon points="${pts}" fill="${cols[pi]}22" stroke="${cols[pi]}" stroke-width="2"/>`;});
   return svg+`</svg><div class="legend">${players.map((p,i)=>`<span><span class="sw" style="background:${cols[i]}"></span>${esc(p.name)}</span>`).join('')}</div>`;
 }
@@ -1021,7 +1021,7 @@ function matchupsView(app){
     if(!selB&&!selW){res.innerHTML='<span class="note">Pick a batter and/or bowler.</span>';return;}
     let rows=c.matchups_top.filter(m=>(!selB||m.batter_name===selB)&&(!selW||m.bowler_name===selW));
     if(selB&&selW&&rows.length){const m=rows[0];
-      res.innerHTML=`<div class="grid bento"><div class="panel s12" style="background:linear-gradient(120deg,rgba(61,139,255,.13),transparent)"><div class="row" style="justify-content:space-between"><h1 style="margin:0;font-size:19px">${esc(m.batter_name)} <span class="dim">vs</span> ${esc(m.bowler_name)}</h1><span class="arch" style="background:${m.dominance>=.55?'#33D17A22':m.dominance<=.45?'#FF6B7E22':'#8884'};color:${m.dominance>=.55?'var(--pos)':m.dominance<=.45?'var(--neg)':'var(--ink)'}">dominance ${m.dominance}</span></div>
+      res.innerHTML=`<div class="grid bento"><div class="panel s12" style="background:linear-gradient(120deg,rgba(210,104,46,.13),transparent)"><div class="row" style="justify-content:space-between"><h1 style="margin:0;font-size:19px">${esc(m.batter_name)} <span class="dim">vs</span> ${esc(m.bowler_name)}</h1><span class="arch" style="background:${m.dominance>=.55?'#33D17A22':m.dominance<=.45?'#FF6B7E22':'#8884'};color:${m.dominance>=.55?'var(--pos)':m.dominance<=.45?'var(--neg)':'var(--ink)'}">dominance ${m.dominance}</span></div>
         <div class="grid bento" style="margin-top:10px">${[["Balls",m.balls],["Runs",m.runs],["Dismissals",m.outs],["Strike Rate",m.sr],["Average",m.avg]].map(t=>`<div class="s4"><div class="kpi"><div class="l">${t[0]}</div><div class="n">${fmtN(t[1])}</div></div></div>`).join('')}</div></div></div>`;return;}
     rows.sort((a,b)=>b.balls-a.balls);
     res.innerHTML='';res.appendChild(matchTable(rows));wirePlinks(res);
@@ -1055,7 +1055,7 @@ function researchView(app){
     <label>Archetype<select id="rarch"><option value="">All</option>${archs.map(a=>`<option>${a}</option>`).join('')}</select></label>
     <label>Tier<select id="rtier"><option value="established">Established</option><option value="fringe">Fringe / associate</option><option value="all">All players</option></select></label>
     <label>Color<select id="rcol"><option value="arch">By archetype</option><option value="flag">Outliers only</option></select></label>
-  </div><div class="grid bento"><div class="panel s8" id="rsc" style="background:#080d15"></div><div class="panel s4"><h2>Flagged outliers <span class="r" id="rflagn"></span></h2><div id="rflag"></div><div id="rflagpg" class="pgmini" style="margin-top:10px;justify-content:center"></div></div></div></div>`);
+  </div><div class="grid bento"><div class="panel s8" id="rsc" style="background:#100A08"></div><div class="panel s4"><h2>Flagged outliers <span class="r" id="rflagn"></span></h2><div id="rflag"></div><div id="rflagpg" class="pgmini" style="margin-top:10px;justify-content:center"></div></div></div></div>`);
   app.appendChild(ctrl);
   ctrl.querySelector('#rx').value='avg';ctrl.querySelector('#ry').value='sr';
   function draw(){
@@ -1095,11 +1095,11 @@ function scatter(pts,slope,inter,colmode,xl,yl){
   const xmin=Math.min(...xs),xmax=Math.max(...xs),ymin=Math.min(...ys),ymax=Math.max(...ys);
   const sx=x=>pad+(x-xmin)/((xmax-xmin)||1)*(W-2*pad),sy=y=>H-pad-(y-ymin)/((ymax-ymin)||1)*(H-2*pad);
   let svg=`<svg viewBox="0 0 ${W} ${H}" width="100%">`;
-  for(let i=0;i<=4;i++){const gx=pad+i/4*(W-2*pad),gy=pad+i/4*(H-2*pad);svg+=`<line x1="${gx}" y1="${pad}" x2="${gx}" y2="${H-pad}" stroke="#141C2A"/><line x1="${pad}" y1="${gy}" x2="${W-pad}" y2="${gy}" stroke="#141C2A"/>`;}
-  svg+=`<line x1="${sx(xmin)}" y1="${sy(slope*xmin+inter)}" x2="${sx(xmax)}" y2="${sy(slope*xmax+inter)}" stroke="#6FB0FF" stroke-dasharray="5 4" opacity=".7"/>`;
-  pts.forEach(p=>{const fill=colmode==='flag'?(p.flag?'#FF6B7E':'#39435a'):(ARCH_COLOR[p.arch]||'#6FB0FF');
+  for(let i=0;i<=4;i++){const gx=pad+i/4*(W-2*pad),gy=pad+i/4*(H-2*pad);svg+=`<line x1="${gx}" y1="${pad}" x2="${gx}" y2="${H-pad}" stroke="#1F1512"/><line x1="${pad}" y1="${gy}" x2="${W-pad}" y2="${gy}" stroke="#1F1512"/>`;}
+  svg+=`<line x1="${sx(xmin)}" y1="${sy(slope*xmin+inter)}" x2="${sx(xmax)}" y2="${sy(slope*xmax+inter)}" stroke="#EBA24C" stroke-dasharray="5 4" opacity=".7"/>`;
+  pts.forEach(p=>{const fill=colmode==='flag'?(p.flag?'#FF6B7E':'#46291F'):(ARCH_COLOR[p.arch]||'#EBA24C');
     svg+=`<circle class="scatter-pt" cx="${sx(p.x)}" cy="${sy(p.y)}" r="${p.flag?5.5:3.6}" fill="${fill}" opacity="${p.flag?1:.72}" data-n="${esc(p.name).replace(/"/g,'')}" data-x="${p.x}" data-y="${p.y}" data-z="${p.z}" data-pid="${p.pid}"/>`;});
-  svg+=`<text x="${W/2}" y="${H-12}" fill="#8492AB" font-size="11" text-anchor="middle">${xl}</text><text x="14" y="${H/2}" fill="#8492AB" font-size="11" text-anchor="middle" transform="rotate(-90 14 ${H/2})">${yl}</text></svg>`;
+  svg+=`<text x="${W/2}" y="${H-12}" fill="#C7A99B" font-size="11" text-anchor="middle">${xl}</text><text x="14" y="${H/2}" fill="#C7A99B" font-size="11" text-anchor="middle" transform="rotate(-90 14 ${H/2})">${yl}</text></svg>`;
   const el=$(`<div>${svg}</div>`);
   el.querySelectorAll('.scatter-pt').forEach(ci=>{ci.onmousemove=e=>showTip(`<b>${ci.dataset.n}</b><br>${xl}: ${ci.dataset.x}<br>${yl}: ${ci.dataset.y}<br>resid ${ci.dataset.z}σ`,e.clientX,e.clientY);ci.onmouseleave=hideTip;ci.onclick=()=>{state.player=ci.dataset.pid;render();};});
   return el;
@@ -1438,11 +1438,11 @@ function scatterSVG(c){
   const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y);
   const xmin=Math.min(...xs),xmax=Math.max(...xs),ymin=Math.min(...ys),ymax=Math.max(...ys);
   const X=v=>pad+(v-xmin)/((xmax-xmin)||1)*(W-2*pad),Y=v=>H-pad-(v-ymin)/((ymax-ymin)||1)*(H-2*pad);
-  const dots=pts.map(p=>{const fl=p.flag;return `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="${fl?4.4:2.3}" fill="${fl?'#FF6B7E':'#3D8BFF'}" fill-opacity="${fl?0.95:0.38}" ${p.pid?`class="spt" data-pid="${p.pid}"`:''}><title>${esc(p.name)} — avg ${p.x}, SR ${p.y}</title></circle>`;}).join('');
+  const dots=pts.map(p=>{const fl=p.flag;return `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="${fl?4.4:2.3}" fill="${fl?'#FF6B7E':'#D2682E'}" fill-opacity="${fl?0.95:0.38}" ${p.pid?`class="spt" data-pid="${p.pid}"`:''}><title>${esc(p.name)} — avg ${p.x}, SR ${p.y}</title></circle>`;}).join('');
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">
-    <line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="#2C3A50"/><line x1="${pad}" y1="${pad}" x2="${pad}" y2="${H-pad}" stroke="#2C3A50"/>
-    <text x="${W/2}" y="${H-6}" text-anchor="middle" fill="#5A6884" font-size="10">Average →</text>
-    <text x="12" y="${H/2}" transform="rotate(-90 12 ${H/2})" text-anchor="middle" fill="#5A6884" font-size="10">Strike rate →</text>
+    <line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="#4A2E22"/><line x1="${pad}" y1="${pad}" x2="${pad}" y2="${H-pad}" stroke="#4A2E22"/>
+    <text x="${W/2}" y="${H-6}" text-anchor="middle" fill="#A6816E" font-size="10">Average →</text>
+    <text x="12" y="${H/2}" transform="rotate(-90 12 ${H/2})" text-anchor="middle" fill="#A6816E" font-size="10">Strike rate →</text>
     ${dots}</svg>`;
 }
 function galaxySVG(c){
@@ -1450,12 +1450,12 @@ function galaxySVG(c){
   if(!ps.length)return '<div class="note">No data.</div>';
   const W=560,H=320,pad=24;
   const X=v=>pad+v/100*(W-2*pad),Y=v=>H-pad-v/100*(H-2*pad);
-  const dots=ps.map(([id,p])=>`<circle cx="${X(p.pct.sr).toFixed(1)}" cy="${Y(p.pct.avg).toFixed(1)}" r="3.5" fill="${ARCH_COLOR[p.archetype]||'#8A94A6'}" fill-opacity="0.78" class="spt" data-pid="${id}"><title>${esc(p.name)} — ${p.archetype||''} (avg %ile ${p.pct.avg}, SR %ile ${p.pct.sr})</title></circle>`).join('');
+  const dots=ps.map(([id,p])=>`<circle cx="${X(p.pct.sr).toFixed(1)}" cy="${Y(p.pct.avg).toFixed(1)}" r="3.5" fill="${ARCH_COLOR[p.archetype]||'#B49A8C'}" fill-opacity="0.78" class="spt" data-pid="${id}"><title>${esc(p.name)} — ${p.archetype||''} (avg %ile ${p.pct.avg}, SR %ile ${p.pct.sr})</title></circle>`).join('');
   const leg=Object.keys(ARCH_COLOR).map(k=>`<span><span class="sw" style="background:${ARCH_COLOR[k]}"></span>${k}</span>`).join('');
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">
-    <line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="#2C3A50"/><line x1="${pad}" y1="${pad}" x2="${pad}" y2="${H-pad}" stroke="#2C3A50"/>
-    <text x="${W/2}" y="${H-6}" text-anchor="middle" fill="#5A6884" font-size="10">Strike-rate percentile →</text>
-    <text x="12" y="${H/2}" transform="rotate(-90 12 ${H/2})" text-anchor="middle" fill="#5A6884" font-size="10">Average percentile →</text>
+    <line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="#4A2E22"/><line x1="${pad}" y1="${pad}" x2="${pad}" y2="${H-pad}" stroke="#4A2E22"/>
+    <text x="${W/2}" y="${H-6}" text-anchor="middle" fill="#A6816E" font-size="10">Strike-rate percentile →</text>
+    <text x="12" y="${H/2}" transform="rotate(-90 12 ${H/2})" text-anchor="middle" fill="#A6816E" font-size="10">Average percentile →</text>
     ${dots}</svg><div class="legend" style="margin-top:8px">${leg}</div>`;
 }
 function wireSpt(root){root.querySelectorAll('.spt').forEach(e=>{const id=e.getAttribute('data-pid');if(id){e.style.cursor='pointer';e.onclick=()=>{state.player=id;render();};}});}
@@ -1524,10 +1524,10 @@ function _egoNet(c,pid){
   let edges='',nodes='';
   sims.forEach((s,i)=>{const a=(i/sims.length)*2*Math.PI-Math.PI/2,x=cx+R*Math.cos(a),y=cy+R*Math.sin(a);
     const t=(s.score-smin)/((smax-smin)||1),wdt=(1.2+t*3).toFixed(1);
-    edges+=`<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#3D8BFF" stroke-opacity="${(0.25+t*0.5).toFixed(2)}" stroke-width="${wdt}"/>`;
-    const col=ARCH_COLOR[(P[s.pid]||{}).archetype]||'#6FB0FF';
-    nodes+=`<g class="netn" data-pid="${s.pid}" style="cursor:pointer"><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="17" fill="${col}" fill-opacity=".9"/><text x="${x.toFixed(1)}" y="${(y+30).toFixed(1)}" text-anchor="middle" fill="#ECF2FC" font-size="10.5" font-weight="600">${esc(s.name)}</text><text x="${x.toFixed(1)}" y="${(y+42).toFixed(1)}" text-anchor="middle" fill="#5A6884" font-size="8.5">${Math.round(s.score*100)}% similar</text></g>`;});
-  const fcol=ARCH_COLOR[focal.archetype]||'#9B7BFF';
+    edges+=`<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#D2682E" stroke-opacity="${(0.25+t*0.5).toFixed(2)}" stroke-width="${wdt}"/>`;
+    const col=ARCH_COLOR[(P[s.pid]||{}).archetype]||'#EBA24C';
+    nodes+=`<g class="netn" data-pid="${s.pid}" style="cursor:pointer"><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="17" fill="${col}" fill-opacity=".9"/><text x="${x.toFixed(1)}" y="${(y+30).toFixed(1)}" text-anchor="middle" fill="#F7EEE7" font-size="10.5" font-weight="600">${esc(s.name)}</text><text x="${x.toFixed(1)}" y="${(y+42).toFixed(1)}" text-anchor="middle" fill="#A6816E" font-size="8.5">${Math.round(s.score*100)}% similar</text></g>`;});
+  const fcol=ARCH_COLOR[focal.archetype]||'#8A2E3C';
   nodes+=`<g><circle cx="${cx}" cy="${cy}" r="30" fill="${fcol}"/><circle cx="${cx}" cy="${cy}" r="30" fill="none" stroke="#fff" stroke-opacity=".5"/><text x="${cx}" y="${cy+50}" text-anchor="middle" fill="#fff" font-size="13" font-weight="760">${esc(focal.name)}</text></g>`;
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">${edges}${nodes}</svg>`;
 }
@@ -1578,8 +1578,8 @@ function careerSVG(years){
   const mx=Math.max(...years.map(y=>y.runs||0),1),gap=(W-2*pad)/n,bw=Math.min(34,gap*0.66);
   const peak=years.reduce((a,b)=>(b.runs||0)>(a.runs||0)?b:a,years[0]);
   const bars=years.map((y,i)=>{const x=pad+i*gap+(gap-bw)/2,h=(y.runs/mx)*(H-2*pad-14),yy=H-pad-h,pk=y.year===peak.year;
-    return `<g><rect x="${x.toFixed(1)}" y="${yy.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(1,h).toFixed(1)}" rx="2" fill="${pk?'#FFB454':'#3D8BFF'}" fill-opacity="${pk?0.95:0.62}"><title>${y.year}: ${y.runs} runs in ${y.inns} inns · avg ${y.avg} · SR ${y.sr}</title></rect>${n<=24?`<text x="${(x+bw/2).toFixed(1)}" y="${H-pad+13}" text-anchor="middle" fill="#5A6884" font-size="8.5">'${String(y.year).slice(2)}</text>`:''}</g>`;}).join('');
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block"><line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="#2C3A50"/>${bars}<text x="${pad}" y="18" fill="#8492AB" font-size="10">Peak ${peak.year}: ${peak.runs} runs</text></svg>`;
+    return `<g><rect x="${x.toFixed(1)}" y="${yy.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(1,h).toFixed(1)}" rx="2" fill="${pk?'#FFB454':'#D2682E'}" fill-opacity="${pk?0.95:0.62}"><title>${y.year}: ${y.runs} runs in ${y.inns} inns · avg ${y.avg} · SR ${y.sr}</title></rect>${n<=24?`<text x="${(x+bw/2).toFixed(1)}" y="${H-pad+13}" text-anchor="middle" fill="#A6816E" font-size="8.5">'${String(y.year).slice(2)}</text>`:''}</g>`;}).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block"><line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="#4A2E22"/>${bars}<text x="${pad}" y="18" fill="#C7A99B" font-size="10">Peak ${peak.year}: ${peak.runs} runs</text></svg>`;
 }
 function mountCareer(app,pid){
   const w=app.firstElementChild;if(!w)return;
