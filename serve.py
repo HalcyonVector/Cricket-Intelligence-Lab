@@ -29,7 +29,7 @@ import json, os, re, threading, time, urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-WEB = os.path.join(ROOT, "web", "dashboard")
+WEB = os.path.join(ROOT, "web")
 CACHE = os.path.join(ROOT, ".cache")
 os.makedirs(CACHE, exist_ok=True)
 PORT = int(os.environ.get("PORT", "5000"))
@@ -906,7 +906,7 @@ class H(BaseHTTPRequestHandler):
                 })
         except Exception as e:
             return self._send(500, {"error": repr(e), "hint": "pip install requests"})
-        rel = path.lstrip("/") or "index.html"
+        rel = path.lstrip("/") or "landing.html"
         fp = os.path.normpath(os.path.join(WEB, rel))
         if not fp.startswith(WEB) or not os.path.isfile(fp):
             return self._send(404, {"error": "not found"})
