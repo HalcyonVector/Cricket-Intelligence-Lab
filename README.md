@@ -282,7 +282,8 @@ python verify_build.py
 
 ---
 ## 👨‍💻 Author
-**Naveen** (Cricket Intelligence Lab team)
+**Vector**  
+GitHub: [@HalcyonVector](https://github.com/HalcyonVector)  
 
 ---
 ## 🙋 Support
