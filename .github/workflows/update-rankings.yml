@@ -22,8 +22,20 @@ jobs:
           pip install playwright
           python -m playwright install --with-deps chromium
       - name: Scrape ICC rankings
-        run: python scripts/fetch_icc_rankings.py
+        # --debug dumps the rendered HTML of any page that parses badly, so a
+        # failure leaves something to inspect. The script exits non-zero (turning
+        # this job RED + emailing you) if ICC's markup change breaks the scrape.
+        run: python scripts/fetch_icc_rankings.py --debug
+      - name: Upload rendered HTML of failed pages
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: icc-debug-html
+          path: scripts/_debug_*.html
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Commit if changed
+        if: success()
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
