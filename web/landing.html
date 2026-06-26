@@ -52,8 +52,9 @@ nav{position:fixed;top:0;left:0;right:0;z-index:60;display:flex;align-items:cent
 nav.shrink{padding:11px 34px;background:rgba(14,7,8,.62);backdrop-filter:blur(16px) saturate(1.4);border-color:var(--line)}
 .brand{display:flex;align-items:center;gap:11px;opacity:0;transform:translateY(-8px);transition:opacity .7s ease .1s,transform .7s ease .1s}
 .go .brand{opacity:1;transform:none}
-.brand .mark{width:36px;height:36px;display:grid;place-items:center;border-radius:11px;font-size:18px;
+.brand .mark{width:36px;height:36px;display:grid;place-items:center;border-radius:11px;
   background:linear-gradient(140deg,var(--gold),var(--rust));box-shadow:0 8px 24px -8px rgba(210,104,46,.7)}
+.mark svg{display:block}
 .brand b{font-family:var(--sans);font-weight:700;font-size:19px;letter-spacing:-.01em;color:var(--ink)}
 .navlinks{margin-left:auto;display:flex;gap:4px;align-items:center;opacity:0;transition:opacity .7s ease .25s}
 .go .navlinks{opacity:1}
@@ -126,9 +127,10 @@ h1,h2,h3,h4{font-family:var(--serif);font-weight:600;letter-spacing:-.02em;line-
 @keyframes marq{to{transform:translateX(-50%)}}
 @media(prefers-reduced-motion:reduce){.mtrack{animation:none}}
 
-.reveal{opacity:0;transform:translateY(50px) scale(.965);filter:blur(8px);
-  transition:opacity 1.5s cubic-bezier(.33,0,.2,1),transform 1.7s cubic-bezier(.33,0,.2,1),filter 1.5s cubic-bezier(.33,0,.2,1);will-change:transform,opacity,filter}
-.reveal.in{opacity:1;transform:none;filter:none}
+.reveal{opacity:0;transform:translateY(44px);
+  transition:opacity 1.3s cubic-bezier(.22,1,.36,1),transform 1.5s cubic-bezier(.22,1,.36,1);
+  transition-delay:var(--rd,0s);will-change:transform,opacity}
+.reveal.in{opacity:1;transform:none}
 
 .sec-head{text-align:center;max-width:720px;margin:0 auto 60px}
 .sec-head h2{font-size:clamp(34px,5.5vw,62px);margin:20px 0 0}
@@ -143,8 +145,9 @@ h1,h2,h3,h4{font-family:var(--serif);font-weight:600;letter-spacing:-.02em;line-
   background:radial-gradient(440px circle at var(--mx,50%) var(--my,0%),rgba(235,162,76,.14),transparent 60%)}
 .card:hover::before{opacity:1}
 .card.span3{grid-column:span 3}.card.span2{grid-column:span 2}
-.ico{width:50px;height:50px;border-radius:14px;display:grid;place-items:center;font-size:23px;margin-bottom:20px;
+.ico{width:50px;height:50px;border-radius:14px;display:grid;place-items:center;margin-bottom:20px;color:var(--gold);
   background:linear-gradient(140deg,rgba(138,46,60,.32),rgba(235,162,76,.2));border:1px solid var(--line2)}
+.ico svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .card h3{font-size:22px;margin-bottom:9px}
 .card p{color:var(--muted);font-size:14.5px;line-height:1.6;font-weight:400}
 @media(max-width:900px){.bento{grid-template-columns:repeat(2,1fr)}.card.span3,.card.span2{grid-column:span 2}}
@@ -170,13 +173,16 @@ h1,h2,h3,h4{font-family:var(--serif);font-weight:600;letter-spacing:-.02em;line-
 @media(max-width:860px){.steps{grid-template-columns:1fr;gap:40px}.steps .sticky{position:static}}
 
 .chips{display:flex;flex-wrap:wrap;gap:13px;justify-content:center;margin-top:12px}
-.chip{padding:11px 22px;border-radius:999px;border:1px solid var(--line2);font-family:var(--sans);font-weight:500;font-size:15px;background:var(--glass);backdrop-filter:blur(8px);transition:.22s}
+.chip{display:inline-flex;align-items:center;gap:9px;padding:11px 22px;border-radius:999px;border:1px solid var(--line2);font-family:var(--sans);font-weight:500;font-size:15px;background:var(--glass);backdrop-filter:blur(8px);transition:.22s}
 .chip:hover{transform:translateY(-3px);border-color:var(--ember);color:var(--gold)}
+.chip svg{width:16px;height:16px;stroke:var(--ember);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;transition:stroke .22s}
+.chip:hover svg{stroke:var(--gold)}
 
 .finalcta{text-align:center;border:1px solid var(--line2);border-radius:30px;padding:80px 34px;position:relative;overflow:hidden;background:rgba(34,12,12,.42);backdrop-filter:blur(14px)}
 .finalcta h2{font-size:clamp(36px,6vw,70px)}
 .finalcta p{color:var(--muted);font-size:18px;margin:20px auto 36px;max-width:520px;font-weight:400}
-.finalcta .cglow{position:absolute;width:560px;height:560px;border-radius:50%;left:50%;bottom:-60%;transform:translateX(-50%);background:radial-gradient(circle,rgba(235,162,76,.45),transparent 60%);filter:blur(50px)}
+.finalcta .cglow{position:absolute;width:560px;height:560px;border-radius:50%;left:50%;bottom:-60%;transform:translateX(-50%);background:radial-gradient(circle,rgba(235,162,76,.45),transparent 60%);filter:blur(50px);pointer-events:none;z-index:0}
+.finalcta>*:not(.cglow){position:relative;z-index:1}
 
 footer{padding:60px 0;border-top:1px solid var(--line);color:var(--dim);font-size:13.5px;text-align:center;font-family:var(--sans)}
 footer .fb{display:flex;justify-content:center;gap:10px;align-items:center;margin-bottom:11px;color:var(--muted)}
@@ -193,7 +199,7 @@ footer .fb b{font-weight:700;letter-spacing:.06em;color:var(--ink);font-size:16p
 <div class="progress" id="progress"></div>
 
 <nav id="nav">
-  <div class="brand"><span class="mark">🏏</span><b>Cricket Intelligence Lab</b></div>
+  <div class="brand"><span class="mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2A0C06" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 8.5v9M12 8.5v9M16.5 8.5v9M6.5 8.5h11"/><circle cx="19.2" cy="6.4" r="1.3" fill="#2A0C06" stroke="none"/></svg></span><b>Cricket Intelligence Lab</b></div>
   <div class="navlinks">
     <a href="#features">The dashboard</a>
     <a href="#data">Coverage</a>
@@ -227,13 +233,13 @@ footer .fb b{font-weight:700;letter-spacing:.06em;color:var(--ink);font-size:16p
   <div class="wrap">
     <div class="sec-head reveal"><span class="eyebrow">The dashboard</span><h2>Everything the <span class="disp-i">scorecard</span> leaves out</h2><p>Pick any of the 48 competitions and the same depth follows it. Every batter and bowler is ranked, sortable and one click from a full profile.</p></div>
     <div class="bento">
-      <div class="card span3 reveal"><div class="ico">🎯</div><h3>Player profiles</h3><p>Click a name and you get percentile ranks, powerplay / middle / death splits, opposition and venue breakdowns, and a career timeline that moves.</p></div>
-      <div class="card span3 reveal d1"><div class="ico">🏆</div><h3>Records that re-sort</h3><p>Most runs, most wickets, best averages and strike rates. Click a column and the ranking follows it, era-adjusted where the era matters.</p></div>
-      <div class="card span2 reveal"><div class="ico">🕸️</div><h3>Who bats like who</h3><p>Pick a batter and the dashboard surfaces their closest statistical neighbours, scored across twelve metrics.</p></div>
-      <div class="card span2 reveal d1"><div class="ico">⚖️</div><h3>Four-way compare</h3><p>Stack up to four players on one radar and see the bowlers every one of them has faced.</p></div>
-      <div class="card span2 reveal d2"><div class="ico">📡</div><h3>Live, when it's on</h3><p>Live scores, the fixture list and full ball-by-ball commentary while the server is running.</p></div>
-      <div class="card span3 reveal"><div class="ico">📈</div><h3>Find the outliers</h3><p>Average against strike rate, economy against strike rate — the players sitting furthest from the trend line, plotted.</p></div>
-      <div class="card span3 reveal d1"><div class="ico">🏟️</div><h3>Grounds &amp; teams</h3><p>How each venue scores and how often the chase wins, plus head-to-head team records by format.</p></div>
+      <div class="card span3 reveal"><div class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20.5c0-3.9 3.4-6.2 7.5-6.2s7.5 2.3 7.5 6.2"/></svg></div><h3>Player profiles</h3><p>Click a name and you get percentile ranks, powerplay / middle / death splits, opposition and venue breakdowns, and a career timeline that moves.</p></div>
+      <div class="card span3 reveal d1"><div class="ico"><svg viewBox="0 0 24 24"><path d="M5 21V11"/><path d="M12 21V4"/><path d="M19 21v-7"/></svg></div><h3>Records that re-sort</h3><p>Most runs, most wickets, best averages and strike rates. Click a column and the ranking follows it, era-adjusted where the era matters.</p></div>
+      <div class="card span2 reveal"><div class="ico"><svg viewBox="0 0 24 24"><circle cx="6" cy="6.5" r="2.1"/><circle cx="18" cy="7.5" r="2.1"/><circle cx="12" cy="17.5" r="2.1"/><path d="M7.7 7.7 10.6 15.6M16.3 9.1 13.4 15.6M8.1 6.7h7.8"/></svg></div><h3>Who bats like who</h3><p>Pick a batter and the dashboard surfaces their closest statistical neighbours, scored across twelve metrics.</p></div>
+      <div class="card span2 reveal d1"><div class="ico"><svg viewBox="0 0 24 24"><polygon points="12 3 20 9 17 19.5 7 19.5 4 9"/><polygon points="12 8 16 11 14.4 16.2 9.6 16.2 8 11"/></svg></div><h3>Four-way compare</h3><p>Stack up to four players on one radar and see the bowlers every one of them has faced.</p></div>
+      <div class="card span2 reveal d2"><div class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.9"/><path d="M8 8a5.7 5.7 0 0 0 0 8M16 16a5.7 5.7 0 0 0 0-8M5.2 5.2a9.6 9.6 0 0 0 0 13.6M18.8 18.8a9.6 9.6 0 0 0 0-13.6"/></svg></div><h3>Live, when it's on</h3><p>Live scores, the fixture list and full ball-by-ball commentary while the server is running.</p></div>
+      <div class="card span3 reveal"><div class="ico"><svg viewBox="0 0 24 24"><path d="M4 4v16h16"/><circle cx="9" cy="15" r="1.2"/><circle cx="13" cy="11" r="1.2"/><circle cx="16.5" cy="13" r="1.2"/><circle cx="17.5" cy="5.5" r="1.2"/></svg></div><h3>Find the outliers</h3><p>Average against strike rate, economy against strike rate — the players sitting furthest from the trend line, plotted.</p></div>
+      <div class="card span3 reveal d1"><div class="ico"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9.2" ry="6"/><ellipse cx="12" cy="12" rx="3" ry="5.2"/></svg></div><h3>Grounds &amp; teams</h3><p>How each venue scores and how often the chase wins, plus head-to-head team records by format.</p></div>
     </div>
   </div>
 </section>
@@ -270,7 +276,7 @@ footer .fb b{font-weight:700;letter-spacing:.06em;color:var(--ink);font-size:16p
   <div class="wrap">
     <div class="sec-head reveal"><span class="eyebrow">Archetypes</span><h2>Every batter gets a <span class="disp-i">label</span></h2><p>Not by reputation — by how they actually bat: how fast they score, how long they stay, and when they do their damage.</p></div>
     <div class="chips reveal d1">
-      <span class="chip">🪨 Anchor</span><span class="chip">🔄 Rotator</span><span class="chip">📊 Accumulator</span><span class="chip">⚡ Aggressor</span><span class="chip">🎬 Finisher</span>
+      <span class="chip"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><path d="M12 7v13M5.5 13a6.5 6.5 0 0 0 13 0M5.5 13H3.2l1.4 2M18.5 13h2.3l-1.4 2"/></svg>Anchor</span><span class="chip"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7M20 3.5V8h-4.5"/></svg>Rotator</span><span class="chip"><svg viewBox="0 0 24 24"><path d="M5 20V13M10 20V8M15 20V11M20 20V4"/></svg>Accumulator</span><span class="chip"><svg viewBox="0 0 24 24"><path d="M13 2.5 5 13h6l-2 8.5L19 10.5h-6z"/></svg>Aggressor</span><span class="chip"><svg viewBox="0 0 24 24"><path d="M5.5 21V3.5M5.5 5h11l-2.2 4 2.2 4h-11"/></svg>Finisher</span>
     </div>
   </div>
 </section>
@@ -286,7 +292,7 @@ footer .fb b{font-weight:700;letter-spacing:.06em;color:var(--ink);font-size:16p
 </section>
 
 <footer>
-  <div class="fb"><span class="mark" style="width:24px;height:24px;font-size:13px;border-radius:8px;display:grid;place-items:center;background:linear-gradient(140deg,var(--gold),var(--rust))">🏏</span><b>Cricket Intelligence Lab</b></div>
+  <div class="fb"><span class="mark" style="width:24px;height:24px;border-radius:8px;display:grid;place-items:center;background:linear-gradient(140deg,var(--gold),var(--rust))"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2A0C06" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 8.5v9M12 8.5v9M16.5 8.5v9M6.5 8.5h11"/><circle cx="19.2" cy="6.4" r="1.4" fill="#2A0C06" stroke="none"/></svg></span><b>Cricket Intelligence Lab</b></div>
   Ball-by-ball analytics · Data from Cricsheet &amp; Cricbuzz · Built zero-build.<br/>
   <span style="display:inline-block;margin-top:10px;color:var(--muted)">Made by <a href="https://github.com/halcyonvector" target="_blank" rel="noopener" style="color:var(--gold);font-weight:700;letter-spacing:.01em;text-decoration:none;border-bottom:1px solid rgba(235,162,76,.4)">Halcyon Vector</a></span>
 </footer>
@@ -315,15 +321,25 @@ function startHero(){document.body.classList.add('go');}
 if(document.fonts&&document.fonts.ready){document.fonts.ready.then(()=>setTimeout(startHero,60));setTimeout(startHero,900);}
 else{addEventListener('load',startHero);}
 
-const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){
-  const el=e.target;
+// stagger is computed once up front (not at intersection time) so fast scrolling
+// can never pile up long delays or leave a card stuck mid-animation
+document.querySelectorAll('.reveal').forEach(el=>{
   const sibs=[...el.parentElement.children].filter(c=>c.classList.contains('reveal'));
   const i=Math.max(0,sibs.indexOf(el));
-  el.style.transitionDelay=(i*0.18)+'s';
-  el.classList.add('in');
-  io.unobserve(el);
-}});},{threshold:.12,rootMargin:'0px 0px -12% 0px'});
+  el.style.setProperty('--rd',(Math.min(i,3)*0.11)+'s');
+});
+const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){
+  e.target.classList.add('in');
+  io.unobserve(e.target);
+}});},{threshold:.1,rootMargin:'0px 0px -8% 0px'});
 document.querySelectorAll('.reveal:not(.in)').forEach(el=>io.observe(el));
+// safety net: anything already on screen (or above it) when the page settles
+// is revealed even if a fast scroll outran the observer
+addEventListener('load',()=>setTimeout(()=>{
+  document.querySelectorAll('.reveal:not(.in)').forEach(el=>{
+    if(el.getBoundingClientRect().top < innerHeight*0.95){el.classList.add('in');io.unobserve(el);}
+  });
+},200));
 
 function animateCount(el){
   if(el.dataset.text){el.textContent=el.dataset.text;return;}
