@@ -43,6 +43,16 @@ for gender in ("mens", "womens"):
             PLAYER_SPECS.append((gender, fmt, disc))
         TEAM_SPECS.append((gender, fmt))
 
+# --- health gate -----------------------------------------------------------
+# A page only counts as a real success if it parsed AND came back with a
+# believable number of rows. ICC pages list far more than this, so these are
+# deliberately low: they catch "0 rows" and "1 garbage row" without crying
+# wolf if ICC trims a list. EXPECTED is every page we try (20); we allow a
+# couple of transient misses before declaring the scraper broken.
+MIN_ROWS = {"player": 8, "team": 3}
+EXPECTED = len(PLAYER_SPECS) + len(TEAM_SPECS)
+TOLERANCE = 2
+
 
 def _title(gender, fmt, disc=None):
     g = "Men's" if gender == "mens" else "Women's"
@@ -180,17 +190,20 @@ def live(debug=False):
                 html = page.content()
             except Exception as e:
                 print(f"  ! {title}: {e}"); failed.append(url); return
-            if rows:
+            if rows and len(rows) >= MIN_ROWS.get(kind, 1):
                 tables.append({"title": title, "kind": kind, "rows": rows[:25]})
                 print(f"  ok {title} ({len(rows)} rows)")
             else:
-                failed.append(url)
-                if debug:
-                    p = os.path.join(DBG, "_debug_" + re.sub(r"\W+", "_", title) + ".html")
+                failed.append(title)
+                reason = "0 rows" if not rows else f"only {len(rows)} row(s) (<{MIN_ROWS.get(kind, 1)})"
+                # always dump the rendered HTML for a bad page so CI can upload it as an
+                # artifact -- this is how you see *what* ICC changed
+                p = os.path.join(DBG, "_debug_" + re.sub(r"\W+", "_", title) + ".html")
+                try:
                     open(p, "w", encoding="utf-8").write(html)
-                    print(f"  -- {title}: 0 rows (saved {os.path.basename(p)})")
-                else:
-                    print(f"  -- {title}: 0 rows")
+                    print(f"  -- {title}: {reason} (saved {os.path.basename(p)})")
+                except Exception:
+                    print(f"  -- {title}: {reason}")
 
         for gender, fmt, disc in PLAYER_SPECS:
             grab(f"{base}/{disc}/{gender}/{fmt}", "player", _title(gender, fmt, disc)); time.sleep(0.3)
@@ -198,8 +211,8 @@ def live(debug=False):
             grab(f"{base}/team-rankings/{gender}/{fmt}", "team", _title(gender, fmt)); time.sleep(0.3)
         browser.close()
     if failed:
-        print(f"\n{len(failed)} page(s) returned no rows. Re-run with --debug and send me a _debug_*.html.")
-    return tables
+        print(f"\n{len(failed)} of {EXPECTED} page(s) came back bad: {', '.join(failed)}")
+    return tables, failed
 
 
 def demo():
@@ -211,12 +224,50 @@ def demo():
     ]
 
 
+def _load_previous():
+    """Read the last good rankings.js so we can keep showing tables ICC failed to
+    serve this week, instead of silently dropping them from the dashboard."""
+    try:
+        txt = open(OUT, encoding="utf-8").read()
+        m = re.search(r"window\.CIL_RANKINGS\s*=\s*(\{.*\})\s*;?\s*$", txt, re.S)
+        prev = json.loads(m.group(1)) if m else {}
+        return {t["title"]: t for t in prev.get("tables", [])}, prev.get("generated")
+    except Exception:
+        return {}, None
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--demo", action="store_true")
     ap.add_argument("--debug", action="store_true")
     a = ap.parse_args()
-    tables = demo() if a.demo else live(debug=a.debug)
+    if a.demo:
+        tables, failed = demo(), []
+    else:
+        tables, failed = live(debug=a.debug)
+
+    if not a.demo:
+        # HEALTH GATE: if too many pages came back broken, ICC almost certainly
+        # changed their markup. Don't overwrite rankings.js (the dashboard keeps
+        # the last good data) and exit non-zero so the GitHub Action goes RED and
+        # emails you. The _debug_*.html files are uploaded as a build artifact.
+        if len(tables) < EXPECTED - TOLERANCE:
+            sys.exit(
+                f"\n*** ICC rankings scrape looks BROKEN ***\n"
+                f"Only {len(tables)}/{EXPECTED} pages parsed cleanly "
+                f"({len(failed)} bad: {', '.join(failed) or 'n/a'}).\n"
+                f"ICC most likely changed their page markup. Left the previous "
+                f"rankings.js untouched. Download the _debug_*.html artifact from this "
+                f"run to see the rendered page, then fix the parser in fetch_icc_rankings.py.")
+        # within tolerance: backfill the handful of missing tables from last-good
+        # so the dashboard never loses a section over a transient blip
+        if failed:
+            prev, _ = _load_previous()
+            have = {t["title"] for t in tables}
+            for title in failed:
+                if title in prev and title not in have:
+                    tables.append(prev[title]); print(f"  ~ kept last-good: {title}")
+
     if not tables:
         sys.exit("No tables parsed. Try --demo to preview the tab, or re-run with --debug.")
     payload = {"generated": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
