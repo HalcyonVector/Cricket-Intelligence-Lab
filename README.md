@@ -1,7 +1,7 @@
-# 🏏 Cricket Intelligence Lab — Interactive Analytics Dashboard
+# Cricket Intelligence Lab — Interactive Analytics Dashboard
 Ball-by-ball cricket intelligence across **48 competitions, 22,000+ matches, and 11.2 million deliveries** from men's and women's cricket. Built as a single, self-contained dashboard with zero build tools, no database required, and no framework overhead — just open one HTML file and explore.
 ---
-## 🎯 Features
+## Features
 ### Core Features
 - **48 Sport Cohorts** — Men's & women's T20I / ODI / Test, plus IPL, BBL, PSL, The Hundred, CPL, county & domestic competitions; pick any from the top selector
 - **Batter & Bowler Intelligence** — Every player paginated, sortable, and clickable for full profiles with percentile ranks, phase splits, context splits, and career timelines
@@ -28,7 +28,7 @@ Ball-by-ball cricket intelligence across **48 competitions, 22,000+ matches, and
 - **Aggregates:** Career totals, phase averages, era-relative percentiles
 - **Discovery:** Similar players network, outlier detection, partnership records
 ---
-## 🛠️ Tech Stack
+## Tech Stack
 | Component | Technology | Details |
 |-----------|-----------|---------|
 | **Dashboard** | HTML + Vanilla JavaScript | Single-file interactive app; zero build step required |
@@ -39,12 +39,12 @@ Ball-by-ball cricket intelligence across **48 competitions, 22,000+ matches, and
 | **Styling** | Plain CSS | Responsive dark theme with minimal dependencies |
 | **Storage** | SQLite (ephemeral) | cil.db used only during build; all production data is static bundles |
 ---
-## 📋 Prerequisites
+## Prerequisites
 - **Modern browser** — Chrome, Firefox, Safari, or Edge (for the dashboard; no install needed)
 - **Python 3.10+** — [Download here](https://www.python.org/downloads/) (optional, only for live scores and rebuilding data)
 - **Cricsheet archive** — [Download from cricsheet.org](https://cricsheet.org/downloads/) (optional, for custom rebuilds)
 ---
-## 🚀 Quick Start (3 Options)
+## Quick Start (3 Options)
 ### Option 1: Just the Dashboard (Zero Install) ⭐ Fastest
 Simply clone the repo and open the HTML file:
 
@@ -111,7 +111,7 @@ pip install requests orjson numpy
 python serve.py  # http://127.0.0.1:5000
 ```
 ---
-## 📁 Project Structure
+## Project Structure
 ```
 cricket-intelligence-lab/
 ├── README.md                     # This file
@@ -161,7 +161,7 @@ cricket-intelligence-lab/
         └── update-rankings.yml   # Weekly: refresh ICC rankings
 ```
 ---
-## 📊 Data & Methodology
+## Data & Methodology
 ### Source
 All cricket data is from **[Cricsheet](https://cricsheet.org)**, released under the **Open Data Commons Open Database License (ODbL) / CC BY-SA**. Player photos are fetched from Cricbuzz's CDN for display only.
 
@@ -195,7 +195,7 @@ verify_build.py gates integrity
 web/dashboard/index.html loads bundles on demand
 ```
 ---
-## 🖥️ Deployment
+## Deployment
 ### Local (Free)
 ```bash
 python serve.py  # Runs on http://127.0.0.1:5000
@@ -219,7 +219,7 @@ Two workflows run weekly at no cost:
 
 Enable **Settings → Actions → General → Workflow permissions → Read and write** so workflows can commit.
 ---
-## 🔧 Available Scripts
+## Available Scripts
 | Script | Command | Description |
 |--------|---------|-------------|
 | **Build from scratch** | `python build_all.py --zip all_json.zip` | Ingest Cricsheet archive, recompute all analytics, regenerate bundles |
@@ -229,7 +229,7 @@ Enable **Settings → Actions → General → Workflow permissions → Read and 
 | **Update rankings** | `python scripts/update-icc-rankings.py` | Fetch latest ICC rankings |
 
 ---
-## 🚨 Troubleshooting
+## Troubleshooting
 ### Issue: `FileNotFoundError: all_json.zip`
 **Solution:** Download the Cricsheet archive from https://cricsheet.org/downloads/, place it in the project root, and retry:
 ```bash
@@ -270,10 +270,9 @@ python verify_build.py
 ```
 
 ---
-## 📈 Future Enhancements
+## Future Enhancements
 - [ ] Streaming live database (instead of rebuilding weekly)
 - [ ] Custom stat definitions (allow users to define derived metrics)
-- [ ] Export to CSV/Excel for external analysis
 - [ ] Interactive prediction model (win probability, score forecasts)
 - [ ] Mobile-optimized responsive UI
 - [ ] Player injury/form timeline
@@ -283,17 +282,17 @@ python verify_build.py
 - [ ] Dark/light theme toggle
 
 ---
-## 👨‍💻 Author
-**Vector**  
+## Author
+**Sagnik**  
 GitHub: [@HalcyonVector](https://github.com/HalcyonVector)  
 
 ---
-## 🙋 Support
+## Support
 Found a bug or have a feature request?  
 [Open an issue](https://github.com/HalcyonVector/cricket-intelligence-lab/issues) on GitHub.
 
 ---
-## 📄 License & Attribution
+## License & Attribution
 **Data Attribution:** All cricket data is from [Cricsheet](https://cricsheet.org) under **ODbL / CC BY-SA**. If you use this project or its data, you must attribute Cricsheet and share alike.
 
 **Project License:** No specific license. Contact the authors for usage rights.
