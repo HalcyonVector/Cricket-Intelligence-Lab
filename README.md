@@ -45,7 +45,7 @@ Ball-by-ball cricket intelligence across **48 competitions, 22,000+ matches, and
 - **Cricsheet archive** — [Download from cricsheet.org](https://cricsheet.org/downloads/) (optional, for custom rebuilds)
 ---
 ## Quick Start (3 Options)
-### Option 1: Just the Dashboard (Zero Install) ⭐ Fastest
+### Option 1: Just the Dashboard (Zero Install) ->Fastest
 Simply clone the repo and open the HTML file:
 
 ```bash
