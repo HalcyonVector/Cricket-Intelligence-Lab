@@ -298,4 +298,4 @@ Found a bug or have a feature request?
 **Project License:** No specific license. Contact the authors for usage rights.
 
 ---
-**Made with 🏏 for cricket data enthusiasts and analytics lovers**
+
