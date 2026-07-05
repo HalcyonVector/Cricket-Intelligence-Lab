@@ -79,7 +79,7 @@ python serve.py
 
 This streams every match into SQLite, recomputes all analytics, and rebuilds the per-cohort bundles atomically with a verification gate.
 ---
-## 📖 Detailed Setup Instructions
+## Detailed Setup Instructions
 ### macOS / Linux
 ```bash
 # 1. Clone the repository
