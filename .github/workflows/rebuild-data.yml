@@ -23,7 +23,13 @@ jobs:
       - name: Install build deps
         run: pip install orjson numpy
       - name: Download latest Cricsheet corpus
-        run: curl -fsSL -A "Mozilla/5.0" -o all_json.zip https://cricsheet.org/downloads/all_json.zip
+        run: |
+          curl -fsSL --retry 3 --retry-delay 5 \
+            -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36" \
+            -H "Accept: */*" \
+            -H "Accept-Encoding: gzip, deflate, br" \
+            -H "Referer: https://cricsheet.org/downloads/" \
+            -o all_json.zip https://cricsheet.org/downloads/all_json.zip
       - name: Build (ingest -> SQLite -> bundles -> verify)
         run: python build_all.py --zip all_json.zip
       - name: Commit if data changed
