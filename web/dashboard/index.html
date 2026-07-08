@@ -20,9 +20,10 @@
    radial-gradient(860px 600px at 10% 86%,rgba(110,46,18,.20),transparent 62%),
    linear-gradient(165deg,#1C0A11 0%,#120709 50%,#0A0608 100%);background-attachment:fixed;
    color:var(--ink);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:13.5px;line-height:1.5}
+ body{min-height:100vh;display:flex;flex-direction:column}
  a{color:var(--accent2);text-decoration:none;cursor:pointer}
  .num{font-variant-numeric:tabular-nums;font-family:var(--mono)}
- .wrap{max-width:1340px;margin:0 auto;padding:0 22px 110px;position:relative;z-index:1}
+ .wrap{max-width:1340px;margin:0 auto;padding:0 22px 110px;position:relative;z-index:1;flex:1 0 auto;width:100%}
  header{position:sticky;top:0;z-index:40;background:linear-gradient(180deg,rgba(20,9,11,.92),rgba(14,7,8,.7));backdrop-filter:blur(22px) saturate(1.6);border-bottom:1px solid transparent}
  header::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
    background:radial-gradient(420px 120px at 18% 0,rgba(210,104,46,.16),transparent 70%),radial-gradient(420px 120px at 72% 0,rgba(235,162,76,.12),transparent 70%),radial-gradient(340px 110px at 95% 0,rgba(232,178,74,.10),transparent 70%)}
