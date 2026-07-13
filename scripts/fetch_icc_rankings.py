@@ -175,21 +175,31 @@ def live(debug=False):
         browser = pw.chromium.launch()
         page = browser.new_page(user_agent="Mozilla/5.0")
 
-        def grab(url, kind, title):
-            try:
-                page.goto(url, wait_until="domcontentloaded", timeout=60000)
+        def grab(url, kind, title, attempts=3):
+            rows, html = [], ""
+            for attempt in range(1, attempts + 1):
                 try:
-                    page.wait_for_selector('.si-table-row, table tr, [role="row"]', timeout=20000)
-                except Exception:
-                    pass
-                page.wait_for_timeout(1200)
-                si_rows = page.evaluate(_SI_JS)
-                rows = rows_from_si(si_rows, kind)
-                if not rows:  # widget markup changed? fall back to generic table parser
-                    rows = rows_from_tokens(page.evaluate(_ROW_JS), kind)
-                html = page.content()
-            except Exception as e:
-                print(f"  ! {title}: {e}"); failed.append(url); return
+                    page.goto(url, wait_until="domcontentloaded", timeout=60000)
+                    try:
+                        page.wait_for_selector('.si-table-row, table tr, [role="row"]', timeout=20000)
+                    except Exception:
+                        pass
+                    # give the widget extra time to hydrate; CI networks render
+                    # slower than a local browser, which is the usual cause of a
+                    # page coming back with 0 rows on the first try
+                    page.wait_for_timeout(1200 + 800 * (attempt - 1))
+                    si_rows = page.evaluate(_SI_JS)
+                    rows = rows_from_si(si_rows, kind)
+                    if not rows:  # widget markup changed? fall back to generic table parser
+                        rows = rows_from_tokens(page.evaluate(_ROW_JS), kind)
+                    html = page.content()
+                except Exception as e:
+                    print(f"  ! {title} (attempt {attempt}/{attempts}): {e}")
+                    rows = []
+                if rows and len(rows) >= MIN_ROWS.get(kind, 1):
+                    break
+                if attempt < attempts:
+                    time.sleep(1.5 * attempt)
             if rows and len(rows) >= MIN_ROWS.get(kind, 1):
                 tables.append({"title": title, "kind": kind, "rows": rows[:25]})
                 print(f"  ok {title} ({len(rows)} rows)")
