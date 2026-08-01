@@ -3,14 +3,22 @@
 all-rounder + team rankings) into  web/dashboard/rankings.js , which the dashboard
 loads to show an "ICC Rankings" tab.
 
-icc-cricket.com is a JavaScript app and renders rankings through a custom widget of
-<div class="si-table-row"> elements (NOT an HTML <table>), so a plain
+icc-cricket.com is a JavaScript app and renders rankings client-side, so a plain
 requests/BeautifulSoup scrape returns nothing. This script renders the page with a
-headless browser (Playwright) and reads the widget's cells:
-    .si-pos  .si-player  .si-team  .si-rating
+headless browser (Playwright) and reads the DOM.
+
+As of Aug 2026, ICC migrated off their old ".si-table-row" widget to a real <table>,
+but its column layout isn't uniform: plain batting/bowling pages show the player's
+team only as a flag <img> (no text), while all-rounder and team-rankings pages add an
+explicit "TEAM" text column, and the "Rating" column's index shifts depending on
+whether a "Career Best Rating" column follows it. The primary extractor below reads
+the <th> header text to locate the POS/TEAM/Rating columns by name instead of a fixed
+index, and separately looks for whichever cell holds a two-span (first/last name)
+player link -- so it adapts to each page's actual layout rather than assuming one.
 Tied ranks render the position cell as a bare "=" (same rank as the row above), so we
-carry the previous rank forward. A generic <table>/[role=row] token parser is kept as
-a fallback in case ICC changes the markup again.
+carry the previous rank forward. The old .si-table-row widget selector and a generic
+<table>/[role=row] token parser are both kept as fallbacks in case ICC changes the
+markup again or reverts a page.
 
 ONE-TIME SETUP:
     pip install playwright
@@ -60,8 +68,58 @@ def _title(gender, fmt, disc=None):
     return f"{g} {fm} - {disc.replace('allrounder', 'All-Rounder').title()}" if disc else f"{g} {fm} - Teams"
 
 
-# PRIMARY extractor: read ICC's "si-" ranking widget. Returns one object per row with
-# the raw cell strings; Python cleans them (carry-forward ties, dedup, etc.).
+# PRIMARY extractor: ICC's current real <table> markup (Aug 2026+). Locates the
+# POS/TEAM/Rating columns by their <th> header text rather than a fixed index, since
+# the column layout differs by page (plain player pages have no text team column;
+# all-rounder pages add one; team-rankings pages have Matches/PTS columns between
+# TEAM and Rating). The position cell's first <span> is read directly rather than via
+# .textContent on the whole cell, because a rank-movement indicator (an arrow icon +
+# digit) sits in a sibling span and its text would otherwise get concatenated onto the
+# rank (e.g. "05" + movement "1" -> "051"), corrupting every row with a recent move.
+_TABLE_JS = """() => {
+  const table = document.querySelector('table');
+  if (!table) return [];
+  const headerCells = Array.from(table.querySelectorAll('th')).map(th => th.textContent.trim().toLowerCase());
+  const ratingIdx = headerCells.findIndex(h => h === 'rating');
+  const teamIdx = headerCells.findIndex(h => h === 'team');
+  const rows = Array.from(table.querySelectorAll('tr')).slice(1);
+  const out = [];
+  rows.forEach(r => {
+    const tds = r.querySelectorAll('td');
+    if (tds.length < 2) return;
+    const posSpan = tds[0].querySelector('span');
+    const pos = posSpan ? posSpan.textContent.trim() : '';
+    let player = '', team = '';
+    if (teamIdx >= 0 && tds[teamIdx]) {
+      const tSpan = tds[teamIdx].querySelector('a span, span');
+      team = tSpan ? tSpan.textContent.trim() : tds[teamIdx].textContent.replace(/\\s+/g, ' ').trim();
+    }
+    // Player cell: whichever <td> has a two-span (first-name, last-name) link,
+    // regardless of its column index.
+    for (const td of tds) {
+      const nameSpans = td.querySelectorAll('a span span');
+      if (nameSpans.length >= 2) {
+        player = Array.from(nameSpans).map(s => s.textContent.trim()).join(' ');
+        break;
+      }
+    }
+    // Plain 3-column pages (POS / Team-Player / Rating): no separate team text, the
+    // player cell is td[1] itself (image-only flag, single name link).
+    if (!player && !team && tds[1]) {
+      const single = tds[1].querySelector('a span') || tds[1].querySelector('span');
+      player = single ? single.textContent.trim() : tds[1].textContent.replace(/\\s+/g, ' ').trim();
+    }
+    const ratingTd = ratingIdx >= 0 ? tds[ratingIdx] : tds[tds.length - 1];
+    const rating = ratingTd ? ratingTd.textContent.replace(/\\s+/g, ' ').trim() : '';
+    out.push({pos, player, team, rating});
+  });
+  return out;
+}"""
+
+
+# FALLBACK extractor: ICC's old "si-" ranking widget, kept in case a page reverts to
+# it. Returns one object per row with the raw cell strings; Python cleans them
+# (carry-forward ties, dedup, etc.) via the same rows_from_si() used for _TABLE_JS.
 _SI_JS = """() => {
   const body = document.querySelector('.si-table-body') || document.body;
   const out = [];
@@ -188,9 +246,10 @@ def live(debug=False):
                     # slower than a local browser, which is the usual cause of a
                     # page coming back with 0 rows on the first try
                     page.wait_for_timeout(1200 + 800 * (attempt - 1))
-                    si_rows = page.evaluate(_SI_JS)
-                    rows = rows_from_si(si_rows, kind)
-                    if not rows:  # widget markup changed? fall back to generic table parser
+                    rows = rows_from_si(page.evaluate(_TABLE_JS), kind)
+                    if not rows:  # current <table> markup absent -- try the old widget
+                        rows = rows_from_si(page.evaluate(_SI_JS), kind)
+                    if not rows:  # both known markups absent -- generic last resort
                         rows = rows_from_tokens(page.evaluate(_ROW_JS), kind)
                     html = page.content()
                 except Exception as e:
