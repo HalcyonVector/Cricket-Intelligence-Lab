@@ -24,7 +24,7 @@
  body{min-height:100vh;display:flex;flex-direction:column}
  a{color:var(--accent2);text-decoration:none;cursor:pointer}
  .num{font-variant-numeric:tabular-nums;font-family:var(--mono)}
- .wrap{max-width:1340px;margin:0 auto;padding:0 22px 110px;position:relative;z-index:1;flex:1 0 auto;width:100%}
+ .wrap{max-width:1340px;margin:0 auto;padding:0 22px 32px;position:relative;z-index:1;flex:0 0 auto;width:100%}
  header{position:sticky;top:0;z-index:40;background:linear-gradient(180deg,rgba(20,9,11,.92),rgba(14,7,8,.7));backdrop-filter:blur(22px) saturate(1.6);border-bottom:1px solid transparent}
  header::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
    background:radial-gradient(420px 120px at 18% 0,rgba(210,104,46,.16),transparent 70%),radial-gradient(420px 120px at 72% 0,rgba(235,162,76,.12),transparent 70%),radial-gradient(340px 110px at 95% 0,rgba(232,178,74,.10),transparent 70%)}
@@ -153,7 +153,9 @@
  ::-webkit-scrollbar{width:11px;height:11px}
  ::-webkit-scrollbar-thumb{background:#3A241E;border-radius:7px;border:3px solid var(--base)}
  ::-webkit-scrollbar-thumb:hover{background:#4A2E22}
- footer{color:var(--dim);font-size:11.5px;text-align:center;margin-top:46px;padding-top:20px;border-top:1px solid var(--hair)}
+ footer{color:var(--dim);font-size:11.5px;text-align:center;margin-top:22px;padding:14px 22px;border-top:1px solid var(--hair)}
+ footer a.credit{color:var(--muted);font-weight:600}
+ footer a.credit:hover{color:var(--accent2)}
 
  /* toolbar & filter controls */
  .toolbar{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px}
@@ -242,6 +244,8 @@
  .xirow{display:flex;justify-content:space-between;gap:10px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--hair);font-size:12.5px}
  .xirow .dim{font-size:10.5px;text-align:right}
  .methnote{font-size:11px;color:var(--dim);margin:8px 0 0;border-left:2px solid var(--hair2);padding-left:10px;max-width:820px;line-height:1.5}
+ .infoi{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:var(--panel3);color:var(--dim);font:700 9.5px/1 var(--mono);font-style:italic;cursor:help;vertical-align:1px;margin-left:2px}
+ .infoi:hover{background:var(--accent);color:#fff}
  .ofact{margin-bottom:11px}.ofact a{font-weight:650}
  .dsstat{display:flex;gap:13px;align-items:center;font-size:11px;color:var(--muted)}
  .dsstat span{white-space:nowrap}.dsstat b{color:var(--ink);font-weight:700;font-size:12.5px}
@@ -444,7 +448,7 @@
 </header>
 <div class="wrap" id="app"></div>
 <div class="tooltip" id="tip"></div>
-<footer>Cricket Intelligence Lab · open <a href="https://cricsheet.org">Cricsheet</a> ball-by-ball data (ODbL / CC BY-SA) · <span id="srcnote"></span></footer>
+<footer>Cricket Intelligence Lab · open <a href="https://cricsheet.org">Cricsheet</a> ball-by-ball data (ODbL / CC BY-SA) · <span id="srcnote"></span> · Made by <a class="credit" href="https://github.com/HalcyonVector" target="_blank" rel="noopener">HalcyonVector</a></footer>
 
 <script src="playermeta.js" onerror="window.__noMeta=1"></script>
 <script src="playerimg.js" onerror="window.__noImg=1"></script>
@@ -459,6 +463,8 @@ window.__cohortLoaded=(k,d)=>{ COH[k]=d; };
 
 const ARCH_COLOR={Anchor:"#EBA24C",Accumulator:"#33D17A",Aggressor:"#FF6B7E",Finisher:"#FFB454",Rotator:"#B49A8C"};
 const CRED_NOTE='Rate-stat boards rank by the value shown. A format-aware minimum-ball qualifier (noted above) is applied first, so two-ball wonders are excluded while the order matches the displayed number.';
+const SHRINK_TIP='Ranked by a confidence-adjusted score, not the raw number shown. A player with fewer balls in this situation gets pulled toward the field average, so a small sample can rank below a bigger sample with a higher raw number — this keeps small-sample flukes from topping the list.';
+const infoIcon=(t)=>`<span class="infoi" title="${esc(t)}">i</span>`;
 const FMT_COLOR={t20:"#FF6B7E",odi:"#33D17A",test:"#FFB454"};
 const METRICS=[["avg","Average"],["sr","Strike Rate"],["boundary_pct","Boundary %"],["dot_pct","Dot %"],
  ["rps","Runs/Scoring Shot"],["boundary_dep","Boundary Dependency %"],["consistency","Consistency"],
@@ -1474,7 +1480,7 @@ function homeView(app){
   if(d&&d.pid)hero.onclick=()=>{state.player=d.pid;render();};
   app.appendChild(hero);
   const cols=[{ic:icn('bolt'),t:'Most Clutch',b:['bat','clutch_index','desc']},{ic:icn('shield'),t:'Collapse-Proof',b:['bat','collapse_resist','desc','collapse_balls']},{ic:icn('target'),t:'Strike Bowlers',b:['bowl','bowl_sr','asc']}];
-  const trend=$(`<div class="panel" style="margin-top:14px"><div class="sechead" style="margin:0 0 12px">Trending research</div><div class="trend"></div></div>`);
+  const trend=$(`<div class="panel" style="margin-top:14px"><div class="sechead" style="margin:0 0 12px">Trending research ${infoIcon(SHRINK_TIP)}</div><div class="trend"></div></div>`);
   trend.querySelector('.trend').innerHTML=cols.map(col=>{const rows=_board(c,col.b[0],col.b[1],col.b[2],col.b[3]).slice(0,5);
     return `<div class="trcol"><div class="trh">${col.ic} ${col.t}</div>${rows.map((x,i)=>`<div class="trrow"><span class="rank ${i<3?'r'+(i+1):''}">${i+1}</span><a class="plink" data-pid="${x.pid}">${esc(x.name)}</a><b class="num">${x.value}</b></div>`).join('')}</div>`;}).join('');
   app.appendChild(trend);
@@ -1484,7 +1490,7 @@ function homeView(app){
   app.appendChild(viz);
   app.appendChild($(`<div class="methnote">${CRED_NOTE}</div>`));
   const avail=DISCOVER.filter(x=>_board(c,x.kind,x.f,x.dir,x.need).length);
-  const dwrap=$(`<div><div class="sechead">Explore by trait</div><div class="disc"></div><div id="ddpanel"></div></div>`);
+  const dwrap=$(`<div><div class="sechead">Explore by trait ${infoIcon(SHRINK_TIP)}</div><div class="disc"></div><div id="ddpanel"></div></div>`);
   dwrap.querySelector('.disc').innerHTML=avail.map((x,i)=>{const top=_board(c,x.kind,x.f,x.dir,x.need)[0]||{};return `<div class="dcard" data-i="${i}"><div class="dic">${x.ic}</div><div class="dt">${x.t}</div><div class="dtop">${esc(top.name||'')} <b class="num">${top.value??''}</b></div></div>`;}).join('');
   app.appendChild(dwrap);
   const dd=dwrap.querySelector('#ddpanel');
