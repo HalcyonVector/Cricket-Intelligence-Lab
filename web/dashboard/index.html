@@ -115,7 +115,9 @@
  .rank.r1{background:linear-gradient(180deg,#F7D774,#E0A100);color:#1a1500}
  .rank.r2{background:linear-gradient(180deg,#D7E0EC,#9AA8BD);color:#1C0E0B}
  .rank.r3{background:linear-gradient(180deg,#E0A270,#B26A36);color:#1a0d00}
- .minibar{display:grid;grid-template-columns:140px 1fr 56px;gap:8px;align-items:center;margin:5px 0;font-size:12px}
+ .minibar{display:grid;grid-template-columns:22px 140px 1fr 56px;gap:8px;align-items:center;margin:5px 0;font-size:12px}
+ .minibar .plink{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .minibar .num{text-align:right}
  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
  .pill{font-size:11px;padding:4px 10px;border-radius:7px;background:var(--panel2);color:var(--muted);border:1px solid var(--hair2);cursor:pointer}
  .pill:hover{color:var(--ink);border-color:var(--hair2)}
@@ -229,7 +231,6 @@
  .dcard .dt{font-weight:720;font-size:13.5px;margin-top:6px}
  .dcard .dd{color:var(--dim);font-size:11px;margin-top:1px}
  .dcard .dtop{margin-top:9px;font-size:11.5px;color:var(--muted);border-top:1px solid var(--hair);padding-top:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
- .minibar .rank{margin-right:7px}
  .compstrip{display:flex;flex-wrap:wrap;gap:7px}
  .cchip{display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px;background:var(--panel2);border:1px solid var(--hair2);border-radius:9px;padding:6px 11px;cursor:pointer;color:var(--ink)}
  .cchip span{font-size:8.5px;letter-spacing:.06em;color:var(--dim)}
