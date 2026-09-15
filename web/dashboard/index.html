@@ -116,6 +116,7 @@
  .rank.r2{background:linear-gradient(180deg,#D7E0EC,#9AA8BD);color:#1C0E0B}
  .rank.r3{background:linear-gradient(180deg,#E0A270,#B26A36);color:#1a0d00}
  .minibar{display:grid;grid-template-columns:22px 140px 1fr 56px;gap:8px;align-items:center;margin:5px 0;font-size:12px}
+ .minibar.norank{grid-template-columns:160px 1fr 56px}
  .minibar .plink{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
  .minibar .num{text-align:right}
  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -799,7 +800,7 @@ function homeView(app){
   const g=$(`<div class="grid bento" style="margin-top:20px"></div>`);
   const topRuns=(r.most_runs||[]).slice(0,9);const maxR=Math.max(...topRuns.map(x=>x.value),1);
   g.appendChild($(`<div class="panel s6"><h2>Top run-scorers <span class="r">${gLabel(m)} ${(m.format||'').toUpperCase()}</span></h2>
-    ${topRuns.map(x=>`<div class="minibar"><a class="plink" data-pid="${x.pid}">${esc(x.name)}</a><div class="bar"><span style="width:${x.value/maxR*100}%"></span></div><span class="num">${x.value.toLocaleString()}</span></div>`).join('')}</div>`));
+    ${topRuns.map(x=>`<div class="minibar norank"><a class="plink" data-pid="${x.pid}">${esc(x.name)}</a><div class="bar"><span style="width:${x.value/maxR*100}%"></span></div><span class="num">${x.value.toLocaleString()}</span></div>`).join('')}</div>`));
   g.appendChild($(`<div class="panel s3"><h2>Archetype mix <span class="r">qualified</span></h2>${donut(m.archetypes||{})}</div>`));
   const outs=[['bat','collapse_resist','desc','collapse_balls','thrives after a collapse'],['bat','partner_dep','asc',null,'least reliant on any partner'],['bat','accel_index','desc',null,'accelerates harder than anyone']]
     .map(o=>{const row=(_board(c,o[0],o[1],o[2],o[3])||[])[0];return row?{pid:row.pid,name:row.name,line:o[4]+` · ${row.value}`}:null;}).filter(Boolean).slice(0,3);
@@ -1612,7 +1613,7 @@ function mountVenues(app,pid){
     if(!venues||!venues.length){panel.remove();return;}
     const mx=Math.max(...venues.map(v=>v.runs||0),1);
     panel.innerHTML='<h2>By venue <span class="r">top grounds by runs</span></h2>'+
-      venues.map(v=>`<div class="minibar"><span title="${esc(v.venue)}${v.city?', '+esc(v.city):''}" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(v.venue)}</span><div class="bar"><span style="width:${(v.runs/mx*100).toFixed(1)}%"></span></div><span class="num" title="${v.inns} inns · ${v.balls} balls · avg ${v.avg} · SR ${v.sr}">${v.runs}</span></div>`).join('');
+      venues.map(v=>`<div class="minibar norank"><span title="${esc(v.venue)}${v.city?', '+esc(v.city):''}" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(v.venue)}</span><div class="bar"><span style="width:${(v.runs/mx*100).toFixed(1)}%"></span></div><span class="num" title="${v.inns} inns · ${v.balls} balls · avg ${v.avg} · SR ${v.sr}">${v.runs}</span></div>`).join('');
   });
 }
 init();
