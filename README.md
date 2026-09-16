@@ -1,27 +1,27 @@
-# Cricket Intelligence Lab — Interactive Analytics Dashboard
-Ball-by-ball cricket intelligence across **48 competitions, 22,000+ matches, and 11.2 million deliveries** from men's and women's cricket. Built as a single, self-contained dashboard with zero build tools, no database required, and no framework overhead — just open one HTML file and explore.
+# Cricket Intelligence Lab: Interactive Analytics Dashboard
+Ball-by-ball cricket intelligence across **48 competitions, 22,000+ matches, and 11.2 million deliveries** from men's and women's cricket. Built as a single, self-contained dashboard with zero build tools, no database required, and no framework overhead: just open one HTML file and explore.
 ---
 ## Features
 ### Core Features
-- **48 Sport Cohorts** — Men's & women's T20I / ODI / Test, plus IPL, BBL, PSL, The Hundred, CPL, county & domestic competitions; pick any from the top selector
-- **Batter & Bowler Intelligence** — Every player paginated, sortable, and clickable for full profiles with percentile ranks, phase splits, context splits, and career timelines
-- **Records & Leaderboards** — Runs, wickets, averages, strike rates, era-adjusted indices; each ranked by the value shown
-- **Partnerships & Spells** — Biggest stands and best wicket-taking spells across every competition
-- **Outliers Detection** — Batting (average ↔ strike rate) and bowling (economy ↔ strike rate) players plotted against trend lines
-- **Player Comparison** — Head-to-head analysis for up to four players with percentile radar, side-by-side splits, and shared bowler match-ups
-- **Similarity Network** — Each batter linked to their nearest statistical peers across 12 metrics
-- **Venue & Team Analytics** — Ground scoring/result tendencies and team win-loss records
-- **Live Scores & Commentary** — Real-time scores, match schedule, and full ball-by-ball commentary from Cricbuzz
-- **Command Palette & Search** — Ctrl-K for instant player lookup, shareable URL state for reproducible links
+- **48 Sport Cohorts:** Men's & women's T20I / ODI / Test, plus IPL, BBL, PSL, The Hundred, CPL, county & domestic competitions; pick any from the top selector
+- **Batter & Bowler Intelligence:** Every player paginated, sortable, and clickable for full profiles with percentile ranks, phase splits, context splits, and career timelines
+- **Records & Leaderboards:** Runs, wickets, averages, strike rates, era-adjusted indices; each ranked by the value shown
+- **Partnerships & Spells:** Biggest stands and best wicket-taking spells across every competition
+- **Outliers Detection:** Batting (average ↔ strike rate) and bowling (economy ↔ strike rate) players plotted against trend lines
+- **Player Comparison:** Head-to-head analysis for up to four players with percentile radar, side-by-side splits, and shared bowler match-ups
+- **Similarity Network:** Each batter linked to their nearest statistical peers across 12 metrics
+- **Venue & Team Analytics:** Ground scoring/result tendencies and team win-loss records
+- **Live Scores & Commentary:** Real-time scores, match schedule, and full ball-by-ball commentary from Cricbuzz
+- **Command Palette & Search:** Ctrl-K for instant player lookup, shareable URL state for reproducible links
 ### Dashboard Sections
-- **Landing Page** — Animated marketing front page (`web/landing.html`) with a scroll-driven gradient and editorial type; served at `/` when hosted and links through to the dashboard
-- **Cohort Selector** — Switch between competitions in one click; all data pre-computed and offline-ready
-- **Leaderboard Grid** — Sortable player tables with clickable profiles
-- **Player Profiles** — Historical timeline, venue breakdown, phase splits (powerplay/middle/death), archetype radar
-- **Records Panel** — Top runs, wickets, averages, and strike rates ranked by category
-- **Venues & Teams** — Scoring patterns, result tendencies, and head-to-head records
-- **Comparison Tool** — 4-player radar, shared bowler/batter match-ups, split breakdowns
-- **Live Feed** — Inbound scores, schedule, and commentary (when live server is running)
+- **Landing Page:** Animated marketing front page (`web/landing.html`) with a scroll-driven gradient and editorial type; served at `/` when hosted and links through to the dashboard
+- **Cohort Selector:** Switch between competitions in one click; all data pre-computed and offline-ready
+- **Leaderboard Grid:** Sortable player tables with clickable profiles
+- **Player Profiles:** Historical timeline, venue breakdown, phase splits (powerplay/middle/death), archetype radar
+- **Records Panel:** Top runs, wickets, averages, and strike rates ranked by category
+- **Venues & Teams:** Scoring patterns, result tendencies, and head-to-head records
+- **Comparison Tool:** 4-player radar, shared bowler/batter match-ups, split breakdowns
+- **Live Feed:** Inbound scores, schedule, and commentary (when live server is running)
 ### Data Coverage
 - **Time Series:** Career timelines, phase evolution, era-adjusted metrics
 - **Context:** Venue splits, opposition splits, condition-dependent performance
@@ -40,9 +40,9 @@ Ball-by-ball cricket intelligence across **48 competitions, 22,000+ matches, and
 | **Storage** | SQLite (ephemeral) | cil.db used only during build; all production data is static bundles |
 ---
 ## Prerequisites
-- **Modern browser** — Chrome, Firefox, Safari, or Edge (for the dashboard; no install needed)
-- **Python 3.10+** — [Download here](https://www.python.org/downloads/) (optional, only for live scores and rebuilding data)
-- **Cricsheet archive** — [Download from cricsheet.org](https://cricsheet.org/downloads/) (optional, for custom rebuilds)
+- **Modern browser:** Chrome, Firefox, Safari, or Edge (for the dashboard; no install needed)
+- **Python 3.10+:** [Download here](https://www.python.org/downloads/) (optional, only for live scores and rebuilding data)
+- **Cricsheet archive:** [Download from cricsheet.org](https://cricsheet.org/downloads/) (optional, for custom rebuilds)
 ---
 ## Quick Start (3 Options)
 ### Option 1: Just the Dashboard (Zero Install) ->Fastest

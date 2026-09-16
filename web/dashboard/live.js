@@ -1,1 +1,1 @@
-// Placeholder. Run: python serve.py (live data via server) — see scripts/README.md
+// Placeholder. Run: python serve.py (live data via server) - see scripts/README.md

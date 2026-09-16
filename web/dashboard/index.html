@@ -465,7 +465,7 @@ window.__cohortLoaded=(k,d)=>{ COH[k]=d; };
 
 const ARCH_COLOR={Anchor:"#EBA24C",Accumulator:"#33D17A",Aggressor:"#FF6B7E",Finisher:"#FFB454",Rotator:"#B49A8C"};
 const CRED_NOTE='Rate-stat boards rank by the value shown. A format-aware minimum-ball qualifier (noted above) is applied first, so two-ball wonders are excluded while the order matches the displayed number.';
-const SHRINK_TIP='Ranked by a confidence-adjusted score, not the raw number shown. A player with fewer balls in this situation gets pulled toward the field average, so a small sample can rank below a bigger sample with a higher raw number — this keeps small-sample flukes from topping the list.';
+const SHRINK_TIP='Ranked by a confidence-adjusted score, not the raw number shown. A player with fewer balls in this situation gets pulled toward the field average, so a small sample can rank below a bigger sample with a higher raw number - this keeps small-sample flukes from topping the list.';
 const infoIcon=(t)=>`<span class="infoi" title="${esc(t)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><line x1="12" y1="11" x2="12" y2="16.5"/><circle cx="12" cy="7.7" r="0.6" fill="currentColor" stroke="none"/></svg></span>`;
 const FMT_COLOR={t20:"#FF6B7E",odi:"#33D17A",test:"#FFB454"};
 const METRICS=[["avg","Average"],["sr","Strike Rate"],["boundary_pct","Boundary %"],["dot_pct","Dot %"],
@@ -504,7 +504,7 @@ const meta=(k)=>IDX.cohorts.find(c=>c.key===k)||{};
 const cur=()=>COH[state.cohort];
 const $=(h)=>{const t=document.createElement('template');t.innerHTML=h.trim();return t.content.firstChild;};
 const esc=(s)=>String(s==null?'':s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const fmtN=(v)=>v==null?'—':(typeof v==='number'?(Number.isInteger(v)?v.toLocaleString():v.toFixed(1)):v);
+const fmtN=(v)=>v==null?'-':(typeof v==='number'?(Number.isInteger(v)?v.toLocaleString():v.toFixed(1)):v);
 const tip=document.getElementById('tip');
 const showTip=(h,x,y)=>{tip.innerHTML=h;tip.style.display='block';tip.style.left=(x+14)+'px';tip.style.top=(y+14)+'px';};
 const hideTip=()=>tip.style.display='none';
@@ -525,7 +525,7 @@ function loadCohort(key,cb){
 
 function dropdown(items,value,onpick){
   const el=document.createElement('div');el.className='drop';
-  const cur=items.find(x=>String(x.v)===String(value))||items[0]||{label:'—'};
+  const cur=items.find(x=>String(x.v)===String(value))||items[0]||{label:'-'};
   el.innerHTML=`<button class="drop-btn" type="button"><span class="drop-cur">${esc(cur.label)}</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m6 9 6 6 6-6"/></svg></button><div class="drop-menu" style="display:none"></div>`;
   const btn=el.querySelector('.drop-btn'),menu=el.querySelector('.drop-menu');
   let html='',lastG=null;
@@ -650,7 +650,7 @@ function animateCounts(root){
 }
 function coverageBanner(){
   const m=cur().meta;
-  return `<div class="cov"><b>Ball-by-ball coverage: ${m.coverage_from} → ${m.coverage_to}</b> · ${(m.matches||0).toLocaleString()} matches, ${(m.deliveries||0).toLocaleString()} deliveries. Career numbers count only deliveries inside this window — this is a coverage-scoped record book, not all-time.</div>`;
+  return `<div class="cov"><b>Ball-by-ball coverage: ${m.coverage_from} → ${m.coverage_to}</b> · ${(m.matches||0).toLocaleString()} matches, ${(m.deliveries||0).toLocaleString()} deliveries. Career numbers count only deliveries inside this window - this is a coverage-scoped record book, not all-time.</div>`;
 }
 
 /* ---------- generic pagination ---------- */
@@ -756,13 +756,13 @@ const DISCOVER=[
 function insightOfDay(c){
   const m=c.meta,lab=`${gLabel(m)} ${(m.format||'').toUpperCase()}`;
   const T=[
-   {b:['bat','clutch_index','desc'],tag:'CLUTCH',line:x=>`tops ${lab} for <b>clutch index</b> — keeps scoring while wickets tumble around them.`},
+   {b:['bat','clutch_index','desc'],tag:'CLUTCH',line:x=>`tops ${lab} for <b>clutch index</b> - keeps scoring while wickets tumble around them.`},
    {b:['bat','pressure_sr','desc'],tag:'UNDER PRESSURE',line:x=>`has the highest <b>strike rate under pressure</b> in ${lab}: <b>${x.value}</b>.`},
-   {b:['bat','collapse_resist','desc','collapse_balls'],tag:'COLLAPSE-PROOF',line:x=>`is the hardest to dislodge once the innings caves — <b>collapse-resistance ${x.value}</b> in ${lab}.`},
-   {b:['bat','win_sr_ratio','desc'],tag:'BIG-GAME',line:x=>`raises their strike rate most in wins — the top <b>win-SR ratio</b> in ${lab}.`},
-   {b:['bat','partner_dep','asc'],tag:'SELF-MADE',line:x=>`is the <b>least partner-dependent</b> batter in ${lab} — carries the innings alone.`},
+   {b:['bat','collapse_resist','desc','collapse_balls'],tag:'COLLAPSE-PROOF',line:x=>`is the hardest to dislodge once the innings caves - <b>collapse-resistance ${x.value}</b> in ${lab}.`},
+   {b:['bat','win_sr_ratio','desc'],tag:'BIG-GAME',line:x=>`raises their strike rate most in wins - the top <b>win-SR ratio</b> in ${lab}.`},
+   {b:['bat','partner_dep','asc'],tag:'SELF-MADE',line:x=>`is the <b>least partner-dependent</b> batter in ${lab} - carries the innings alone.`},
    {b:['bat','era_index','desc'],tag:'ERA-ADJUSTED',line:x=>`<b>outperforms their era</b> by the widest margin in ${lab}.`},
-   {b:['bowl','bowl_sr','asc'],tag:'STRIKE BOWLER',line:x=>`strikes fastest of any frontline bowler in ${lab} — a wicket every <b>${x.value}</b> balls.`},
+   {b:['bowl','bowl_sr','asc'],tag:'STRIKE BOWLER',line:x=>`strikes fastest of any frontline bowler in ${lab} - a wicket every <b>${x.value}</b> balls.`},
   ];
   const pool=T.map(t=>({t,row:(_board(c,t.b[0],t.b[1],t.b[2],t.b[3])||[])[0]})).filter(o=>o.row);
   if(!pool.length)return null;
@@ -804,7 +804,7 @@ function homeView(app){
   g.appendChild($(`<div class="panel s3"><h2>Archetype mix <span class="r">qualified</span></h2>${donut(m.archetypes||{})}</div>`));
   const outs=[['bat','collapse_resist','desc','collapse_balls','thrives after a collapse'],['bat','partner_dep','asc',null,'least reliant on any partner'],['bat','accel_index','desc',null,'accelerates harder than anyone']]
     .map(o=>{const row=(_board(c,o[0],o[1],o[2],o[3])||[])[0];return row?{pid:row.pid,name:row.name,line:o[4]+` · ${row.value}`}:null;}).filter(Boolean).slice(0,3);
-  g.appendChild($(`<div class="panel s3"><h2>Notable outliers</h2>${outs.length?outs.map(o=>`<div class="ofact"><a class="plink" data-pid="${o.pid}">${esc(o.name)}</a><div class="note">${o.line}</div></div>`).join(''):'<span class="note">—</span>'}</div>`));
+  g.appendChild($(`<div class="panel s3"><h2>Notable outliers</h2>${outs.length?outs.map(o=>`<div class="ofact"><a class="plink" data-pid="${o.pid}">${esc(o.name)}</a><div class="note">${o.line}</div></div>`).join(''):'<span class="note">-</span>'}</div>`));
   app.appendChild(g);
   app.appendChild($(coverageBanner()));
   // compact competition switcher
@@ -845,7 +845,7 @@ function playersView(app){
   const curRows=()=>Object.values(c.players).filter(p=>(!rated||p.qualified)&&(arch==='All'||p.archetype===arch)&&(!q||p.name.toLowerCase().includes(q)));
   const dt=dataTable({cols,rows:curRows(),sortKey:'runs',per:25,
     getVal:(p,k)=>k==='name'?p.name:k==='archetype'?(p.archetype||'zz'):p[k],
-    rowHTML:(p)=>`<tr class="cl" data-pid="${p._id}"><td>${esc(p.name)} ${p.qualified?'':'<span class="badge">low n</span>'}</td><td>${archPill(p.archetype)}</td><td class="n">${p.runs.toLocaleString()}</td><td class="n">${p.innings}</td><td class="n">${fmtN(p.avg)}</td><td class="n">${fmtN(p.sr)}</td><td class="n">${fmtN(p.strike_rot)}</td><td class="n">${fmtN(p.boundary_pct)}</td><td class="n">${fmtN(p.dot_pct)}</td><td class="n">${p.era_index==null?'—':p.era_index}</td><td class="n">${p.fifties}</td><td class="n">${p.hundreds}</td><td class="n">${p.highest}</td></tr>`,
+    rowHTML:(p)=>`<tr class="cl" data-pid="${p._id}"><td>${esc(p.name)} ${p.qualified?'':'<span class="badge">low n</span>'}</td><td>${archPill(p.archetype)}</td><td class="n">${p.runs.toLocaleString()}</td><td class="n">${p.innings}</td><td class="n">${fmtN(p.avg)}</td><td class="n">${fmtN(p.sr)}</td><td class="n">${fmtN(p.strike_rot)}</td><td class="n">${fmtN(p.boundary_pct)}</td><td class="n">${fmtN(p.dot_pct)}</td><td class="n">${p.era_index==null?'-':p.era_index}</td><td class="n">${p.fifties}</td><td class="n">${p.hundreds}</td><td class="n">${p.highest}</td></tr>`,
     onRow:(p,tr)=>{tr.onclick=()=>{state.player=p._id;render();};},empty:'no players match these filters'});
   panel.querySelector('#pt').appendChild(dt.el);
   const refresh=()=>{const r=curRows();panel.querySelector('#pc').textContent=`${r.length.toLocaleString()} shown`;dt.setRows(r);};
@@ -871,7 +871,7 @@ function bowlersView(app){
   const rowsOf=()=>Object.values(B).filter(b=>b.name&&!_isId(b.name)&&(!rated||b.qualified)&&(!q||b.name.toLowerCase().includes(q)));
   const dt=dataTable({cols,rows:rowsOf(),sortKey:'wickets',per:25,
     getVal:(b,k)=>k==='name'?b.name:b[k],
-    rowHTML:(b)=>`<tr class="cl" data-pid="${b._id}"><td>${esc(b.name)} ${b.qualified?'':'<span class="badge">low n</span>'}</td><td class="n">${b.wickets}</td><td class="n dim">${b.balls.toLocaleString()}</td><td class="n"><b>${fmtN(b.economy)}</b></td><td class="n">${fmtN(b.bowl_avg)}</td><td class="n">${fmtN(b.bowl_sr)}</td><td class="n">${fmtN(b.dot_pct)}</td><td class="n">${fmtN(b.bnd_pct)}</td><td class="n">${b.era_index==null?'—':b.era_index}</td></tr>`,
+    rowHTML:(b)=>`<tr class="cl" data-pid="${b._id}"><td>${esc(b.name)} ${b.qualified?'':'<span class="badge">low n</span>'}</td><td class="n">${b.wickets}</td><td class="n dim">${b.balls.toLocaleString()}</td><td class="n"><b>${fmtN(b.economy)}</b></td><td class="n">${fmtN(b.bowl_avg)}</td><td class="n">${fmtN(b.bowl_sr)}</td><td class="n">${fmtN(b.dot_pct)}</td><td class="n">${fmtN(b.bnd_pct)}</td><td class="n">${b.era_index==null?'-':b.era_index}</td></tr>`,
     onRow:(b,tr)=>{tr.onclick=()=>{state.player=null;state.bowler=b._id;render();};},empty:'no bowlers match these filters'});
   panel.querySelector('#bt').appendChild(dt.el);
   const refresh=()=>{const r=rowsOf();panel.querySelector('#bc').textContent=`${r.length.toLocaleString()} shown`;dt.setRows(r);};
@@ -943,14 +943,14 @@ function playerView(pid){
     ["accel_index","Acceleration Index","death-overs SR ÷ powerplay SR"],["pressure_sr","Pressure SR","strike rate chasing at an elevated required rate"],
     ["clutch_index","Clutch Index","knockout SR vs overall SR (×100)"],["win_sr_ratio","Win-SR Ratio","SR in wins vs overall (×100)"],
     ["collapse_resist","Collapse Resistance","SR with 3+/4+ wickets already down, vs overall (×100)"],
-    ["partner_dep","Partnership Dependence","run concentration across partners — lower = more self-reliant"]];
+    ["partner_dep","Partnership Dependence","run concentration across partners - lower = more self-reliant"]];
   const advHave=advDefs.filter(d=>p[d[0]]!=null);
   if(advHave.length){
     const ga=$(`<div class="grid bento" style="margin-top:13px"></div>`);
     ga.appendChild($(`<div class="panel s12"><h2>Advanced &amp; derived metrics <span class="r">from ball-by-ball</span></h2>
       <div class="grid bento">${advHave.map(d=>`<div class="s3"><div class="panel kpi" style="padding:12px" title="${d[2]}"><div class="l">${d[1]}</div><div class="n" style="font-size:22px">${fmtN(p[d[0]])}</div>${p.pct&&p.pct[d[0]]!=null?`<div class="bar" style="margin-top:7px"><span style="width:${Math.max(2,p.pct[d[0]])}%;background:${pctColor(p.pct[d[0]])}"></span></div>`:''}</div></div>`).join('')}</div>
       ${p.top_partner?`<div class="note" style="margin-top:9px">Most productive partner: <b style="color:var(--ink)">${esc(p.top_partner)}</b> · ${p.top_partner_runs} runs together (${p.top_partner_share}% of this player's runs) across ${p.n_partners} partners.</div>`:''}
-      <div class="note" style="margin-top:6px">Era-adjusted index normalises scoring against each season's run-rate baseline; collapse resistance & partnership dependence are reconstructed from wicket and non-striker sequences — all from Cricsheet ball-by-ball alone.</div></div>`));
+      <div class="note" style="margin-top:6px">Era-adjusted index normalises scoring against each season's run-rate baseline; collapse resistance & partnership dependence are reconstructed from wicket and non-striker sequences - all from Cricsheet ball-by-ball alone.</div></div>`));
     w.appendChild(ga);
   }
   const mus=(p.matchups||[]);
@@ -984,9 +984,9 @@ function compareView(app){
     const axes=[["avg","Avg"],["sr","SR"],["boundary_pct","Bnd%"],["dot_pct","Dot%"],["consistency","Cons"],["conversion","Conv"]];
     const sbs=[["runs","Runs"],["avg","Average"],["sr","Strike Rate"],["boundary_pct","Boundary %"],["dot_pct","Dot %"],["consistency","Consistency"],["conversion","Conversion %"],["hundreds","100s"]].map(mm=>`<tr><td>${mm[1]}</td>${ids.map(i=>`<td class="n">${fmtN(c.players[i][mm[0]])}</td>`).join('')}</tr>`).join('');
     const phaseOrder=[["powerplay","Powerplay"],["middle","Middle"],["death","Death"]];
-    const phRows=phaseOrder.filter(([k])=>ids.some(i=>c.players[i].phases&&c.players[i].phases[k])).map(([k,lab])=>`<tr><td>${lab}</td>${ids.map(i=>{const v=c.players[i].phases&&c.players[i].phases[k];return `<td class="n">${v?`<b>${v.sr}</b> <span class="dim">${v.avg}</span>`:'—'}</td>`;}).join('')}</tr>`).join('');
+    const phRows=phaseOrder.filter(([k])=>ids.some(i=>c.players[i].phases&&c.players[i].phases[k])).map(([k,lab])=>`<tr><td>${lab}</td>${ids.map(i=>{const v=c.players[i].phases&&c.players[i].phases[k];return `<td class="n">${v?`<b>${v.sr}</b> <span class="dim">${v.avg}</span>`:'-'}</td>`;}).join('')}</tr>`).join('');
     const ctxOrder=[["chase","Chasing"],["defend","Defending"],["win","In wins"],["loss","In losses"]];
-    const ctxRows=ctxOrder.filter(([k])=>ids.some(i=>c.players[i].context&&c.players[i].context[k])).map(([k,lab])=>`<tr><td>${lab}</td>${ids.map(i=>{const v=c.players[i].context&&c.players[i].context[k];return `<td class="n">${v?`<b>${v.sr}</b> <span class="dim">${v.avg}</span>`:'—'}</td>`;}).join('')}</tr>`).join('');
+    const ctxRows=ctxOrder.filter(([k])=>ids.some(i=>c.players[i].context&&c.players[i].context[k])).map(([k,lab])=>`<tr><td>${lab}</td>${ids.map(i=>{const v=c.players[i].context&&c.players[i].context[k];return `<td class="n">${v?`<b>${v.sr}</b> <span class="dim">${v.avg}</span>`:'-'}</td>`;}).join('')}</tr>`).join('');
     let muPanel='';
     if(ids.length>=2){
       const maps=ids.map(i=>{const m={};(c.players[i].matchups||[]).forEach(x=>m[x.bowler_name]=x);return m;});
@@ -1056,7 +1056,7 @@ function matchTable(rows){
 /* ================= RESEARCH LAB ================= */
 function researchView(app){
   const c=cur();
-  app.appendChild($(`<div><h1>Research Lab</h1><p class="sub">Plot any metric against any other. Defaults to <b>established</b> batters (credible sample) so small-sample associates don't dominate — switch <b>Tier</b> to Fringe to study them separately. Players far from the trend line are flagged as outliers (looser threshold for the smaller Established pool).</p></div>`));
+  app.appendChild($(`<div><h1>Research Lab</h1><p class="sub">Plot any metric against any other. Defaults to <b>established</b> batters (credible sample) so small-sample associates don't dominate - switch <b>Tier</b> to Fringe to study them separately. Players far from the trend line are flagged as outliers (looser threshold for the smaller Established pool).</p></div>`));
   const opts=METRICS.map(m=>`<option value="${m[0]}">${m[1]}</option>`).join('');
   const archs=[...new Set(Object.values(c.players).map(p=>p.archetype).filter(Boolean))];
   const ctrl=$(`<div class="panel"><div class="ctrl">
@@ -1186,7 +1186,7 @@ function venuesView(app){
   const cols=[["venue","Venue",0],["city","City",0],["matches","Matches",1],["avg_first","Avg 1st",1],["avg_second","Avg 2nd",1],["bat_first_win_pct","Bat-first win%",1],["chase_win_pct","Chase win%",1]];
   let q='';
   const dt=dataTable({cols,rows:c.venues.slice(),sortKey:'matches',per:25,getVal:(v,k)=>v[k],
-    rowHTML:v=>`<tr><td>${esc(v.venue)}</td><td class="muted">${esc(v.city||'—')}</td><td class="n">${v.matches}</td><td class="n">${fmtN(v.avg_first)}</td><td class="n">${fmtN(v.avg_second)}</td><td class="n">${fmtN(v.bat_first_win_pct)}</td><td class="n">${fmtN(v.chase_win_pct)}</td></tr>`,
+    rowHTML:v=>`<tr><td>${esc(v.venue)}</td><td class="muted">${esc(v.city||'-')}</td><td class="n">${v.matches}</td><td class="n">${fmtN(v.avg_first)}</td><td class="n">${fmtN(v.avg_second)}</td><td class="n">${fmtN(v.bat_first_win_pct)}</td><td class="n">${fmtN(v.chase_win_pct)}</td></tr>`,
     empty:'no venue data'});
   panel.querySelector('#vt').appendChild(dt.el);
   const refresh=()=>{const r=c.venues.filter(v=>!q||((v.venue||'')+' '+(v.city||'')).toLowerCase().includes(q));panel.querySelector('#vc').textContent=`${r.length} shown`;dt.setRows(r);};
@@ -1231,7 +1231,7 @@ function matchCardHTML(m,clickable){
   return `<div class="panel s6 mcard${clickable?' cl':''}"${clickable&&m.id?` data-mid="${esc(String(m.id))}" data-slug="${esc(m.slug||'')}"`:''}>
     <h2>${esc(m.series||m.format||'Match')} <span class="r">${esc(m.status||'')}</span></h2>
     <div style="font-weight:700;margin-bottom:9px">${esc(m.title||'')}</div>
-    ${(m.teams||[]).map(t=>`<div class="ledrow"><span>${esc(t.name||'')}</span><b class="num">${esc(t.score||'—')}</b></div>`).join('')}
+    ${(m.teams||[]).map(t=>`<div class="ledrow"><span>${esc(t.name||'')}</span><b class="num">${esc(t.score||'-')}</b></div>`).join('')}
     ${m.venue?`<div class="dim" style="margin-top:8px;font-size:11.5px">${esc(m.venue)}</div>`:''}
     ${m.note?`<div class="note" style="margin-top:7px">${esc(m.note)}</div>`:''}
     ${clickable?'<div class="dim" style="margin-top:9px;font-size:11px">click for match detail →</div>':''}</div>`;
@@ -1268,8 +1268,8 @@ function commentaryHTML(d){
   const list=(d&&d.commentary)||[];const full=!!(d&&d.full);
   if(!list.length)return '<div class="cov">No commentary available.</div>';
   const note=full
-    ?'<div class="dim" style="text-align:center;font-size:10.5px;margin-bottom:6px">Full ball-by-ball — built up live while the app watches the match</div>'
-    :'<div class="dim" style="text-align:center;font-size:10.5px;margin-bottom:6px">Latest overs — commentary fills in as the match progresses (keep the app open)</div>';
+    ?'<div class="dim" style="text-align:center;font-size:10.5px;margin-bottom:6px">Full ball-by-ball - built up live while the app watches the match</div>'
+    :'<div class="dim" style="text-align:center;font-size:10.5px;margin-bottom:6px">Latest overs - commentary fills in as the match progresses (keep the app open)</div>';
   const cls=ev=>{ev=ev||[];return ev.includes('six')?'ev6':ev.includes('four')?'ev4':(ev.some(e=>/wicket|out/.test(e)))?'evw':'';};
   return `<div class="panel" style="margin-top:13px">${note}<div class="comm">${list.map(c=>{
     const ov=c.over?`<div class="comm-over"><span>Over ${esc(String(c.over.over??''))}</span><span class="num">${esc(c.over.team||'')} ${esc(c.over.score||'')}</span></div>`:'';
@@ -1294,7 +1294,7 @@ function showMatchDetail(box,mid,slug){
       topbar.querySelector('#mstate').textContent=`${m.format||''} · ${m.state||''}`;
       summ.innerHTML=`<h2>${esc(m.series||'')} <span class="r">${esc(m.status||'')}</span></h2>
       <div style="font-weight:760;font-size:16px;margin:4px 0 12px">${esc(m.title||'')}</div>
-      ${(m.teams||[]).map(t=>`<div class="ledrow" style="font-size:14px"><span>${esc(t.name||'')}</span><b class="num">${esc(t.score||'—')}</b></div>`).join('')}
+      ${(m.teams||[]).map(t=>`<div class="ledrow" style="font-size:14px"><span>${esc(t.name||'')}</span><b class="num">${esc(t.score||'-')}</b></div>`).join('')}
       ${m.venue?`<div class="dim" style="margin-top:8px">${esc(m.venue)}${m.date?` · ${esc(m.date)} ${esc(m.time||'')}`:''}</div>`:''}`;
     }
     fillSummary();
@@ -1344,7 +1344,7 @@ function showMatchDetail(box,mid,slug){
   }).catch(()=>{box.className='';box.innerHTML='<div class="cov">Could not load this match.</div>';});
 }
 function liveView(app){
-  app.appendChild($(`<div><h1>Live Scores</h1><p class="sub">Matches in progress — click any match for detail. Data via Cricbuzz.</p></div>`));
+  app.appendChild($(`<div><h1>Live Scores</h1><p class="sub">Matches in progress - click any match for detail. Data via Cricbuzz.</p></div>`));
   const box=$('<div></div>');
   app.appendChild(box);
   renderLiveList(box);
@@ -1371,7 +1371,7 @@ function scheduleView(app){
     order.forEach(d=>{
       const sec=$(`<div class="schd-day"><div class="schd-date">${esc(prettyDate(d))} <span class="dim">· ${groups[d].length} match${groups[d].length>1?'es':''}</span></div></div>`);
       groups[d].forEach(m=>sec.appendChild($(`<div class="schd-row">
-        <div class="schd-time num">${esc(m.time||'—')}</div>
+        <div class="schd-time num">${esc(m.time||'-')}</div>
         <div class="schd-main"><div class="schd-title">${esc(m.title||'')}</div><div class="schd-sub dim">${esc(m.series||'')}</div></div>
         <div class="schd-venue dim">${esc(m.venue||'')}</div></div>`)));
       wrap.appendChild(sec);
@@ -1399,7 +1399,7 @@ function setupSearch(){
     if(!q){res.style.display='none';res.innerHTML='';return;}
     const c=cur(),out=[];
     if(c&&c.players)Object.entries(c.players).filter(([id,p])=>p.name.toLowerCase().includes(q)).slice(0,6)
-      .forEach(([id,p])=>out.push(`<div class="sr" data-t="player" data-k="${id}"><span class="srt">PLAYER</span>${esc(p.name)} <span class="dim">· ${p.archetype||'—'}</span></div>`));
+      .forEach(([id,p])=>out.push(`<div class="sr" data-t="player" data-k="${id}"><span class="srt">PLAYER</span>${esc(p.name)} <span class="dim">· ${p.archetype||'-'}</span></div>`));
     (window.CIL_INDEX&&CIL_INDEX.cohorts||[]).filter(x=>x.label.toLowerCase().includes(q)).slice(0,4)
       .forEach(x=>out.push(`<div class="sr" data-t="cohort" data-k="${x.key}"><span class="srt">DATASET</span>${esc(x.label)} <span class="dim">· ${(x.format||'').toUpperCase()}</span></div>`));
     if(c&&c.venues)c.venues.filter(v=>(v.venue||'').toLowerCase().includes(q)).slice(0,3)
@@ -1427,19 +1427,19 @@ function discovery(c){
   const B=(k,f,d,need)=>_board(c,k,f,d,need)||[];
   const T=[];let x,p;
   if((x=B('bat','collapse_resist','desc','collapse_balls')[0])&&x.value>105){p=P[x.pid]||{};
-    T.push({pid:x.pid,head:`${x.name} barely flinches in a collapse`,body:`Keeps a strike rate <b>${x.value-100}% above their own norm</b> once the innings is 3+ wickets down — the most collapse-proof batter in ${lab}.`,conf:_conf(p.collapse_balls||0,800,300)});}
+    T.push({pid:x.pid,head:`${x.name} barely flinches in a collapse`,body:`Keeps a strike rate <b>${x.value-100}% above their own norm</b> once the innings is 3+ wickets down - the most collapse-proof batter in ${lab}.`,conf:_conf(p.collapse_balls||0,800,300)});}
   if((x=B('bat','pressure_sr','desc')[0])&&x.value>105){p=P[x.pid]||{};
-    T.push({pid:x.pid,head:`${x.name} speeds up when it matters most`,body:`Scores <b>${x.value-100}% faster under pressure</b> than in routine passages — the highest pressure strike rate in ${lab}.`,conf:_conf(p.pressure_balls||0,1500,500)});}
+    T.push({pid:x.pid,head:`${x.name} speeds up when it matters most`,body:`Scores <b>${x.value-100}% faster under pressure</b> than in routine passages - the highest pressure strike rate in ${lab}.`,conf:_conf(p.pressure_balls||0,1500,500)});}
   if((x=B('bat','era_index','desc')[0])&&x.value>105){p=P[x.pid]||{};
     T.push({pid:x.pid,head:`${x.name} towers over their era`,body:`Outperforms the typical ${lab} batter of the same period by <b>${x.value-100}%</b> on an era-adjusted basis.`,conf:_conf(p.balls||0,3000,1000)});}
   if((x=B('bat','win_sr_ratio','desc')[0])&&x.value>103)
-    T.push({pid:x.pid,head:`${x.name} shows up on the big day`,body:`Lifts strike rate <b>${x.value-100}% in wins</b> versus the rest — the biggest winning-day gear-change in ${lab}.`,conf:'Medium'});
+    T.push({pid:x.pid,head:`${x.name} shows up on the big day`,body:`Lifts strike rate <b>${x.value-100}% in wins</b> versus the rest - the biggest winning-day gear-change in ${lab}.`,conf:'Medium'});
   if((x=B('bat','clutch_index','desc')[0])&&x.value>105)
-    T.push({pid:x.pid,head:`${x.name} is the clutch leader of ${lab}`,body:`A clutch index of <b>${x.value}</b> — runs keep flowing precisely as wickets tumble at the other end.`,conf:'High'});
+    T.push({pid:x.pid,head:`${x.name} is the clutch leader of ${lab}`,body:`A clutch index of <b>${x.value}</b> - runs keep flowing precisely as wickets tumble at the other end.`,conf:'High'});
   if((x=B('bat','partner_dep','asc')[0])){p=P[x.pid]||{};if(p.top_partner)
-    T.push({pid:x.pid,head:`${x.name} carries the innings alone`,body:`The least partner-dependent batter in ${lab} — only <b>${p.top_partner_share}%</b> of runs came in stands with ${esc(p.top_partner)}.`,conf:'High'});}
+    T.push({pid:x.pid,head:`${x.name} carries the innings alone`,body:`The least partner-dependent batter in ${lab} - only <b>${p.top_partner_share}%</b> of runs came in stands with ${esc(p.top_partner)}.`,conf:'High'});}
   if((x=B('bowl','bowl_sr','asc')[0]))
-    T.push({pid:x.pid,head:`${x.name} strikes faster than anyone`,body:`Takes a wicket every <b>${x.value} balls</b> — the sharpest strike rate among frontline bowlers in ${lab}.`,conf:'High'});
+    T.push({pid:x.pid,head:`${x.name} strikes faster than anyone`,body:`Takes a wicket every <b>${x.value} balls</b> - the sharpest strike rate among frontline bowlers in ${lab}.`,conf:'High'});
   const good=T.filter(t=>t.conf!=='Low');const pool=good.length?good:T;return pool.length?pool[Math.floor(Math.random()*pool.length)]:null;
 }
 function scatterSVG(c){
@@ -1449,7 +1449,7 @@ function scatterSVG(c){
   const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y);
   const xmin=Math.min(...xs),xmax=Math.max(...xs),ymin=Math.min(...ys),ymax=Math.max(...ys);
   const X=v=>pad+(v-xmin)/((xmax-xmin)||1)*(W-2*pad),Y=v=>H-pad-(v-ymin)/((ymax-ymin)||1)*(H-2*pad);
-  const dots=pts.map(p=>{const fl=p.flag;return `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="${fl?4.4:2.3}" fill="${fl?'#FF6B7E':'#D2682E'}" fill-opacity="${fl?0.95:0.38}" ${p.pid?`class="spt" data-pid="${p.pid}"`:''}><title>${esc(p.name)} — avg ${p.x}, SR ${p.y}</title></circle>`;}).join('');
+  const dots=pts.map(p=>{const fl=p.flag;return `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="${fl?4.4:2.3}" fill="${fl?'#FF6B7E':'#D2682E'}" fill-opacity="${fl?0.95:0.38}" ${p.pid?`class="spt" data-pid="${p.pid}"`:''}><title>${esc(p.name)} - avg ${p.x}, SR ${p.y}</title></circle>`;}).join('');
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">
     <line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="#4A2E22"/><line x1="${pad}" y1="${pad}" x2="${pad}" y2="${H-pad}" stroke="#4A2E22"/>
     <text x="${W/2}" y="${H-6}" text-anchor="middle" fill="#A6816E" font-size="10">Average →</text>
@@ -1461,7 +1461,7 @@ function galaxySVG(c){
   if(!ps.length)return '<div class="note">No data.</div>';
   const W=560,H=320,pad=24;
   const X=v=>pad+v/100*(W-2*pad),Y=v=>H-pad-v/100*(H-2*pad);
-  const dots=ps.map(([id,p])=>`<circle cx="${X(p.pct.sr).toFixed(1)}" cy="${Y(p.pct.avg).toFixed(1)}" r="3.5" fill="${ARCH_COLOR[p.archetype]||'#B49A8C'}" fill-opacity="0.78" class="spt" data-pid="${id}"><title>${esc(p.name)} — ${p.archetype||''} (avg %ile ${p.pct.avg}, SR %ile ${p.pct.sr})</title></circle>`).join('');
+  const dots=ps.map(([id,p])=>`<circle cx="${X(p.pct.sr).toFixed(1)}" cy="${Y(p.pct.avg).toFixed(1)}" r="3.5" fill="${ARCH_COLOR[p.archetype]||'#B49A8C'}" fill-opacity="0.78" class="spt" data-pid="${id}"><title>${esc(p.name)} - ${p.archetype||''} (avg %ile ${p.pct.avg}, SR %ile ${p.pct.sr})</title></circle>`).join('');
   const leg=Object.keys(ARCH_COLOR).map(k=>`<span><span class="sw" style="background:${ARCH_COLOR[k]}"></span>${k}</span>`).join('');
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">
     <line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="#4A2E22"/><line x1="${pad}" y1="${pad}" x2="${pad}" y2="${H-pad}" stroke="#4A2E22"/>
@@ -1546,7 +1546,7 @@ function teamsView(app){
   const c=cur(),m=c.meta;
   app.appendChild($(`<div><h1>Teams</h1><p class="sub">Win-loss record by team for ${gLabel(m)} ${(m.format||'').toUpperCase()}, from ball-by-ball match results.</p></div>`));
   const render=(ts)=>{
-    if(!ts||!ts.length){app.appendChild($('<div class="cov">No team records yet — run <span class="num">build_all.py</span> to generate them.</div>'));return;}
+    if(!ts||!ts.length){app.appendChild($('<div class="cov">No team records yet - run <span class="num">build_all.py</span> to generate them.</div>'));return;}
     const cols=[["team","Team",0],["matches","Matches",1],["wins","Wins",1],["winpct","Win %",1]];
     const dt=dataTable({cols,rows:ts.slice(),sortKey:'matches',per:30,getVal:(v,k)=>v[k],
       rowHTML:v=>`<tr><td>${esc(v.team)}</td><td class="n">${v.matches}</td><td class="n">${v.wins}</td><td class="n">${v.winpct}%</td></tr>`,empty:'no teams'});
@@ -1565,7 +1565,7 @@ function networkView(app){
   const bats=Object.entries(P).filter(([id,p])=>p.qualified&&p.pct).sort((a,b)=>(b[1].runs||0)-(a[1].runs||0));
   if(!bats.length){app.appendChild($('<div><h1>Similarity Network</h1></div>'));app.appendChild($('<div class="cov">No batting profile data in this cohort.</div>'));return;}
   if(!state.netPlayer||!P[state.netPlayer]||!P[state.netPlayer].pct)state.netPlayer=bats[0][0];
-  app.appendChild($(`<div><h1>Similarity Network</h1><p class="sub">Each batter linked to their nearest statistical peers across 12 percentile metrics — restricted to players with a credible sample, so associate small-samples don't pollute the map. Search a batter or click a node to re-centre.</p></div>`));
+  app.appendChild($(`<div><h1>Similarity Network</h1><p class="sub">Each batter linked to their nearest statistical peers across 12 percentile metrics - restricted to players with a credible sample, so associate small-samples don't pollute the map. Search a batter or click a node to re-centre.</p></div>`));
   const names=bats.map(([id,p])=>p.name),nameToId={};bats.forEach(([id,p])=>{if(!(p.name in nameToId))nameToId[p.name]=id;});
   const bar=$(`<div class="swrap2 ac" style="position:relative;z-index:40;max-width:360px;margin:2px 0 14px"><input id="netq" placeholder="Search any batter…" autocomplete="off" style="background:transparent;border:none;outline:none;color:var(--ink);padding:9px 4px;font-size:12.5px;width:100%"/><div class="aclist" style="display:none"></div></div>`);
   app.appendChild(bar);

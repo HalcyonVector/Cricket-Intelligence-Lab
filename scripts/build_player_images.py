@@ -158,7 +158,7 @@ def main():
     with open(OUT, "w", encoding="utf-8") as f:
         f.write("window.CIL_PLAYERIMG=" + json.dumps(mp, separators=(",", ":")) + ";")
     print(f"\nWrote {OUT}: {len(collected):,} players, {len(mp):,} lookup keys.")
-    print("Hard-refresh the dashboard — player photos now load.")
+    print("Hard-refresh the dashboard - player photos now load.")
 
 
 if __name__ == "__main__":
