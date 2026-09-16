@@ -56,7 +56,7 @@
  #app>*{animation:fadeUp .3s ease both}
  h1{font-size:24px;margin:22px 0 3px;letter-spacing:-.02em;font-weight:760;background:linear-gradient(90deg,#fff,#ECC9B0);-webkit-background-clip:text;background-clip:text;color:transparent}
  .sub{color:var(--muted);font-size:13px;margin:0 0 16px}
- .grid{display:grid;gap:13px}.bento{grid-template-columns:repeat(12,1fr)}
+ .grid{display:grid;gap:13px;min-width:0}.bento{grid-template-columns:repeat(12,minmax(0,1fr))}
  .s3{grid-column:span 3}.s4{grid-column:span 4}.s5{grid-column:span 5}.s6{grid-column:span 6}.s7{grid-column:span 7}.s8{grid-column:span 8}.s12{grid-column:span 12}
  @media(max-width:980px){.s3,.s4,.s5,.s6,.s7,.s8{grid-column:span 12}}
  .panel{background:linear-gradient(180deg,var(--panel),#140C0A);border:1px solid var(--hair);border-radius:14px;padding:15px;transition:border-color .15s,box-shadow .15s,transform .15s}
@@ -388,6 +388,24 @@
  .fact-k{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:600;padding-top:1px}
  .fact-v{color:var(--ink)}
  @media(max-width:600px){.fact-row{grid-template-columns:1fr}}
+ /* ===== mobile: tab bars scroll internally instead of blowing out the page width ===== */
+ header .modebar,header .raterow>nav.subnav,.subbar nav{scrollbar-width:none}
+ header .modebar::-webkit-scrollbar,header .raterow>nav.subnav::-webkit-scrollbar,.subbar nav::-webkit-scrollbar{display:none}
+ @media(max-width:680px){
+   header .raterow{flex-wrap:wrap;row-gap:0}
+   header .modebar,header .subnav{overflow-x:auto;-webkit-overflow-scrolling:touch;min-width:0;flex:1 1 100%;flex-wrap:nowrap!important}
+   header .modebtn{flex:none;white-space:nowrap;padding:13px 11px!important;font-size:11px!important;letter-spacing:.1em!important}
+   header .subnav{padding:8px 0!important}
+ }
+ /* ===== mobile: search wraps to its own full-width row under the logo/dataset picker ===== */
+ @media(max-width:680px){
+   header .cbar{flex-wrap:wrap;padding:10px 16px!important;gap:10px}
+   header .cbar-l,header .cbar>.wm,header .cbar>.cbar-div,header .cbar>.scope{flex:none}
+   header .scope select{max-width:150px!important;font-size:12.5px!important}
+   header .cmd{flex:1 1 100%!important;order:3;margin-left:0!important;min-width:0}
+   header .cmd .kbd{display:none}
+   header .raterow{padding:0 16px}
+ }
  input,textarea{background:var(--panel2);color:var(--ink);border:1px solid var(--hair2);border-radius:8px;padding:9px 11px;font-size:12.5px;outline:none;font-family:inherit}
  input::placeholder,textarea::placeholder{color:var(--dim)}
  input:focus,textarea:focus{border-color:#4A2E22}
@@ -933,7 +951,7 @@ function playerView(pid){
   const phLab={powerplay:'Powerplay',middle:'Middle',death:'Death'};
   g3.appendChild($(`<div class="panel s4"><h2>Phase profile</h2>${phs.length?`<table class="sc"><thead><tr><th>Phase</th><th class="n">Runs</th><th class="n">Balls</th><th class="n">Avg</th><th class="n">SR</th><th class="n">Bnd%</th></tr></thead><tbody>${phs.map(x=>{const v=p.phases[x];return `<tr><td>${phLab[x]||x}</td><td class="n">${v.runs}</td><td class="n dim">${v.balls}</td><td class="n">${v.avg}</td><td class="n"><b>${v.sr}</b></td><td class="n">${v.boundary_pct}</td></tr>`;}).join('')}</tbody></table><div style="margin-top:9px">${phs.map(x=>{const v=p.phases[x];return `<div style="margin:7px 0"><div class="row" style="justify-content:space-between;font-size:11px"><span class="muted">${phLab[x]||x}</span><span class="num">${v.sr} SR</span></div><div class="bar"><span style="width:${v.sr/maxSR*100}%"></span></div></div>`;}).join('')}</div>`:'<span class="note">n/a (needs rate qualifier)</span>'}</div>`));
   const ctx=p.context||{};
-  g3.appendChild($(`<div class="panel s4"><h2>Context splits</h2><table><thead><tr><th>Split</th><th class="n">Avg</th><th class="n">SR</th><th class="n">Balls</th></tr></thead><tbody>${Object.entries(ctx).map(([k,v])=>`<tr><td style="text-transform:capitalize">${k}</td><td class="n">${v.avg}</td><td class="n">${v.sr}</td><td class="n dim">${v.balls}</td></tr>`).join('')||'<tr><td class="note">n/a</td></tr>'}</tbody></table></div>`));
+  g3.appendChild($(`<div class="panel s4"><h2>Context splits</h2><div class="tablewrap"><table><thead><tr><th>Split</th><th class="n">Avg</th><th class="n">SR</th><th class="n">Balls</th></tr></thead><tbody>${Object.entries(ctx).map(([k,v])=>`<tr><td style="text-transform:capitalize">${k}</td><td class="n">${v.avg}</td><td class="n">${v.sr}</td><td class="n dim">${v.balls}</td></tr>`).join('')||'<tr><td class="note">n/a</td></tr>'}</tbody></table></div></div>`));
   const sims=(p.similar||[]).map(s=>`<div class="ledrow"><a class="plink" data-pid="${s.pid}">${esc(s.name)}</a><span class="num muted">${(s.score*100).toFixed(0)}%</span></div>`).join('');
   g3.appendChild($(`<div class="panel s4"><h2>Most similar</h2>${sims||'<span class="note">n/a (needs rate qualifier)</span>'}<div class="note" style="margin-top:6px">Cosine similarity on standardized metrics.</div></div>`));
   w.appendChild(g3);
@@ -956,7 +974,7 @@ function playerView(pid){
   const mus=(p.matchups||[]);
   const best=mus.slice().sort((a,b)=>b.dominance-a.dominance).slice(0,6);
   const worst=mus.slice().sort((a,b)=>a.dominance-b.dominance).slice(0,6);
-  const muTbl=(arr,t)=>`<div class="panel s6"><h2>${t}</h2><table><thead><tr><th>Bowler</th><th class="n">B</th><th class="n">R</th><th class="n">W</th><th class="n">SR</th><th class="n">Dom</th></tr></thead><tbody>${arr.map(mu=>`<tr><td>${esc(mu.bowler_name)}</td><td class="n">${mu.balls}</td><td class="n">${mu.runs}</td><td class="n">${mu.outs}</td><td class="n">${mu.sr}</td><td class="n"><b style="color:${mu.dominance>=.55?'var(--pos)':mu.dominance<=.45?'var(--neg)':'var(--ink)'}">${mu.dominance}</b></td></tr>`).join('')||'<tr><td class="note">n/a</td></tr>'}</tbody></table></div>`;
+  const muTbl=(arr,t)=>`<div class="panel s6"><h2>${t}</h2><div class="tablewrap"><table><thead><tr><th>Bowler</th><th class="n">B</th><th class="n">R</th><th class="n">W</th><th class="n">SR</th><th class="n">Dom</th></tr></thead><tbody>${arr.map(mu=>`<tr><td>${esc(mu.bowler_name)}</td><td class="n">${mu.balls}</td><td class="n">${mu.runs}</td><td class="n">${mu.outs}</td><td class="n">${mu.sr}</td><td class="n"><b style="color:${mu.dominance>=.55?'var(--pos)':mu.dominance<=.45?'var(--neg)':'var(--ink)'}">${mu.dominance}</b></td></tr>`).join('')||'<tr><td class="note">n/a</td></tr>'}</tbody></table></div></div>`;
   const g4=$(`<div class="grid bento" style="margin-top:13px"></div>`);
   g4.appendChild($(muTbl(best,"Dominates (top matchups)")));g4.appendChild($(muTbl(worst,"Struggles against")));
   w.appendChild(g4);
@@ -993,13 +1011,13 @@ function compareView(app){
       let common=Object.keys(maps[0]||{}).filter(bn=>maps.every(m=>m[bn]));
       common.sort((a,b)=>maps.reduce((t,m)=>t+(m[b].balls||0),0)-maps.reduce((t,m)=>t+(m[a].balls||0),0));
       common=common.slice(0,10);
-      muPanel=`<div class="panel s12"><h2>Shared matchups <span class="r">bowlers all selected have faced</span></h2>${common.length?`<table><thead><tr><th>Bowler</th>${hdr}</tr></thead><tbody>${common.map(bn=>`<tr><td>${esc(bn)}</td>${ids.map((i,x)=>{const mu=maps[x][bn];return `<td class="n">${mu.runs}/${mu.outs} <span class="dim">(${mu.balls}b)</span> · <b>${mu.sr}</b></td>`;}).join('')}</tr>`).join('')}</tbody></table><div class="note" style="margin-top:6px">Runs/outs (balls) · strike rate, vs bowlers every selected player has faced.</div>`:'<span class="note">No common bowlers among the selected players in this dataset.</span>'}</div>`;
+      muPanel=`<div class="panel s12"><h2>Shared matchups <span class="r">bowlers all selected have faced</span></h2>${common.length?`<div class="tablewrap"><table><thead><tr><th>Bowler</th>${hdr}</tr></thead><tbody>${common.map(bn=>`<tr><td>${esc(bn)}</td>${ids.map((i,x)=>{const mu=maps[x][bn];return `<td class="n">${mu.runs}/${mu.outs} <span class="dim">(${mu.balls}b)</span> · <b>${mu.sr}</b></td>`;}).join('')}</tr>`).join('')}</tbody></table></div><div class="note" style="margin-top:6px">Runs/outs (balls) · strike rate, vs bowlers every selected player has faced.</div>`:'<span class="note">No common bowlers among the selected players in this dataset.</span>'}</div>`;
     }
     out.innerHTML=`<div class="grid bento">
       <div class="panel s5 pcol"><h2>Percentile radar</h2><div class="pmid">${radar(ids.map(i=>c.players[i]),axes,cols)}</div></div>
-      <div class="panel s7"><h2>Side by side</h2><table><thead><tr><th>Metric</th>${hdr}</tr></thead><tbody>${sbs}</tbody></table></div>
-      ${phRows?`<div class="panel s6"><h2>By phase <span class="r">SR · avg</span></h2><table><thead><tr><th>Phase</th>${hdr}</tr></thead><tbody>${phRows}</tbody></table></div>`:''}
-      ${ctxRows?`<div class="panel s6"><h2>By context <span class="r">SR · avg</span></h2><table><thead><tr><th>Situation</th>${hdr}</tr></thead><tbody>${ctxRows}</tbody></table></div>`:''}
+      <div class="panel s7"><h2>Side by side</h2><div class="tablewrap"><table><thead><tr><th>Metric</th>${hdr}</tr></thead><tbody>${sbs}</tbody></table></div></div>
+      ${phRows?`<div class="panel s6"><h2>By phase <span class="r">SR · avg</span></h2><div class="tablewrap"><table><thead><tr><th>Phase</th>${hdr}</tr></thead><tbody>${phRows}</tbody></table></div></div>`:''}
+      ${ctxRows?`<div class="panel s6"><h2>By context <span class="r">SR · avg</span></h2><div class="tablewrap"><table><thead><tr><th>Situation</th>${hdr}</tr></thead><tbody>${ctxRows}</tbody></table></div></div>`:''}
       ${muPanel}
     </div>`;}
   picker.querySelectorAll('.ac').forEach(slot=>{const s=+slot.dataset.s,inp=slot.querySelector('.cmpq');autocomplete(inp,names,(nm)=>{picked[s]=(nm&&nameToId[nm])?nameToId[nm]:null;draw();});});
@@ -1041,7 +1059,7 @@ function matchupsView(app){
   autocomplete(box.querySelector('#mw'),bowl,v=>{selW=v;detail();});
   box.querySelector('#clr').onclick=()=>{selB=selW="";box.querySelector('#mb').value='';box.querySelector('#mw').value='';detail();};
   detail();
-  const br=$(`<div class="panel" style="margin-top:13px"><h2>Biggest head-to-heads <span class="r">by balls faced</span></h2><div id="brt"></div></div>`);
+  const br=$(`<div class="panel" style="margin-top:13px"><h2>Biggest head-to-heads <span class="r">by balls faced</span></h2><div id="brt" class="tablewrap"></div></div>`);
   br.querySelector('#brt').appendChild(matchTable(c.matchups_top.slice()));
   app.appendChild(br);wirePlinks(br);
 }
