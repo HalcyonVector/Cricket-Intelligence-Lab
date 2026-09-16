@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Map every Cricsheet player in the dashboard to their ESPNcricinfo id (and a
-canonical name / unique name), using Cricsheet's OWN people register — which is
+canonical name / unique name), using Cricsheet's OWN people register - which is
 authoritative and already keyed on the exact 8-hex identifiers the dashboard uses.
 
 It writes  web/dashboard/playermeta.js  which the dashboard loads automatically to
@@ -79,7 +79,7 @@ def main():
         f.write("window.CIL_PLAYERMETA=" + json.dumps(meta, separators=(",", ":")) + ";")
     print(f"Wrote {OUT}")
     print(f"  {len(meta):,} players enriched · {matched:,} with an ESPNcricinfo id.")
-    print("Reload the dashboard — player profiles now show an ESPNcricinfo link.")
+    print("Reload the dashboard - player profiles now show an ESPNcricinfo link.")
 
 
 if __name__ == "__main__":

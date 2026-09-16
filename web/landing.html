@@ -239,7 +239,7 @@ footer .fb b{font-weight:700;letter-spacing:.06em;color:var(--ink);font-size:16p
       <div class="card span2 reveal"><div class="ico"><svg viewBox="0 0 24 24"><circle cx="6" cy="6.5" r="2.1"/><circle cx="18" cy="7.5" r="2.1"/><circle cx="12" cy="17.5" r="2.1"/><path d="M7.7 7.7 10.6 15.6M16.3 9.1 13.4 15.6M8.1 6.7h7.8"/></svg></div><h3>Who bats like who</h3><p>Pick a batter and the dashboard surfaces their closest statistical neighbours, scored across twelve metrics.</p></div>
       <div class="card span2 reveal d1"><div class="ico"><svg viewBox="0 0 24 24"><polygon points="12 3 20 9 17 19.5 7 19.5 4 9"/><polygon points="12 8 16 11 14.4 16.2 9.6 16.2 8 11"/></svg></div><h3>Four-way compare</h3><p>Stack up to four players on one radar and see the bowlers every one of them has faced.</p></div>
       <div class="card span2 reveal d2"><div class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.9"/><path d="M8 8a5.7 5.7 0 0 0 0 8M16 16a5.7 5.7 0 0 0 0-8M5.2 5.2a9.6 9.6 0 0 0 0 13.6M18.8 18.8a9.6 9.6 0 0 0 0-13.6"/></svg></div><h3>Live, when it's on</h3><p>Live scores, the fixture list and full ball-by-ball commentary while the server is running.</p></div>
-      <div class="card span3 reveal"><div class="ico"><svg viewBox="0 0 24 24"><path d="M4 4v16h16"/><circle cx="9" cy="15" r="1.2"/><circle cx="13" cy="11" r="1.2"/><circle cx="16.5" cy="13" r="1.2"/><circle cx="17.5" cy="5.5" r="1.2"/></svg></div><h3>Find the outliers</h3><p>Average against strike rate, economy against strike rate — the players sitting furthest from the trend line, plotted.</p></div>
+      <div class="card span3 reveal"><div class="ico"><svg viewBox="0 0 24 24"><path d="M4 4v16h16"/><circle cx="9" cy="15" r="1.2"/><circle cx="13" cy="11" r="1.2"/><circle cx="16.5" cy="13" r="1.2"/><circle cx="17.5" cy="5.5" r="1.2"/></svg></div><h3>Find the outliers</h3><p>Average against strike rate, economy against strike rate - the players sitting furthest from the trend line, plotted.</p></div>
       <div class="card span3 reveal d1"><div class="ico"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9.2" ry="6"/><ellipse cx="12" cy="12" rx="3" ry="5.2"/></svg></div><h3>Grounds &amp; teams</h3><p>How each venue scores and how often the chase wins, plus head-to-head team records by format.</p></div>
     </div>
   </div>
@@ -275,7 +275,7 @@ footer .fb b{font-weight:700;letter-spacing:.06em;color:var(--ink);font-size:16p
 <!-- ============ ARCHETYPES ============ -->
 <section class="pad" style="padding-top:0">
   <div class="wrap">
-    <div class="sec-head reveal"><span class="eyebrow">Archetypes</span><h2>Every batter gets a <span class="disp-i">label</span></h2><p>Not by reputation — by how they actually bat: how fast they score, how long they stay, and when they do their damage.</p></div>
+    <div class="sec-head reveal"><span class="eyebrow">Archetypes</span><h2>Every batter gets a <span class="disp-i">label</span></h2><p>Not by reputation - by how they actually bat: how fast they score, how long they stay, and when they do their damage.</p></div>
     <div class="chips reveal d1">
       <span class="chip"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><path d="M12 7v13M5.5 13a6.5 6.5 0 0 0 13 0M5.5 13H3.2l1.4 2M18.5 13h2.3l-1.4 2"/></svg>Anchor</span><span class="chip"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7M20 3.5V8h-4.5"/></svg>Rotator</span><span class="chip"><svg viewBox="0 0 24 24"><path d="M5 20V13M10 20V8M15 20V11M20 20V4"/></svg>Accumulator</span><span class="chip"><svg viewBox="0 0 24 24"><path d="M13 2.5 5 13h6l-2 8.5L19 10.5h-6z"/></svg>Aggressor</span><span class="chip"><svg viewBox="0 0 24 24"><path d="M5.5 21V3.5M5.5 5h11l-2.2 4 2.2 4h-11"/></svg>Finisher</span>
     </div>
@@ -355,7 +355,7 @@ function animateCount(el){
 }
 const cio=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){animateCount(e.target);cio.unobserve(e.target);}});},{threshold:.6});
 document.querySelectorAll('[data-count],[data-text]').forEach(el=>cio.observe(el));
-// hero ticker is above the fold — make sure it counts even before any scroll
+// hero ticker is above the fold - make sure it counts even before any scroll
 setTimeout(()=>document.querySelectorAll('.ticker [data-count]').forEach(animateCount),1400);
 
 document.querySelectorAll('.card').forEach(c=>{
