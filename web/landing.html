@@ -214,6 +214,19 @@ footer .fb b{font-weight:700;letter-spacing:.06em;color:var(--ink);font-size:16p
   .statgrid .s .n{font-size:clamp(22px,7vw,40px);overflow-wrap:anywhere;word-break:break-word}
   .finalcta{padding:52px 22px}
   footer{padding:40px 0}
+
+  /* backdrop-filter combined with an animated transform is a known WebKit mobile
+     bug (the blurred backdrop capture doesn't update correctly mid-transition,
+     showing as flicker/ghosting) -- .card/.step/.finalcta all get transform-
+     animated via .reveal, and nav.shrink's blur snaps in during a padding
+     transition. Drop the blur on mobile and raise background opacity a touch
+     so the glass look survives without it; this also removes a real perf cost
+     backdrop-filter carries on mobile GPUs. */
+  nav.shrink{backdrop-filter:none;background:rgba(14,7,8,.86)}
+  .card,.step,.chip,.finalcta,.ticker,.band{backdrop-filter:none}
+  .card,.step,.chip{background:rgba(26,10,12,.72)}
+  .finalcta{background:rgba(34,12,12,.7)}
+  .band{background:rgba(20,8,10,.55)}
 }
 </style>
 </head>
@@ -339,7 +352,15 @@ function onScroll(){
   nav.classList.toggle('shrink',sc>40);
   glow.style.setProperty('--gnow',glowColor(p));
 }
-addEventListener('scroll',onScroll,{passive:true});onScroll();
+// rAF-throttled: the raw scroll event can fire many times per frame on mobile,
+// and doing style writes on every one of them is a real source of scroll jank
+let scrollQueued=false;
+function queueScroll(){
+  if(scrollQueued)return;
+  scrollQueued=true;
+  requestAnimationFrame(()=>{onScroll();scrollQueued=false;});
+}
+addEventListener('scroll',queueScroll,{passive:true});onScroll();
 
 // fire the hero entrance once fonts are ready (so the mask reveal lands on the real typeface)
 function startHero(){document.body.classList.add('go');}
