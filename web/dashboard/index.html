@@ -175,6 +175,7 @@
  .seg button.on{background:linear-gradient(180deg,var(--accent2),var(--accent));color:#2A0C06;font-weight:700}
  .count{font-size:11.5px;color:var(--dim);margin-left:auto;align-self:center;font-variant-numeric:tabular-nums}
  .tablewrap{overflow-x:auto}
+ .tscroll{overflow-x:auto}
  .tablewrap table{min-width:680px}
  /* header two-row layout */
  .htools{display:flex;gap:10px;align-items:center;margin-left:auto}
@@ -483,6 +484,7 @@ window.__cohortLoaded=(k,d)=>{ COH[k]=d; };
 
 const ARCH_COLOR={Anchor:"#EBA24C",Accumulator:"#33D17A",Aggressor:"#FF6B7E",Finisher:"#FFB454",Rotator:"#B49A8C"};
 const CRED_NOTE='Rate-stat boards rank by the value shown. A format-aware minimum-ball qualifier (noted above) is applied first, so two-ball wonders are excluded while the order matches the displayed number.';
+const HOME_NOTE='Boards here rank by a confidence-adjusted score: a player with fewer balls in a given situation is pulled toward the field average. The number shown is the raw value, so the order can differ from it. Rate stats also need a minimum number of balls to qualify.';
 const SHRINK_TIP='Ranked by a confidence-adjusted score, not the raw number shown. A player with fewer balls in this situation gets pulled toward the field average, so a small sample can rank below a bigger sample with a higher raw number - this keeps small-sample flukes from topping the list.';
 const infoIcon=(t)=>`<span class="infoi" title="${esc(t)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><line x1="12" y1="11" x2="12" y2="16.5"/><circle cx="12" cy="7.7" r="0.6" fill="currentColor" stroke="none"/></svg></span>`;
 const FMT_COLOR={t20:"#FF6B7E",odi:"#33D17A",test:"#FFB454"};
@@ -951,7 +953,7 @@ function playerView(pid){
   const phLab={powerplay:'Powerplay',middle:'Middle',death:'Death'};
   g3.appendChild($(`<div class="panel s4"><h2>Phase profile</h2>${phs.length?`<table class="sc"><thead><tr><th>Phase</th><th class="n">Runs</th><th class="n">Balls</th><th class="n">Avg</th><th class="n">SR</th><th class="n">Bnd%</th></tr></thead><tbody>${phs.map(x=>{const v=p.phases[x];return `<tr><td>${phLab[x]||x}</td><td class="n">${v.runs}</td><td class="n dim">${v.balls}</td><td class="n">${v.avg}</td><td class="n"><b>${v.sr}</b></td><td class="n">${v.boundary_pct}</td></tr>`;}).join('')}</tbody></table><div style="margin-top:9px">${phs.map(x=>{const v=p.phases[x];return `<div style="margin:7px 0"><div class="row" style="justify-content:space-between;font-size:11px"><span class="muted">${phLab[x]||x}</span><span class="num">${v.sr} SR</span></div><div class="bar"><span style="width:${v.sr/maxSR*100}%"></span></div></div>`;}).join('')}</div>`:'<span class="note">n/a (needs rate qualifier)</span>'}</div>`));
   const ctx=p.context||{};
-  g3.appendChild($(`<div class="panel s4"><h2>Context splits</h2><div class="tablewrap"><table><thead><tr><th>Split</th><th class="n">Avg</th><th class="n">SR</th><th class="n">Balls</th></tr></thead><tbody>${Object.entries(ctx).map(([k,v])=>`<tr><td style="text-transform:capitalize">${k}</td><td class="n">${v.avg}</td><td class="n">${v.sr}</td><td class="n dim">${v.balls}</td></tr>`).join('')||'<tr><td class="note">n/a</td></tr>'}</tbody></table></div></div>`));
+  g3.appendChild($(`<div class="panel s4"><h2>Context splits</h2><div class="tscroll"><table><thead><tr><th>Split</th><th class="n">Avg</th><th class="n">SR</th><th class="n">Balls</th></tr></thead><tbody>${Object.entries(ctx).map(([k,v])=>`<tr><td style="text-transform:capitalize">${k}</td><td class="n">${v.avg}</td><td class="n">${v.sr}</td><td class="n dim">${v.balls}</td></tr>`).join('')||'<tr><td class="note">n/a</td></tr>'}</tbody></table></div></div>`));
   const sims=(p.similar||[]).map(s=>`<div class="ledrow"><a class="plink" data-pid="${s.pid}">${esc(s.name)}</a><span class="num muted">${(s.score*100).toFixed(0)}%</span></div>`).join('');
   g3.appendChild($(`<div class="panel s4"><h2>Most similar</h2>${sims||'<span class="note">n/a (needs rate qualifier)</span>'}<div class="note" style="margin-top:6px">Cosine similarity on standardized metrics.</div></div>`));
   w.appendChild(g3);
@@ -974,7 +976,7 @@ function playerView(pid){
   const mus=(p.matchups||[]);
   const best=mus.slice().sort((a,b)=>b.dominance-a.dominance).slice(0,6);
   const worst=mus.slice().sort((a,b)=>a.dominance-b.dominance).slice(0,6);
-  const muTbl=(arr,t)=>`<div class="panel s6"><h2>${t}</h2><div class="tablewrap"><table><thead><tr><th>Bowler</th><th class="n">B</th><th class="n">R</th><th class="n">W</th><th class="n">SR</th><th class="n">Dom</th></tr></thead><tbody>${arr.map(mu=>`<tr><td>${esc(mu.bowler_name)}</td><td class="n">${mu.balls}</td><td class="n">${mu.runs}</td><td class="n">${mu.outs}</td><td class="n">${mu.sr}</td><td class="n"><b style="color:${mu.dominance>=.55?'var(--pos)':mu.dominance<=.45?'var(--neg)':'var(--ink)'}">${mu.dominance}</b></td></tr>`).join('')||'<tr><td class="note">n/a</td></tr>'}</tbody></table></div></div>`;
+  const muTbl=(arr,t)=>`<div class="panel s6"><h2>${t}</h2><div class="tscroll"><table><thead><tr><th>Bowler</th><th class="n">B</th><th class="n">R</th><th class="n">W</th><th class="n">SR</th><th class="n">Dom</th></tr></thead><tbody>${arr.map(mu=>`<tr><td>${esc(mu.bowler_name)}</td><td class="n">${mu.balls}</td><td class="n">${mu.runs}</td><td class="n">${mu.outs}</td><td class="n">${mu.sr}</td><td class="n"><b style="color:${mu.dominance>=.55?'var(--pos)':mu.dominance<=.45?'var(--neg)':'var(--ink)'}">${mu.dominance}</b></td></tr>`).join('')||'<tr><td class="note">n/a</td></tr>'}</tbody></table></div></div>`;
   const g4=$(`<div class="grid bento" style="margin-top:13px"></div>`);
   g4.appendChild($(muTbl(best,"Dominates (top matchups)")));g4.appendChild($(muTbl(worst,"Struggles against")));
   w.appendChild(g4);
@@ -1011,13 +1013,13 @@ function compareView(app){
       let common=Object.keys(maps[0]||{}).filter(bn=>maps.every(m=>m[bn]));
       common.sort((a,b)=>maps.reduce((t,m)=>t+(m[b].balls||0),0)-maps.reduce((t,m)=>t+(m[a].balls||0),0));
       common=common.slice(0,10);
-      muPanel=`<div class="panel s12"><h2>Shared matchups <span class="r">bowlers all selected have faced</span></h2>${common.length?`<div class="tablewrap"><table><thead><tr><th>Bowler</th>${hdr}</tr></thead><tbody>${common.map(bn=>`<tr><td>${esc(bn)}</td>${ids.map((i,x)=>{const mu=maps[x][bn];return `<td class="n">${mu.runs}/${mu.outs} <span class="dim">(${mu.balls}b)</span> · <b>${mu.sr}</b></td>`;}).join('')}</tr>`).join('')}</tbody></table></div><div class="note" style="margin-top:6px">Runs/outs (balls) · strike rate, vs bowlers every selected player has faced.</div>`:'<span class="note">No common bowlers among the selected players in this dataset.</span>'}</div>`;
+      muPanel=`<div class="panel s12"><h2>Shared matchups <span class="r">bowlers all selected have faced</span></h2>${common.length?`<div class="tscroll"><table><thead><tr><th>Bowler</th>${hdr}</tr></thead><tbody>${common.map(bn=>`<tr><td>${esc(bn)}</td>${ids.map((i,x)=>{const mu=maps[x][bn];return `<td class="n">${mu.runs}/${mu.outs} <span class="dim">(${mu.balls}b)</span> · <b>${mu.sr}</b></td>`;}).join('')}</tr>`).join('')}</tbody></table></div><div class="note" style="margin-top:6px">Runs/outs (balls) · strike rate, vs bowlers every selected player has faced.</div>`:'<span class="note">No common bowlers among the selected players in this dataset.</span>'}</div>`;
     }
     out.innerHTML=`<div class="grid bento">
       <div class="panel s5 pcol"><h2>Percentile radar</h2><div class="pmid">${radar(ids.map(i=>c.players[i]),axes,cols)}</div></div>
-      <div class="panel s7"><h2>Side by side</h2><div class="tablewrap"><table><thead><tr><th>Metric</th>${hdr}</tr></thead><tbody>${sbs}</tbody></table></div></div>
-      ${phRows?`<div class="panel s6"><h2>By phase <span class="r">SR · avg</span></h2><div class="tablewrap"><table><thead><tr><th>Phase</th>${hdr}</tr></thead><tbody>${phRows}</tbody></table></div></div>`:''}
-      ${ctxRows?`<div class="panel s6"><h2>By context <span class="r">SR · avg</span></h2><div class="tablewrap"><table><thead><tr><th>Situation</th>${hdr}</tr></thead><tbody>${ctxRows}</tbody></table></div></div>`:''}
+      <div class="panel s7"><h2>Side by side</h2><div class="tscroll"><table><thead><tr><th>Metric</th>${hdr}</tr></thead><tbody>${sbs}</tbody></table></div></div>
+      ${phRows?`<div class="panel s6"><h2>By phase <span class="r">SR · avg</span></h2><div class="tscroll"><table><thead><tr><th>Phase</th>${hdr}</tr></thead><tbody>${phRows}</tbody></table></div></div>`:''}
+      ${ctxRows?`<div class="panel s6"><h2>By context <span class="r">SR · avg</span></h2><div class="tscroll"><table><thead><tr><th>Situation</th>${hdr}</tr></thead><tbody>${ctxRows}</tbody></table></div></div>`:''}
       ${muPanel}
     </div>`;}
   picker.querySelectorAll('.ac').forEach(slot=>{const s=+slot.dataset.s,inp=slot.querySelector('.cmpq');autocomplete(inp,names,(nm)=>{picked[s]=(nm&&nameToId[nm])?nameToId[nm]:null;draw();});});
@@ -1059,7 +1061,7 @@ function matchupsView(app){
   autocomplete(box.querySelector('#mw'),bowl,v=>{selW=v;detail();});
   box.querySelector('#clr').onclick=()=>{selB=selW="";box.querySelector('#mb').value='';box.querySelector('#mw').value='';detail();};
   detail();
-  const br=$(`<div class="panel" style="margin-top:13px"><h2>Biggest head-to-heads <span class="r">by balls faced</span></h2><div id="brt" class="tablewrap"></div></div>`);
+  const br=$(`<div class="panel" style="margin-top:13px"><h2>Biggest head-to-heads <span class="r">by balls faced</span></h2><div id="brt" class="tscroll"></div></div>`);
   br.querySelector('#brt').appendChild(matchTable(c.matchups_top.slice()));
   app.appendChild(br);wirePlinks(br);
 }
@@ -1508,7 +1510,7 @@ function homeView(app){
   viz.appendChild($(`<div class="panel s6"><h2>Outlier map <span class="r">average ↔ strike rate · red = outlier</span></h2>${scatterSVG(c)}</div>`));
   viz.appendChild($(`<div class="panel s6"><h2>Archetype galaxy <span class="r">every qualified batter, by percentile</span></h2>${galaxySVG(c)}</div>`));
   app.appendChild(viz);
-  app.appendChild($(`<div class="methnote">${CRED_NOTE}</div>`));
+  app.appendChild($(`<div class="methnote">${HOME_NOTE}</div>`));
   const avail=DISCOVER.filter(x=>_board(c,x.kind,x.f,x.dir,x.need).length);
   const dwrap=$(`<div><div class="sechead">Explore by trait ${infoIcon(SHRINK_TIP)}</div><div class="disc"></div><div id="ddpanel"></div></div>`);
   dwrap.querySelector('.disc').innerHTML=avail.map((x,i)=>{const top=_board(c,x.kind,x.f,x.dir,x.need)[0]||{};return `<div class="dcard" data-i="${i}"><div class="dic">${x.ic}</div><div class="dt">${x.t}</div><div class="dtop">${esc(top.name||'')} <b class="num">${top.value??''}</b></div></div>`;}).join('');
