@@ -3,203 +3,377 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<meta name="theme-color" content="#120b09"/>
+<meta name="theme-color" content="#0a0608"/>
 <title>Cricket Intelligence Lab</title>
-<meta name="description" content="Ball-by-ball cricket stats built from Cricsheet's open data. Look up players, compare up to four, and see how each ranks within their competition."/>
+<meta name="description" content="Ball-by-ball cricket stats built from Cricsheet's open data. Search any player, see where they rank in their competition, compare up to four, or plot any stat against another."/>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script>document.documentElement.className='js'</script>
 <style>
 :root{
-  --bg:#120b09;--panel:#1a100d;--rule:#33201a;
-  --ink:#f1e7df;--muted:#b8a093;--dim:#8c7467;
-  --accent:#e8a24c;--accent-ink:#1b0e08;
-  --serif:'Newsreader',Georgia,'Times New Roman',serif;
+  --ink:#F7EEE7;--muted:#C7A99B;--dim:#8A6557;
+  --ember:#EBA24C;--rust:#D2682E;--wine:#8A2E3C;--gold:#F2C079;
+  --line:rgba(255,255,255,.09);--line2:rgba(255,235,220,.18);--card:rgba(26,10,12,.62);
+  --serif:'Fraunces',Georgia,'Times New Roman',serif;
   --sans:Inter,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
-  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
-*{box-sizing:border-box}
-html{background:var(--bg);-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 var(--sans)}
-a{color:var(--accent);text-underline-offset:3px}
-a:focus-visible,.btn:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
-.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:#0a0608;scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{color:var(--ink);font:16px/1.6 var(--sans);overflow-x:hidden;-webkit-font-smoothing:antialiased;
+  background:linear-gradient(180deg,#0A0608 0%,#120709 8%,#1C0A11 18%,#290D15 29%,#38101A 40%,#4A141B 51%,#5C1A18 62%,#6A2414 73%,#6E2E12 84%,#5E2A10 100%)}
+/* fixed atmosphere: one soft glow and an edge vignette, both static (no blur filters) */
+.glow{position:fixed;z-index:0;pointer-events:none;top:-24vw;left:50%;width:100vw;height:100vw;max-width:1200px;max-height:1200px;transform:translateX(-50%);
+  background:radial-gradient(circle,rgba(210,104,46,.30) 0%,rgba(210,104,46,.12) 34%,transparent 64%)}
+.vignette{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(120% 80% at 50% 0%,transparent 56%,rgba(0,0,0,.5) 100%)}
+a{color:var(--gold)}
+a:focus-visible,.btn:focus-visible{outline:2px solid var(--ember);outline-offset:3px;border-radius:6px}
+.wrap{max-width:1120px;margin:0 auto;padding:0 30px;position:relative;z-index:2}
+section{position:relative;z-index:2}
+h1,h2,h3,h4{font-family:var(--serif);font-weight:500;letter-spacing:-.02em;line-height:1.08;text-wrap:balance}
+.disp-i{font-style:italic;font-weight:400;color:var(--gold)}
 
-/* top bar */
-.top{display:flex;align-items:center;gap:14px;padding:16px 0;border-bottom:1px solid var(--rule)}
-.mark{font:700 15px var(--mono);letter-spacing:.2em;color:#fff;text-decoration:none}
-.name{color:var(--dim);font-size:14px}
-.top nav{margin-left:auto;display:flex;align-items:center;gap:20px;font-size:14px}
-.top nav a:not(.btn){color:var(--muted);text-decoration:none}
-.top nav a:not(.btn):hover{color:var(--ink)}
-.btn{display:inline-block;background:var(--accent);color:var(--accent-ink);font:600 14.5px/1 var(--sans);padding:11px 17px;border-radius:6px;text-decoration:none}
-.btn:hover{background:#f1b25f}
+/* nav */
+nav{position:fixed;top:0;left:0;right:0;z-index:60;display:flex;align-items:center;gap:14px;padding:18px 34px;border-bottom:1px solid transparent;transition:background .25s,padding .25s,border-color .25s}
+nav.shrink{padding:11px 34px;background:rgba(14,7,8,.86);border-color:var(--line)}
+@media(min-width:641px){nav.shrink{background:rgba(14,7,8,.62);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}}
+.brand{font:600 18px var(--sans);letter-spacing:-.01em;color:var(--ink);text-decoration:none;white-space:nowrap}
+.bshort{display:none}
+.navlinks{margin-left:auto;display:flex;gap:4px;align-items:center}
+.navlinks a{color:var(--muted);text-decoration:none;font-size:14px;font-weight:500;padding:9px 14px;border-radius:8px;transition:color .15s,background .15s}
+.navlinks a:hover{color:var(--ink);background:rgba(255,255,255,.06)}
+.btn{display:inline-flex;align-items:center;font:600 14.5px/1 var(--sans);text-decoration:none;padding:13px 22px;border-radius:10px;border:1px solid transparent;transition:background .15s,border-color .15s,transform .15s}
+.btn-primary{color:#2A0C06;background:linear-gradient(135deg,#FBD79C,#F0A94E)}
+.btn-primary:hover{background:linear-gradient(135deg,#FFE0AE,#F5B25C);transform:translateY(-1px)}
+.btn-ghost{color:var(--ink);background:rgba(255,255,255,.05);border-color:var(--line2)}
+.btn-ghost:hover{border-color:var(--ember);background:rgba(255,255,255,.08)}
+.navlinks a.btn-primary{color:#2A0C06;padding:10px 18px}
+.navlinks a.btn-primary:hover{color:#2A0C06;background:linear-gradient(135deg,#FFE0AE,#F5B25C)}
 
 /* hero */
-.hero{padding:72px 0 52px}
-h1{font:500 clamp(36px,6.2vw,64px)/1.07 var(--serif);letter-spacing:-.018em;margin:0;max-width:19ch}
-.lede{font-size:clamp(17px,2.1vw,20px);color:var(--muted);max-width:56ch;margin:22px 0 0}
-.actions{display:flex;flex-wrap:wrap;align-items:center;gap:14px 24px;margin-top:30px}
-.actions .plain{color:var(--ink);text-decoration-color:var(--dim)}
-.facts{display:flex;flex-wrap:wrap;gap:8px 26px;margin:46px 0 0;padding:16px 0 0;border-top:1px solid var(--rule);font:13px/1.5 var(--mono);color:var(--dim)}
-.facts:empty{display:none}
-.facts b{color:var(--ink);font-weight:500}
+.hero{text-align:center;padding:140px 30px 20px;position:relative;z-index:2;max-width:1120px;margin:0 auto}
+.eyebrow{display:inline-flex;align-items:center;gap:9px;font:600 12px var(--sans);letter-spacing:.18em;text-transform:uppercase;color:var(--ink);background:rgba(255,255,255,.05);border:1px solid var(--line2);padding:7px 16px;border-radius:999px}
+.eyebrow:empty{display:none}
+.eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--ember)}
+.hero h1{font-size:clamp(42px,7.4vw,92px);margin:26px auto 0;color:#FFF4EA}
+.hero h1 span{display:block}
+.hero .lede{max-width:560px;color:var(--muted);font-size:clamp(16px,2vw,19px);margin:24px auto 0}
+.hero .cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:34px}
+.heroshot{margin:60px auto 0;max-width:1040px}
+.heroshot img{display:block;width:100%;height:auto;border-radius:14px;border:1px solid var(--line2);background:#130c09;
+  box-shadow:0 50px 90px -50px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.03)}
+.heroshot figcaption{margin:14px auto 0;max-width:620px;font-size:14.5px;color:var(--muted)}
+.heroshot figcaption b{color:var(--ink);font-weight:600}
+
+/* hero entrance: plain staggered rise, started once fonts are ready so the headline never jumps */
+html.js:not(.ready) .rise{opacity:0}
+html.ready .rise{animation:rise .65s cubic-bezier(.2,.7,.2,1) var(--d,0s) both}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* scroll reveal: short, small, once */
+html.js .reveal{opacity:0;transform:translateY(14px);transition:opacity .5s ease-out var(--d,0s),transform .5s ease-out var(--d,0s)}
+html.js .reveal.in{opacity:1;transform:none}
+
+/* competition ticker */
+.marquee{margin:64px auto 0;max-width:1000px;overflow:hidden;-webkit-mask:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);mask:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
+.marquee:empty{display:none}
+.mtrack{display:flex;align-items:center;width:max-content;animation:marq 70s linear infinite}
+.marquee:hover .mtrack{animation-play-state:paused}
+.mitem{font:italic 500 clamp(17px,2vw,21px)/1 var(--serif);color:var(--muted);white-space:nowrap;display:inline-flex;align-items:center}
+.mitem::after{content:"";width:5px;height:5px;border-radius:50%;background:var(--ember);opacity:.5;margin:0 28px}
+@keyframes marq{to{transform:translate3d(-50%,0,0)}}
 
 /* sections */
-section{padding:56px 0;border-top:1px solid var(--rule)}
-.sec{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
-.label{margin:0;font:500 12px/1.4 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--dim);padding-top:5px}
-.prose p{margin:0 0 18px;max-width:62ch;color:var(--muted)}
-.prose p:last-child{margin-bottom:0}
-.prose strong{color:var(--ink);font-weight:600}
-@media(min-width:860px){.sec{grid-template-columns:220px minmax(0,1fr);gap:48px}}
+.pad{padding:110px 0}
+.shead{max-width:640px;margin:0 0 44px}
+.shead h2{font-size:clamp(30px,4.4vw,46px)}
+.shead p{color:var(--muted);font-size:17px;margin-top:14px}
+.shead.tight{margin-bottom:18px}
 
-/* screenshots */
-.shots{margin-top:28px}
-figure{margin:0 0 52px}
-figure:last-child{margin-bottom:0}
-figure img{display:block;width:100%;height:auto;background:var(--panel);border:1px solid var(--rule);border-radius:6px}
-figcaption{margin-top:12px;color:var(--muted);font-size:15px;line-height:1.6;max-width:66ch}
-figcaption strong{color:var(--ink);font-weight:600}
+/* feature cards */
+.bento{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:16px}
+.card{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:18px;background:var(--card);transition:border-color .2s,transform .2s}
+.card .cb{padding:26px 28px 28px}
+.card:hover{border-color:var(--line2)}
+@media(hover:hover){.card:hover{transform:translateY(-2px)}}
+.card.span3{grid-column:span 3}.card.span2{grid-column:span 2}
+.card svg.ic{width:22px;height:22px;stroke:var(--ember);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;margin-bottom:16px}
+.card h3{font-size:21px;margin-bottom:8px}
+.card p{color:var(--muted);font-size:15px;line-height:1.6}
+.thumb{aspect-ratio:3/2;overflow:hidden;border-bottom:1px solid var(--line);background:#130c09}
+.thumb img{display:block;width:100%;height:100%;object-fit:cover;object-position:left top}
 
-/* code */
-pre{margin:22px 0 0;background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:16px 18px;overflow-x:auto;font:13.5px/1.75 var(--mono);color:var(--ink);max-width:62ch}
-pre .c{color:var(--dim)}
+/* numbers */
+.band{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:rgba(20,8,10,.4)}
+.band:has(#statgrid:empty){display:none}
+.statgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:30px;padding:64px 0}
+.statgrid .s{min-width:0}
+.statgrid .n{font:500 clamp(34px,5vw,60px)/1 var(--serif);letter-spacing:-.02em;color:#fff;overflow-wrap:anywhere}
+.statgrid .l{font-size:13px;color:var(--muted);margin-top:10px}
 
-footer{padding:26px 0 46px;border-top:1px solid var(--rule);color:var(--dim);font-size:13.5px;line-height:1.7}
+/* how it's built */
+.steps{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:64px;align-items:start}
+.steps .sticky{position:sticky;top:120px}
+.steps .sticky h2{font-size:clamp(30px,4.2vw,44px)}
+.steps .sticky p{color:var(--muted);font-size:17px;margin-top:16px;max-width:440px}
+.steplist{display:flex;flex-direction:column;gap:14px}
+.step{display:grid;grid-template-columns:34px minmax(0,1fr);gap:0 18px;border:1px solid var(--line);border-radius:16px;padding:22px 24px;background:var(--card)}
+.step .no{font:500 15px var(--serif);color:var(--ember);padding-top:2px}
+.step h4{font-size:18px;margin-bottom:5px}
+.step p{color:var(--muted);font-size:15px}
+
+/* limits */
+.rules{display:grid;gap:0;max-width:820px}
+.rule{display:grid;grid-template-columns:minmax(0,230px) minmax(0,1fr);gap:8px 40px;padding:22px 0;border-top:1px solid var(--line2)}
+.rule:last-child{border-bottom:1px solid var(--line2)}
+.rule h3{font-size:19px}
+.rule p{color:var(--muted);font-size:16px}
+
+/* archetypes */
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{display:inline-flex;align-items:center;gap:9px;padding:10px 18px;border-radius:999px;border:1px solid var(--line2);font-weight:500;font-size:15px;background:var(--card)}
+.chip svg{width:16px;height:16px;stroke:var(--ember);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+
+/* run it yourself */
+.codeblock{max-width:720px;border:1px solid var(--line2);border-radius:14px;background:rgba(12,5,7,.7);padding:20px 24px;overflow-x:auto;font:13.5px/1.85 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--ink)}
+.codeblock .c{color:var(--dim)}
+.codeblock .p{color:var(--ember)}
+.runcopy{color:var(--muted);max-width:60ch;margin-bottom:22px}
+
+/* closing + footer */
+.closing{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:24px;border-top:1px solid var(--line2);padding-top:44px}
+.closing h2{font-size:clamp(30px,4.4vw,46px)}
+.closing p{color:var(--muted);margin-top:8px}
+footer{position:relative;z-index:2;padding:48px 0 56px;color:var(--dim);font-size:14px;line-height:1.7}
 footer a{color:var(--muted)}
 
-@media(max-width:560px){
+@media(max-width:900px){
+  .steps{grid-template-columns:minmax(0,1fr);gap:36px}
+  .steps .sticky{position:static}
+}
+@media(max-width:820px){
+  .bento{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .card.span2{grid-column:span 1}.card.span3{grid-column:span 2}
+  .statgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:36px 20px}
+  .rule{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:760px){.navlinks a:not(.btn){display:none}}
+@media(max-width:640px){
   .wrap{padding:0 20px}
-  .name{display:none}
-  .hero{padding:48px 0 40px}
-  .facts{margin-top:36px}
-  section{padding:44px 0}
-  pre{font-size:12.5px;padding:14px 16px}
+  .hero{padding:104px 20px 10px}
+  .heroshot{margin-top:40px}
+  .marquee{margin-top:44px}
+  .pad{padding:72px 0}
+  .shead{margin-bottom:30px}
+  .statgrid{padding:48px 0}
+  .card .cb{padding:22px 22px 24px}
+  .codeblock{font-size:12.5px;padding:16px 18px}
+  .closing{padding-top:36px}
+}
+@media(max-width:560px){.bento{grid-template-columns:minmax(0,1fr)}.card.span2,.card.span3{grid-column:span 1}}
+@media(max-width:480px){
+  .bfull{display:none}.bshort{display:inline}
+  nav{padding:14px 18px;gap:8px}
+  nav.shrink{padding:10px 18px}
+  .btn{padding:11px 18px}
+  .eyebrow{letter-spacing:.1em;font-size:11px;padding:7px 13px}
+  .navlinks a.btn-primary{padding:10px 16px}
+  .statgrid .n{font-size:clamp(26px,9vw,40px)}
+}
+@media(prefers-reduced-motion:reduce){
+  html.js .reveal{opacity:1;transform:none;transition:none}
+  html.js:not(.ready) .rise{opacity:1}
+  html.ready .rise{animation:none}
+  .mtrack{animation:none}
+  *{scroll-behavior:auto!important}
 }
 </style>
 </head>
 <body>
-<div class="wrap" id="top">
+<div class="glow"></div>
+<div class="vignette"></div>
 
-  <div class="top">
-    <a class="mark" href="#top">CIL</a><span class="name">Cricket Intelligence Lab</span>
-    <nav>
-      <a href="https://github.com/HalcyonVector/Cricket-Intelligence-Lab">Source</a>
-      <a class="btn" href="dashboard/index.html">Open dashboard</a>
-    </nav>
+<nav id="nav">
+  <a class="brand" href="#top"><span class="bfull">Cricket Intelligence Lab</span><span class="bshort">CIL</span></a>
+  <div class="navlinks">
+    <a href="#features">What's in it</a>
+    <a href="#how">How it's built</a>
+    <a href="#limits">Limits</a>
+    <a class="btn btn-primary" href="dashboard/index.html"><span class="bfull">Open dashboard</span><span class="bshort">Open</span></a>
   </div>
+</nav>
 
-  <header class="hero">
-    <h1>Cricket stats built from ball-by-ball data</h1>
-    <p class="lede">Look up a player, compare up to four, or find who sits furthest from the trend. Every number is ranked against the rest of the same competition, from Tests to the IPL.</p>
-    <div class="actions">
-      <a class="btn" href="dashboard/index.html">Open the dashboard</a>
-      <a class="plain" href="#running">Run it yourself</a>
-    </div>
-    <p class="facts" id="facts"></p>
-  </header>
+<header class="hero" id="top">
+  <p class="eyebrow rise" id="dataline" style="--d:.05s"></p>
+  <h1 class="rise" style="--d:.12s"><span>Cricket stats built from</span><span class="disp-i">ball-by-ball data.</span></h1>
+  <p class="lede rise" style="--d:.22s">Search any player and see where they rank within their competition. Put up to four side by side, or plot one stat against another and look for the outliers.</p>
+  <div class="cta rise" style="--d:.32s">
+    <a class="btn btn-primary" href="dashboard/index.html">Open the dashboard</a>
+    <a class="btn btn-ghost" href="#run">Run it yourself</a>
+  </div>
+  <figure class="heroshot rise" style="--d:.45s">
+    <picture>
+      <source media="(max-width:700px)" srcset="shots/compare-m.webp" width="780" height="1680">
+      <img src="shots/compare-d.webp" width="1520" height="895" alt="Comparison Lab with two batters selected, V Kohli and RG Sharma: a percentile radar chart beside a table of runs, average, strike rate and other measures.">
+    </picture>
+    <figcaption><b>Compare.</b> Up to four players on one radar, with the bowlers they have all faced.</figcaption>
+  </figure>
+  <div class="marquee rise" id="ticker" style="--d:.55s" aria-hidden="true"></div>
+</header>
 
-  <section>
-    <div class="sec">
-      <h2 class="label">What it looks like</h2>
-      <div class="prose"><p>These are screenshots of the dashboard itself, taken on the Men's T20 Internationals data.</p></div>
-    </div>
-    <div class="shots">
-      <figure>
-        <picture>
-          <source media="(max-width:700px)" srcset="shots/compare-m.webp" width="780" height="1680">
-          <img src="shots/compare-d.webp" width="1320" height="605" loading="lazy" alt="Comparison Lab with two batters selected, V Kohli and RG Sharma: a percentile radar chart beside a table of runs, average, strike rate and other measures.">
-        </picture>
-        <figcaption><strong>Compare.</strong> Up to four players on one radar, with side-by-side numbers, phase and situation splits, and the bowlers they have all faced.</figcaption>
-      </figure>
-      <figure>
-        <picture>
-          <source media="(max-width:700px)" srcset="shots/overview-m.webp" width="780" height="480">
-          <img src="shots/overview-d.webp" width="1200" height="412" loading="lazy" alt="Two scatter plots. The first plots every rated batter by average against strike rate, with outliers in red. The second plots batters by percentile, coloured by batting archetype.">
-        </picture>
-        <figcaption><strong>Overview.</strong> Every rated batter plotted by average against strike rate, with the outliers in red. A second chart places the same batters by percentile and colours them by archetype.</figcaption>
-      </figure>
-      <figure>
-        <picture>
-          <source media="(max-width:700px)" srcset="shots/research-m.webp" width="780" height="1800">
-          <img src="shots/research-d.webp" width="1200" height="715" loading="lazy" alt="Research Lab with average on the x axis and strike rate on the y axis for 60 batters, a dashed trend line, and a list of seven flagged outliers.">
-        </picture>
-        <figcaption><strong>Research lab.</strong> Pick any stat for each axis. Players far from the trend line are listed as outliers, with how many standard deviations out they sit.</figcaption>
-      </figure>
-    </div>
-  </section>
-
-  <section>
-    <div class="sec">
-      <h2 class="label">How the numbers are handled</h2>
-      <div class="prose">
-        <p><strong>Rate stats need a sample.</strong> Averages and strike rates only count once a batter has faced enough balls, and the cutoff is set per competition. That keeps two-ball cameos off the leaderboards.</p>
-        <p><strong>Overview boards rank by confidence, not the raw number.</strong> A player with fewer balls in a given situation is pulled toward the field average, so a small lucky sample can rank below a bigger one with a lower raw number. The figure beside each name is still the raw value.</p>
-        <p><strong>Percentiles are within a competition.</strong> A batter is ranked against the other rated batters in the same competition, not against every cricketer. Era-adjusted indices compare a player with the scoring rate of the seasons they played in.</p>
-        <p><strong>Archetypes are labels, not grades.</strong> Each batter gets one of five tags (Anchor, Rotator, Accumulator, Aggressor, Finisher) based on how they score.</p>
+<section id="features" class="pad">
+  <div class="wrap">
+    <div class="shead reveal"><h2>What's in the dashboard</h2><p>Pick a competition first. Every page after that is about the players in it.</p></div>
+    <div class="bento">
+      <div class="card span3 reveal">
+        <div class="thumb"><img src="shots/outlier-d.webp" width="745" height="535" loading="lazy" alt="Scatter plot of every rated batter by average and strike rate, with outliers in red."></div>
+        <div class="cb"><h3>Outliers</h3><p>Average against strike rate for every rated batter. The red dots are the ones furthest from the pack.</p></div>
+      </div>
+      <div class="card span3 reveal" style="--d:.06s">
+        <div class="thumb"><img src="shots/research-d.webp" width="1520" height="970" loading="lazy" alt="Research Lab scatter plot of 60 batters with a dashed trend line and a list of flagged outliers."></div>
+        <div class="cb"><h3>Research lab</h3><p>Put any stat on either axis. Players far from the trend line are listed with how many standard deviations out they are.</p></div>
+      </div>
+      <div class="card span2 reveal">
+        <div class="cb"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20.5c0-3.9 3.4-6.2 7.5-6.2s7.5 2.3 7.5 6.2"/></svg><h3>Player profiles</h3><p>Percentile ranks, powerplay, middle and death splits, opposition and venue breakdowns, and a career timeline.</p></div>
+      </div>
+      <div class="card span2 reveal" style="--d:.06s">
+        <div class="cb"><svg class="ic" viewBox="0 0 24 24"><path d="M5 21V11"/><path d="M12 21V4"/><path d="M19 21v-7"/></svg><h3>Records</h3><p>Most runs, most wickets, best averages and strike rates, with era-adjusted versions beside the raw ones.</p></div>
+      </div>
+      <div class="card span2 reveal" style="--d:.12s">
+        <div class="cb"><svg class="ic" viewBox="0 0 24 24"><circle cx="6" cy="6.5" r="2.1"/><circle cx="18" cy="7.5" r="2.1"/><circle cx="12" cy="17.5" r="2.1"/><path d="M7.7 7.7 10.6 15.6M16.3 9.1 13.4 15.6M8.1 6.7h7.8"/></svg><h3>Similar batters</h3><p>Pick a batter and see the eight closest to them across twelve percentile metrics.</p></div>
+      </div>
+      <div class="card span3 reveal">
+        <div class="cb"><svg class="ic" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9.2" ry="6"/><ellipse cx="12" cy="12" rx="3" ry="5.2"/></svg><h3>Grounds and teams</h3><p>How each venue scores, how often the chase wins, and team records by format.</p></div>
+      </div>
+      <div class="card span3 reveal" style="--d:.06s">
+        <div class="cb"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.9"/><path d="M8 8a5.7 5.7 0 0 0 0 8M16 16a5.7 5.7 0 0 0 0-8M5.2 5.2a9.6 9.6 0 0 0 0 13.6M18.8 18.8a9.6 9.6 0 0 0 0-13.6"/></svg><h3>Live scores</h3><p>Scores, fixtures and commentary from Cricbuzz. These need the Python server running.</p></div>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <section>
-    <div class="sec">
-      <h2 class="label">What it misses</h2>
-      <div class="prose">
-        <p><strong>Coverage is whatever Cricsheet has.</strong> Only matches in that dataset are counted, so career totals can sit below official records. Each competition shows its own date range.</p>
-        <p><strong>Opposition strength is not adjusted for.</strong> Runs against weaker sides count the same as runs against stronger ones.</p>
-        <p><strong>Live data needs the server.</strong> Scores, fixtures and commentary come from Cricbuzz through a small Python server. Open the dashboard as a plain file and those tabs stay empty.</p>
-      </div>
+<section class="band" id="coverage"><div class="wrap"><div class="statgrid" id="statgrid"></div></div></section>
+
+<section id="how" class="pad">
+  <div class="wrap"><div class="steps">
+    <div class="sticky reveal">
+      <h2>Worked out ahead of time</h2>
+      <p>Nothing is calculated in your browser. A build step reads Cricsheet's files, computes everything once, and writes one data file per competition. The dashboard only loads the file.</p>
     </div>
-  </section>
+    <div class="steplist">
+      <div class="step reveal"><div class="no">1</div><div><h4>Ingest</h4><p>Every Cricsheet match goes into SQLite, one delivery at a time.</p></div></div>
+      <div class="step reveal" style="--d:.06s"><div class="no">2</div><div><h4>Compute</h4><p>Percentiles, splits, similarity and era indices, once per competition.</p></div></div>
+      <div class="step reveal" style="--d:.12s"><div class="no">3</div><div><h4>Check</h4><p>Each data file of about 500 KB is verified before it replaces the old one.</p></div></div>
+      <div class="step reveal" style="--d:.18s"><div class="no">4</div><div><h4>Open</h4><p>The browser loads the file. No backend, no database.</p></div></div>
+    </div>
+  </div></div>
+</section>
 
-  <section id="running">
-    <div class="sec">
-      <h2 class="label">Run it yourself</h2>
-      <div class="prose">
-        <p>The dashboard is plain HTML plus pre-built data files, so a clone is enough for everything except live scores. A scheduled job rebuilds those data files from Cricsheet's latest release.</p>
-<pre><span class="c"># history works offline</span>
-git clone https://github.com/HalcyonVector/Cricket-Intelligence-Lab
-cd Cricket-Intelligence-Lab
+<section id="limits" class="pad" style="padding-top:0">
+  <div class="wrap">
+    <div class="shead reveal"><h2>Where it falls short</h2></div>
+    <div class="rules">
+      <div class="rule reveal"><h3>Only what Cricsheet has</h3><p>Only matches in that dataset are counted, so career totals can sit below official records. Each competition shows its own date range.</p></div>
+      <div class="rule reveal"><h3>No opposition adjustment</h3><p>Runs against weaker sides count the same as runs against stronger ones.</p></div>
+      <div class="rule reveal"><h3>Overview boards rank by confidence</h3><p>A player with fewer balls in a given situation is pulled toward the field average, so a small lucky sample can rank below a bigger one with a lower raw number. The figure beside each name is still the raw value.</p></div>
+      <div class="rule reveal"><h3>Live needs the server</h3><p>Open the dashboard as a plain file and the live tabs stay empty. Everything else works offline.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="pad" style="padding-top:0">
+  <div class="wrap">
+    <div class="shead reveal"><h2>Batters get one of five tags</h2><p>Assigned from how a batter scores, within their own competition.</p></div>
+    <div class="chips reveal">
+      <span class="chip"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><path d="M12 7v13M5.5 13a6.5 6.5 0 0 0 13 0M5.5 13H3.2l1.4 2M18.5 13h2.3l-1.4 2"/></svg>Anchor</span><span class="chip"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7M20 3.5V8h-4.5"/></svg>Rotator</span><span class="chip"><svg viewBox="0 0 24 24"><path d="M5 20V13M10 20V8M15 20V11M20 20V4"/></svg>Accumulator</span><span class="chip"><svg viewBox="0 0 24 24"><path d="M13 2.5 5 13h6l-2 8.5L19 10.5h-6z"/></svg>Aggressor</span><span class="chip"><svg viewBox="0 0 24 24"><path d="M5.5 21V3.5M5.5 5h11l-2.2 4 2.2 4h-11"/></svg>Finisher</span>
+    </div>
+  </div>
+</section>
+
+<section id="run" class="pad" style="padding-top:0">
+  <div class="wrap">
+    <div class="shead tight reveal"><h2>Run it yourself</h2></div>
+    <p class="runcopy reveal">The dashboard is plain HTML plus pre-built data files, so a clone is enough for everything except live scores. A scheduled job rebuilds those data files from Cricsheet's latest release.</p>
+<pre class="codeblock reveal"><span class="c"># history works offline</span>
+<span class="p">$</span> git clone https://github.com/HalcyonVector/Cricket-Intelligence-Lab
+<span class="p">$</span> cd Cricket-Intelligence-Lab
 <span class="c"># then open web/dashboard/index.html in any browser</span>
 
 <span class="c"># optional: live scores, and this page served at /</span>
-pip install requests
-python serve.py</pre>
-      </div>
+<span class="p">$</span> pip install requests
+<span class="p">$</span> python serve.py</pre>
+  </div>
+</section>
+
+<section style="padding:0 0 70px">
+  <div class="wrap">
+    <div class="closing reveal">
+      <div><h2>Open the dashboard.</h2><p>No login, nothing to install.</p></div>
+      <a class="btn btn-primary" href="dashboard/index.html">Open the dashboard</a>
     </div>
-  </section>
+  </div>
+</section>
 
-  <footer>
-    Match data from <a href="https://cricsheet.org">Cricsheet</a> (ODbL). Live data from Cricbuzz.
-    Made by <a href="https://github.com/HalcyonVector">HalcyonVector</a>.
-  </footer>
-
-</div>
+<footer>
+  <div class="wrap">
+    Match data from <a href="https://cricsheet.org">Cricsheet</a> (ODbL). Live data from Cricbuzz.<br>
+    Made by <a href="https://github.com/HalcyonVector">HalcyonVector</a>. <a href="https://github.com/HalcyonVector/Cricket-Intelligence-Lab">Source on GitHub</a>.
+  </div>
+</footer>
 
 <script src="dashboard/index.js"></script>
 <script>
-// The numbers under the headline come from the same index file the dashboard
-// reads, so they stay correct after every data rebuild instead of going stale.
 (function(){
-  var idx=window.CIL_INDEX,el=document.getElementById('facts');
-  if(!el||!idx||!idx.cohorts||!idx.cohorts.length)return;
+  var root=document.documentElement,nav=document.getElementById('nav');
+
+  // Start the hero entrance once fonts are in so the headline never shifts mid-animation.
+  var started=false;
+  function ready(){if(started)return;started=true;root.classList.add('ready');}
+  if(document.fonts&&document.fonts.ready){document.fonts.ready.then(ready);}
+  setTimeout(ready,900);
+
+  // Nav background after a little scroll. Throttled to one write per frame.
+  var queued=false;
+  function onScroll(){nav.classList.toggle('shrink',(window.pageYOffset||root.scrollTop)>40);queued=false;}
+  addEventListener('scroll',function(){if(!queued){queued=true;requestAnimationFrame(onScroll);}},{passive:true});
+  onScroll();
+
+  // Reveal each block once as it comes into view.
+  var els=[].slice.call(document.querySelectorAll('.reveal'));
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.12,rootMargin:'0px 0px -6% 0px'});
+    els.forEach(function(el){io.observe(el);});
+    // anything already above the fold when the page settles
+    addEventListener('load',function(){setTimeout(function(){els.forEach(function(el){if(!el.classList.contains('in')&&el.getBoundingClientRect().top<innerHeight*.95){el.classList.add('in');io.unobserve(el);}});},200);});
+  }else{els.forEach(function(el){el.classList.add('in');});}
+
+  // Everything numeric comes from the same index file the dashboard reads,
+  // so it stays correct after each data rebuild.
+  var idx=window.CIL_INDEX;
+  if(!idx||!idx.cohorts||!idx.cohorts.length)return;
   var c=idx.cohorts,nf=new Intl.NumberFormat('en-US');
+  var esc=function(s){return String(s).replace(/[&<>"]/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch];});};
   var sum=function(k){return c.reduce(function(a,x){return a+(x[k]||0);},0);};
   var first=c.map(function(x){return x.coverage_from;}).filter(Boolean).sort()[0];
   var last=c.map(function(x){return x.coverage_to;}).filter(Boolean).sort().slice(-1)[0];
-  var fmt=function(s,o){var d=new Date(s);o.timeZone='UTC';return isNaN(d)?null:d.toLocaleDateString('en-GB',o);};
-  var parts=[
-    '<span><b>'+c.length+'</b> competitions</span>',
-    '<span><b>'+nf.format(sum('matches'))+'</b> matches</span>',
-    '<span><b>'+nf.format(sum('deliveries'))+'</b> deliveries</span>'
-  ];
-  var a=first&&fmt(first,{month:'short',year:'numeric'}),b=last&&fmt(last,{month:'short',year:'numeric'});
-  if(a&&b)parts.push('<span><b>'+a+'</b> to <b>'+b+'</b></span>');
-  var g=idx.generated&&fmt(idx.generated,{day:'numeric',month:'short',year:'numeric'});
-  if(g)parts.push('<span>rebuilt <b>'+g+'</b></span>');
-  el.innerHTML=parts.join('');
+  var mon=function(s){var d=new Date(s);return isNaN(d)?null:d.toLocaleDateString('en-GB',{month:'short',year:'numeric',timeZone:'UTC'});};
+
+  var dl=document.getElementById('dataline');
+  if(dl&&first&&last){dl.innerHTML='<span class="dot"></span>'+c.length+' competitions &middot; '+mon(first)+' to '+mon(last);}
+
+  var sg=document.getElementById('statgrid');
+  if(sg){
+    var m=sum('deliveries');
+    var cell=function(n,l,t){return '<div class="s"><div class="n"'+(t?' title="'+esc(t)+'"':'')+'>'+n+'</div><div class="l">'+l+'</div></div>';};
+    sg.innerHTML=cell(c.length,'Competitions')+cell(nf.format(sum('matches')),'Matches')+cell((m/1e6).toFixed(1)+'M','Deliveries',nf.format(m))+(first?cell(first.slice(0,4),'Earliest match'):'');
+  }
+
+  var tk=document.getElementById('ticker');
+  if(tk){
+    var top=c.slice().sort(function(a,b){return (b.matches||0)-(a.matches||0);}).slice(0,14).map(function(x){return '<span class="mitem">'+esc(x.label)+'</span>';}).join('');
+    tk.innerHTML='<div class="mtrack">'+top+top+'</div>';
+  }
 })();
 </script>
 </body>
