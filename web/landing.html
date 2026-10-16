@@ -55,7 +55,15 @@ nav.shrink{padding:11px 34px;background:rgba(14,7,8,.86);border-color:var(--line
 .eyebrow{display:inline-flex;align-items:center;gap:9px;font:600 12px var(--sans);letter-spacing:.18em;text-transform:uppercase;color:var(--ink);background:rgba(255,255,255,.05);border:1px solid var(--line2);padding:7px 16px;border-radius:999px}
 .eyebrow:empty{display:none}
 .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--ember)}
-.hero h1{font-size:clamp(40px,6.4vw,80px);margin:26px auto 0;color:#FFF4EA}
+.hero h1{font-size:clamp(42px,7.4vw,92px);margin:26px auto 0;color:#FFF4EA}
+.hero h1 .l{display:block}
+.disp-i{font-style:italic;font-weight:400;color:var(--gold)}
+.u{position:relative;display:inline-block}
+.ul{position:absolute;left:2%;bottom:-.12em;width:96%;height:.2em;overflow:visible;pointer-events:none}
+.ul path{fill:none;stroke:var(--gold);stroke-width:3;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;opacity:.85}
+html.ready .ul path{animation:draw .8s cubic-bezier(.3,.6,.2,1) .95s forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+html:not(.js) .ul path{stroke-dashoffset:0}
 .hero .lede{max-width:560px;color:var(--muted);font-size:clamp(16px,2vw,19px);margin:24px auto 0}
 .hero .cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:34px}
 .heroshot{margin:60px auto 0;max-width:1040px}
@@ -176,6 +184,7 @@ footer a{color:var(--muted)}
   html.js:not(.ready) .rise{opacity:1}
   html.ready .rise{animation:none}
   .mtrack{animation:none}
+  .ul path{stroke-dashoffset:0;animation:none!important}
   *{scroll-behavior:auto!important}
 }
 </style>
@@ -195,8 +204,8 @@ footer a{color:var(--muted)}
 
 <header class="hero" id="top">
   <p class="eyebrow rise" id="dataline" style="--d:.05s"></p>
-  <h1 class="rise" style="--d:.12s">Cricket stats, ball by ball.</h1>
-  <p class="lede rise" style="--d:.22s">Search any player and see where they rank within their competition. Put up to four side by side, or plot one stat against another and look for the outliers.</p>
+  <h1 class="rise" style="--d:.12s"><span class="l">Don&rsquo;t argue about it.</span><span class="l disp-i"><span class="u">Look it up.<svg class="ul" viewBox="0 0 300 14" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M3 9 C 50 3, 90 12, 140 6 S 230 4, 297 8"/></svg></span></span></h1>
+  <p class="lede rise" style="--d:.22s">Ball-by-ball stats from Cricsheet&rsquo;s open data. Search any player to see where they rank in their competition, compare up to four, or plot one stat against another to find the outliers.</p>
   <div class="cta rise" style="--d:.32s">
     <a class="btn btn-primary" href="dashboard/index.html">Open the dashboard</a>
     <a class="btn btn-ghost" href="#run">Run it yourself</a>
