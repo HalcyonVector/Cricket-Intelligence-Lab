@@ -96,6 +96,9 @@ html.js .reveal.in{opacity:1;transform:none}
 .shead h2{font-size:clamp(30px,4.4vw,46px)}
 .shead p{color:var(--muted);font-size:17px;margin-top:14px}
 .shead.tight{margin-bottom:18px}
+.shead.center{margin-left:auto;margin-right:auto;max-width:720px;text-align:center}
+.shead.big h2{font-size:clamp(38px,6vw,66px)}
+.shead.big p{font-size:19px;margin-top:18px}
 
 /* feature cards */
 .bento{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:16px}
@@ -134,11 +137,17 @@ html.js .reveal.in{opacity:1;transform:none}
 .chip{display:inline-flex;align-items:center;gap:9px;padding:10px 18px;border-radius:999px;border:1px solid var(--line2);font-weight:500;font-size:15px;background:var(--card)}
 .chip svg{width:16px;height:16px;stroke:var(--ember);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 
+.chips.center{justify-content:center;gap:14px}
+.chips.big .chip{padding:14px 26px;font-size:18px;gap:11px}
+.chips.big .chip svg{width:20px;height:20px}
+
 /* run it yourself */
 .codeblock{max-width:720px;border:1px solid var(--line2);border-radius:14px;background:rgba(12,5,7,.7);padding:20px 24px;overflow-x:auto;font:13.5px/1.85 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--ink)}
 .codeblock .c{color:var(--dim)}
 .codeblock .p{color:var(--ember)}
 .runcopy{color:var(--muted);max-width:60ch;margin-bottom:22px}
+.runcopy.center{margin-left:auto;margin-right:auto;margin-bottom:30px;text-align:center;font-size:18px}
+.codeblock.big{max-width:780px;margin:0 auto;padding:26px 32px;font-size:15.5px;line-height:1.9}
 
 /* closing + footer */
 .closing{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:24px;border-top:1px solid var(--line2);padding-top:44px}
@@ -167,6 +176,9 @@ footer a{color:var(--muted)}
   .statgrid{padding:48px 0}
   .card .cb{padding:22px 22px 24px}
   .codeblock{font-size:12.5px;padding:16px 18px}
+  .codeblock.big{font-size:12.5px;padding:18px 20px}
+  .chips.big .chip{padding:12px 20px;font-size:16.5px}
+  .runcopy.center{font-size:16.5px}
   .closing{padding-top:36px}
 }
 @media(max-width:560px){.bento{grid-template-columns:minmax(0,1fr)}.card.span2,.card.span3{grid-column:span 1}}
@@ -270,8 +282,8 @@ footer a{color:var(--muted)}
 
 <section class="pad" style="padding-top:0">
   <div class="wrap">
-    <div class="shead reveal"><h2>Batters get one of five tags</h2><p>Assigned from how a batter scores, within their own competition.</p></div>
-    <div class="chips reveal">
+    <div class="shead center big reveal"><h2>Batters get one of five tags</h2><p>Assigned from how a batter scores, within their own competition.</p></div>
+    <div class="chips center big reveal">
       <span class="chip"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><path d="M12 7v13M5.5 13a6.5 6.5 0 0 0 13 0M5.5 13H3.2l1.4 2M18.5 13h2.3l-1.4 2"/></svg>Anchor</span><span class="chip"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7M20 3.5V8h-4.5"/></svg>Rotator</span><span class="chip"><svg viewBox="0 0 24 24"><path d="M5 20V13M10 20V8M15 20V11M20 20V4"/></svg>Accumulator</span><span class="chip"><svg viewBox="0 0 24 24"><path d="M13 2.5 5 13h6l-2 8.5L19 10.5h-6z"/></svg>Aggressor</span><span class="chip"><svg viewBox="0 0 24 24"><path d="M5.5 21V3.5M5.5 5h11l-2.2 4 2.2 4h-11"/></svg>Finisher</span>
     </div>
   </div>
@@ -279,9 +291,9 @@ footer a{color:var(--muted)}
 
 <section id="run" class="pad" style="padding-top:0">
   <div class="wrap">
-    <div class="shead tight reveal"><h2>Run it yourself</h2></div>
-    <p class="runcopy reveal">The dashboard is plain HTML plus pre-built data files, so a clone is enough for everything except live scores. A scheduled job rebuilds those data files from Cricsheet's latest release.</p>
-<pre class="codeblock reveal"><span class="c"># history works offline</span>
+    <div class="shead tight center big reveal"><h2>Run it yourself</h2></div>
+    <p class="runcopy center reveal">The dashboard is plain HTML plus pre-built data files, so a clone is enough for everything except live scores. A scheduled job rebuilds those data files from Cricsheet's latest release.</p>
+<pre class="codeblock big reveal"><span class="c"># history works offline</span>
 <span class="p">$</span> git clone https://github.com/HalcyonVector/Cricket-Intelligence-Lab
 <span class="p">$</span> cd Cricket-Intelligence-Lab
 <span class="c"># then open web/dashboard/index.html in any browser</span>
