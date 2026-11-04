@@ -20,6 +20,10 @@ from __future__ import annotations
 import argparse, json, os, re, sqlite3, time, math
 from collections import defaultdict
 import numpy as np
+try:
+    from .extras import build_extras, write_extras
+except ImportError:  # run as a plain script
+    from extras import build_extras, write_extras
 
 LEGAL = "(extra_type IS NULL OR extra_type IN ('byes','legbyes'))"
 RPO = {"t20": 8.0, "odi": 5.5, "test": 3.3}
@@ -473,6 +477,8 @@ def build_cohort(conn, spec, names):
         for p in allbowl:
             bowl[p]["era_index"] = None
 
+    bowler_depth(conn, bowl, qbowl, fmt, names)
+
     minballs = 18 if fmt == "test" else 12
     mu = _rows(conn, f"""SELECT batter_id b, bowler_id w,
         SUM(CASE WHEN {LEGAL} THEN 1 ELSE 0 END) balls, SUM(runs_batter) runs,
@@ -617,6 +623,65 @@ def build_cohort(conn, spec, names):
             "teams": team_records(conn)}
 
 
+BOWL_ARCH = ("Strike bowler", "Holder", "Powerplay specialist", "Death specialist", "Workhorse")
+
+
+def bowler_depth(conn, bowl, qbowl, fmt, names):
+    """Bring bowler profiles up to batter depth: context splits, archetype, similar bowlers.
+
+    Context is from the bowling side: 'won' = batting side lost, 'defending' = bowling
+    second (batting side chasing), 'bowling first' = batting side setting a total."""
+    WK = ("wicket_kind IS NOT NULL AND wicket_kind NOT IN ('run out','retired hurt','retired out',"
+          "'obstructing the field','timed out','handled the ball')")
+    CTX = [("won", "is_win=0"), ("lost", "is_win=1"), ("defending", "is_chase=1"),
+           ("first", "is_chase=0"), ("knockout", "is_knockout=1")]
+    sel = ", ".join(f"SUM(CASE WHEN {c} AND {LEGAL} THEN 1 ELSE 0 END) {k}_b, "
+                    f"SUM(CASE WHEN {c} THEN runs_batter+runs_extras ELSE 0 END) {k}_r, "
+                    f"SUM(CASE WHEN {c} AND {WK} THEN 1 ELSE 0 END) {k}_w" for k, c in CTX)
+    for r in _rows(conn, f"SELECT bowler_id pid, {sel} FROM sd GROUP BY bowler_id"):
+        b = bowl.get(r["pid"])
+        if not b:
+            continue
+        ctx = {}
+        for k, _c in CTX:
+            balls = r[k + "_b"] or 0
+            if balls >= 24:
+                runs, w = r[k + "_r"] or 0, r[k + "_w"] or 0
+                ctx[k] = {"econ": round(6 * runs / balls, 2), "wkts": w, "balls": balls,
+                          "sr": round(balls / w, 1) if w else None}
+        b["context"] = ctx
+    # archetype from percentiles + where in the innings they bowl (limited-overs only)
+    for p in qbowl:
+        b = bowl[p]; pc = b.get("pct", {}); tot = b["balls"] or 1
+        share = {ph: (b["phases"].get(ph, {}).get("balls", 0) / tot) for ph in ("powerplay", "middle", "death")}
+        if fmt != "test" and share["death"] >= 0.30 and pc.get("economy", 0) >= 45:
+            a = "Death specialist"
+        elif fmt != "test" and share["powerplay"] >= 0.45 and pc.get("economy", 0) >= 45:
+            a = "Powerplay specialist"
+        elif pc.get("bowl_sr", 0) >= 70:
+            a = "Strike bowler"
+        elif pc.get("economy", 0) >= 70:
+            a = "Holder"
+        else:
+            a = "Workhorse"
+        b["archetype"] = a
+        b["phase_share"] = {k: round(100 * v, 1) for k, v in share.items() if v}
+    for p in bowl:
+        bowl[p].setdefault("archetype", None)
+    # most similar bowlers over the qualified set
+    feats = ["economy", "bowl_sr", "dot_pct", "bnd_pct"]
+    ids = [p for p in qbowl if all(bowl[p].get(f) is not None for f in feats)]
+    if len(ids) >= 4:
+        X = np.array([[bowl[p][f] for f in feats] for p in ids], float)
+        Xs = (X - X.mean(0)) / (X.std(0) + 1e-9)
+        Xn = Xs / (np.linalg.norm(Xs, axis=1, keepdims=True) + 1e-9)
+        sim = Xn @ Xn.T
+        for i, p in enumerate(ids):
+            top = [int(j) for j in np.argsort(-sim[i]) if j != i][:6]
+            bowl[p]["similar"] = [{"pid": ids[j], "name": names.get(ids[j], ids[j]),
+                                   "score": round(float(sim[i, j]), 3)} for j in top]
+
+
 def team_records(conn):
     """Win/loss by team over the current cohort scope (sm), mirroring serve.py /api/teams."""
     rows = _rows(conn, """WITH m AS (SELECT d.team_a a, d.team_b b, d.winner w
@@ -695,6 +760,21 @@ def write_matchups(jsdir, key, matchups, meta):
     _awrite(os.path.join(out, f"{key}.js"), f"window.__matchupsLoaded({json.dumps(key)},{body});")
 
 
+def write_players_index(dashdir, players_ix, names, keys):
+    """players.js: every player -> the competitions they appear in (runs, wickets in each).
+
+    Lazy-loaded by global search and the "Also played in" strip on profiles. Cohorts are
+    referenced by position in `k` to keep it small. Skipped when the build reused cached
+    cohorts (players_ix empty) so a partial build never ships a partial index."""
+    if not players_ix:
+        return
+    pos = {k: i for i, k in enumerate(keys)}
+    p = {pid: [names.get(pid, pid), [[pos[k], v[0], v[1]] for k, v in sorted(cs.items(), key=lambda kv: pos.get(kv[0], 999))
+                                     if k in pos]] for pid, cs in players_ix.items()}
+    _awrite(os.path.join(dashdir, "players.js"),
+            "window.__playersLoaded(" + json.dumps({"k": keys, "p": p}, separators=(",", ":")) + ");")
+
+
 CAREER_SHARDS = "0123456789abcdef"
 
 
@@ -732,6 +812,7 @@ def build(db="cil.db", outdir="web/data", jsdir="web/dashboard/cohorts"):
     specs = FIXED + discover_league_cohorts(conn)
     index = {"generated": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "cohorts": []}
     spec_by_key = {s["key"]: s for s in specs}
+    players_ix = {}  # pid -> {cohort key: [runs, wickets]} for global search + "also played in"
     for spec in specs:
         jpath = os.path.join(outdir, f"{spec['key']}.json")
         if os.path.exists(jpath):
@@ -741,6 +822,12 @@ def build(db="cil.db", outdir="web/data", jsdir="web/dashboard/cohorts"):
         if not b or b["meta"]["n_batters"] < 4:
             print(f"  {spec['key']}: too small, skipped"); continue
         write_matchups(jsdir, spec["key"], b.pop("_matchups_all", []), b["meta"])
+        xdir = os.path.join(jsdir, "x"); os.makedirs(xdir, exist_ok=True)
+        write_extras(os.path.join(xdir, f"{spec['key']}.js"), spec["key"], build_extras(conn, names), _awrite)
+        for pid, pl in b["players"].items():
+            players_ix.setdefault(pid, {})[spec["key"]] = [pl.get("runs", 0), 0]
+        for pid, bw in b["bowlers"].items():
+            players_ix.setdefault(pid, {}).setdefault(spec["key"], [0, 0])[1] = bw.get("wickets", 0)
         payload = json.dumps(b, separators=(",", ":"))
         _awrite(jpath, payload)
         _awrite(os.path.join(jsdir, f"{spec['key']}.js"),
@@ -759,6 +846,7 @@ def build(db="cil.db", outdir="web/data", jsdir="web/dashboard/cohorts"):
     _awrite(os.path.join(outdir, "index.json"), json.dumps(index, indent=2))
     _awrite(os.path.join(os.path.dirname(jsdir), "index.js"),
             "window.CIL_INDEX=" + json.dumps(index, separators=(",", ":")) + ";")
+    write_players_index(os.path.dirname(jsdir), players_ix, names, [c["key"] for c in index["cohorts"]])
     career, venues = global_profiles(conn)
     write_career_shards(os.path.dirname(jsdir), career, venues)
     print(f"  careers/: {len(career)} batters with career, {len(venues)} with venues")

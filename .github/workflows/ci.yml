@@ -1,0 +1,35 @@
+# Checks on every push and pull request. Free for public repos; runs in about a minute.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install deps
+        run: pip install orjson numpy pytest
+      - name: Python compiles
+        run: python -m compileall -q serve.py scripts packages tests
+      - name: Unit + pipeline smoke tests
+        run: python -m pytest -q tests
+      - name: JavaScript parses
+        run: |
+          node --check web/dashboard/features.js
+          node --check web/dashboard/sw.js
+          node -e '
+            const fs=require("fs");
+            for (const f of ["web/dashboard/index.html","web/landing.html"]) {
+              const s=fs.readFileSync(f,"utf8");
+              if (!s.trimEnd().endsWith("</html>")) throw new Error(f+": truncated");
+              for (const m of s.matchAll(/<script>([\s\S]*?)<\/script>/g)) new Function(m[1]);
+            }
+            JSON.parse(fs.readFileSync("web/dashboard/manifest.webmanifest","utf8"));
+            console.log("html scripts + manifest OK");'
