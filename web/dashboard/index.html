@@ -5,6 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Cricket Intelligence Lab</title>
 <link rel="icon" type="image/svg+xml" href="icon.svg"/>
+<meta property="og:type" content="website"/>
+<meta property="og:site_name" content="Cricket Intelligence Lab"/>
+<meta property="og:title" content="Cricket Intelligence Lab: the dashboard"/>
+<meta property="og:description" content="Search any player across 48 competitions, compare them, find who should bowl to whom, and explore matches ball by ball."/>
+<meta property="og:url" content="https://halcyonvector.github.io/Cricket-Intelligence-Lab/dashboard/index.html"/>
+<meta property="og:image" content="https://halcyonvector.github.io/Cricket-Intelligence-Lab/og.png"/>
+<meta property="og:image:width" content="1200"/><meta property="og:image:height" content="630"/>
+<meta property="og:image:alt" content="Cricket Intelligence Lab: outlier map and archetype charts"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Cricket Intelligence Lab: the dashboard"/>
+<meta name="twitter:description" content="Search any player across 48 competitions, compare them, find who should bowl to whom, and explore matches ball by ball."/>
+<meta name="twitter:image" content="https://halcyonvector.github.io/Cricket-Intelligence-Lab/og.png"/>
 <link rel="manifest" href="manifest.webmanifest"/>
 <meta name="theme-color" content="#16100E"/>
 <meta name="description" content="Ball-by-ball cricket analytics across 48 competitions: players, matchups, outliers, records and live scores."/>
@@ -22,6 +34,41 @@
  .skip:focus{top:10px}
  #app:focus{outline:none}
  .aclist div.kb{background:rgba(210,104,46,.22)}
+ .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+ /* ---- features.js ---- */
+ .gl{display:inline-grid;place-items:center;width:15px;height:15px;margin-left:5px;border-radius:50%;border:1px solid var(--hair2);background:transparent;color:var(--dim);font-size:9.5px;font-weight:800;line-height:1;cursor:help;vertical-align:1px;padding:0;font-family:inherit;text-transform:none;letter-spacing:0}
+ .gl:hover,.gl:focus-visible{color:var(--ink);border-color:var(--accent2)}
+ .glpop{position:absolute;z-index:200;display:none;background:#1F1512;border:1px solid var(--hair2);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.45;color:var(--ink);box-shadow:0 12px 30px rgba(0,0,0,.45);pointer-events:none}
+ .distgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 26px;margin-top:6px}
+ @media(max-width:760px){.distgrid{grid-template-columns:1fr}}
+ .dist-h,.dist-f{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+ .dist-h span:first-child{color:var(--ink);font-weight:600}
+ .dist-f{font-size:10px;color:var(--dim);margin-top:1px}
+ .dist svg{display:block;height:30px}
+ .xstrip{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:12px 0 2px;font-size:12px}
+ .xstrip:empty{display:none}
+ .xchip{display:inline-flex;gap:7px;align-items:center;padding:5px 10px;border:1px solid var(--hair2);border-radius:999px;color:var(--ink);text-decoration:none;background:var(--panel2)}
+ .xchip:hover{border-color:var(--accent)}
+ .phead{position:sticky;top:var(--hdr,96px);z-index:20;background:linear-gradient(180deg,#130C0A 82%,rgba(19,12,10,0));padding:12px 0 14px;margin-top:8px!important}
+ .mrow{display:grid;grid-template-columns:96px 1fr auto;gap:14px;align-items:center;padding:10px 6px;border-bottom:1px solid var(--hair);color:var(--ink);text-decoration:none}
+ .mrow:hover{background:rgba(210,104,46,.07)}
+ .mres{text-align:right;font-size:12.5px}
+ a.ledrow{color:inherit;text-decoration:none}a.ledrow:hover{background:rgba(210,104,46,.07)}
+ .rowlinks tbody tr{cursor:pointer}.rowlinks tbody tr:hover td:first-child{color:var(--accent2)}
+ tr.cl.on td{background:rgba(210,104,46,.12)}
+ .row>h2 .r{margin-left:8px}
+ .sinceban{border-color:rgba(235,162,76,.45)}
+ .sinceban a{color:var(--accent2)}
+ @media(max-width:600px){.mrow{grid-template-columns:1fr;gap:3px}.mres{text-align:left}}
+ /* phone: mode switcher becomes a bottom tab bar */
+ @media(max-width:720px){
+   header .modebar{position:fixed!important;left:0;right:0;bottom:0;z-index:60;background:#130C0A;border-top:1px solid var(--hair)!important;justify-content:space-around!important;padding-bottom:env(safe-area-inset-bottom)!important;overflow:visible!important;flex:none!important}
+   header .modebar .modebtn{flex:1;padding:15px 4px!important;font-size:11px!important;letter-spacing:.1em!important;border-bottom:none!important;border-top:2px solid transparent}
+   header .modebar .modebtn.on{border-top-color:var(--accent2)}
+   body{padding-bottom:calc(56px + env(safe-area-inset-bottom))}
+   .phead{position:static;background:none;padding:0}
+   #sinceHost select{max-width:120px}
+ }
  @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
  html,body{margin:0;min-height:100%;background:
    radial-gradient(1300px 780px at 84% -12%,rgba(210,104,46,.30),transparent 58%),
@@ -486,9 +533,14 @@
 <script src="live.js" onerror="window.__noLive=1"></script>
 <script src="schedule.js" onerror="window.__noSched=1"></script>
 <script src="rankings.js" onerror="window.__noRank=1"></script>
+<script src="config.js" onerror="0"></script>
 <script src="index.js" onerror="window.__noIndex=true"></script>
 <script>
 const IDX = window.CIL_INDEX || {cohorts:[]};
+/* Live API base. Unset (local / Render) = same origin. On GitHub Pages, config.js sets it to the
+   Render URL, or to '' when there is no live server, which hides photo lookups and shows a note. */
+const API_BASE=(typeof window.CIL_API==='string'?window.CIL_API:'').replace(/\/$/,'');
+const HAS_API=location.protocol.indexOf('http')===0&&!(typeof window.CIL_API==='string'&&!window.CIL_API);
 const COH = {};                 // lazily loaded cohort bundles, keyed by cohort key
 /* Outlier flags need an established sample (3x the rate qualifier), else associate tail-enders
    on 60 balls fill the list. Mirrors FLAG_SAMPLE_MULT in pipeline.py; harmless on new bundles. */
@@ -525,6 +577,10 @@ function stateToHash(){
   if(state.player)q.set('p',state.player);
   if(state.bowler)q.set('b',state.bowler);
   if(state.netPlayer&&state.view==='network')q.set('n',state.netPlayer);
+  if(state.venue)q.set('vn',state.venue);
+  if(state.team)q.set('tm',state.team);
+  if(state.match)q.set('mt',state.match);
+  if(state.since)q.set('since',state.since);
   const h='#'+q.toString();
   if(location.hash!==h){_hashLock=true;location.hash=h;}
 }
@@ -536,6 +592,8 @@ function hashToState(){
   state.player=q.get('p')||null;
   state.bowler=q.get('b')||null;
   state.netPlayer=q.get('n')||null;
+  state.venue=q.get('vn')||null;state.team=q.get('tm')||null;state.match=q.get('mt')||null;
+  state.since=+q.get('since')||0;
 }
 const meta=(k)=>IDX.cohorts.find(c=>c.key===k)||{};
 const cur=()=>COH[state.cohort];
@@ -616,8 +674,8 @@ function setupPalette(){
   function activate(it){if(!it)return;close();
     if(it.t==='player'){state.player=it.k;state.bowler=null;}
     else if(it.t==='bowler'){state.bowler=it.k;state.player=null;}
-    else if(it.t==='cohort'){state.cohort=it.k;state.player=null;state.bowler=null;}
-    else if(it.t==='view'){state.view=it.k;state.player=null;state.bowler=null;}
+    else if(it.t==='cohort'){state.cohort=it.k;state.player=null;state.bowler=null;state.venue=state.team=state.match=null;}
+    else if(it.t==='view'){state.view=it.k;state.player=null;state.bowler=null;state.venue=state.team=state.match=null;}
     render();}
   inp.oninput=filter;
   ov.onclick=e=>{if(e.target===ov)close();};
@@ -635,18 +693,18 @@ function init(){
   const groups=[["Men's Internationals",c=>c.intl&&c.gender==='male'],["Women's Internationals",c=>c.intl&&c.gender==='female'],
     ["Men's Domestic & Franchise",c=>!c.intl&&c.gender==='male'],["Women's Domestic & Franchise",c=>!c.intl&&c.gender==='female']];
   const ditems=[];groups.forEach(([lab,f])=>IDX.cohorts.filter(f).forEach(c=>ditems.push({v:c.key,label:c.label,group:lab})));
-  window._scopeDrop=dropdown(ditems,state.cohort,v=>{state.cohort=v;state.player=null;state.bowler=null;render();});
+  window._scopeDrop=dropdown(ditems,state.cohort,v=>{state.cohort=v;state.player=null;state.bowler=null;state.venue=state.team=state.match=null;render();});
   document.getElementById('scopeHost').appendChild(window._scopeDrop);
   window.MODES=[
     ["DISCOVER",[["home","Overview"]]],
-    ["ANALYZE",[["players","Batters"],["bowlers","Bowlers"],["teams","Teams"],["compare","Compare"],["matchups","Matchups"],["network","Network"],["venues","Venues"]]],
+    ["ANALYZE",[["players","Batters"],["bowlers","Bowlers"],["teams","Teams"],["compare","Compare"],["matchups","Matchups"],["bowlto","Bowl to…"],["matches","Matches"],["network","Network"],["venues","Venues"]]],
     ["RESEARCH",[["research","Research Lab"],["records","Records"]].concat(window.CIL_RANKINGS?[["rankings","ICC Rankings"]]:[])],
     ["LIVE",[["live","Live Scores"],["schedule","Schedule"]]],
   ];
   window.VIEW_MODE={};window.MODES.forEach(([mo,subs])=>subs.forEach(([v])=>window.VIEW_MODE[v]=mo));
   document.getElementById('modebar').innerHTML=window.MODES.map(([mo])=>`<button class="modebtn" data-m="${mo}">${mo}</button>`).join('');
-  document.querySelectorAll('.modebtn').forEach(b=>b.onclick=()=>{const subs=window.MODES.find(x=>x[0]===b.dataset.m)[1];state.view=subs[0][0];state.player=null;state.bowler=null;render();});
-  document.getElementById('home').onclick=()=>{state.view="home";state.player=null;state.bowler=null;render();};
+  document.querySelectorAll('.modebtn').forEach(b=>b.onclick=()=>{const subs=window.MODES.find(x=>x[0]===b.dataset.m)[1];state.view=subs[0][0];state.player=null;state.bowler=null;state.venue=state.team=state.match=null;render();});
+  document.getElementById('home').onclick=()=>{state.view="home";state.player=null;state.bowler=null;state.venue=state.team=state.match=null;render();};
   document.getElementById('srcnote').textContent=`${IDX.cohorts.length} competitions`;
   setupPalette();
   setupSearch();
@@ -661,7 +719,7 @@ function render(){
   const subs=((window.MODES||[]).find(x=>x[0]===cm)||(window.MODES||[['',[]]])[0])[1]||[];
   const nav=document.getElementById('nav');
   nav.innerHTML=subs.map(([v,lab])=>`<button data-v="${v}">${esc(lab)}</button>`).join('');
-  nav.querySelectorAll('button').forEach(b=>b.onclick=()=>{state.view=b.dataset.v;state.player=null;state.bowler=null;render();});
+  nav.querySelectorAll('button').forEach(b=>b.onclick=()=>{state.view=b.dataset.v;state.player=null;state.bowler=null;state.venue=state.team=state.match=null;render();});
   nav.style.display=subs.length>1?'flex':'none';
   document.querySelectorAll('.modebtn').forEach(b=>{b.classList.toggle('on',b.dataset.m===cm);b.setAttribute('aria-pressed',b.dataset.m===cm);});
   nav.querySelectorAll('button').forEach(b=>{const on=b.dataset.v===state.view;b.classList.toggle('active',on);if(on)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
@@ -686,8 +744,9 @@ function paint(app){
   app.innerHTML='';
   if(state.player){app.appendChild(playerView(state.player));try{mountCareer(app,state.player);}catch(e){}try{mountVenues(app,state.player);}catch(e){}}
   else if(state.bowler){app.appendChild(bowlerProfile(state.bowler));}
-  else ({home:homeView,players:playersView,bowlers:bowlersView,compare:compareView,matchups:matchupsView,
-    research:researchView,records:recordsView,venues:venuesView,rankings:rankingsView,live:liveView,schedule:scheduleView,network:networkView,teams:teamsView}[state.view]||homeView)(app);
+  else if(window.detailView&&detailView(app)){}
+  else ({...(window.EXTRA_VIEWS||{}),home:homeView,players:playersView,bowlers:bowlersView,compare:compareView,matchups:matchupsView,
+    research:researchView,records:recordsView,venues:venuesView,rankings:rankingsView,live:liveView,schedule:scheduleView,network:networkView,teams:teamsView,...(window.EXTRA_VIEWS||{})}[state.view]||homeView)(app);
   try{animateCounts(app);}catch(e){}
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -861,7 +920,7 @@ function homeView(app){
   // compact competition switcher
   const sw=$(`<div><div class="sechead">Switch competition · ${IDX.cohorts.length}</div><div class="compstrip"></div></div>`);
   sw.querySelector('.compstrip').innerHTML=IDX.cohorts.map(mm=>`<button class="cchip${mm.key===state.cohort?' on':''}" data-k="${mm.key}"><b>${esc(mm.label)}</b><span>${(mm.format||'').toUpperCase()} · ${(mm.matches||0).toLocaleString()}m</span></button>`).join('');
-  sw.querySelectorAll('.cchip').forEach(x=>x.onclick=()=>{state.cohort=x.dataset.k;state.player=null;state.bowler=null;render();});
+  sw.querySelectorAll('.cchip').forEach(x=>x.onclick=()=>{state.cohort=x.dataset.k;state.player=null;state.bowler=null;state.venue=state.team=state.match=null;render();});
   app.appendChild(sw);
   wirePlinks(app);
 }
@@ -935,7 +994,7 @@ function bowlerProfile(id){
   const w=$(`<div></div>`);
   const meta=(window.CIL_PLAYERMETA||{})[id]||{};
   const isHttp=location.protocol.indexOf('http')===0;
-  const photo=meta.photo||playerImg(b.name,meta.unique_name||meta.name,id)||(isHttp?'/api/photo?name='+encodeURIComponent(meta.unique_name||meta.name||b.name):'');
+  const photo=meta.photo||playerImg(b.name,meta.unique_name||meta.name,id)||(HAS_API?API_BASE+'/api/photo?name='+encodeURIComponent(meta.unique_name||meta.name||b.name):'');
   w.appendChild($(`<div class="row" style="margin-top:20px;align-items:center"><button class="pill" id="bback">← back</button>${avatarHTML(b.name,photo)}<div><div class="row" style="gap:9px"><h1 style="margin:0">${esc(b.name)}</h1><span class="badge">Bowler</span>${b.qualified?'':'<span class="badge">below rate qualifier</span>'}<button class="pill" id="bcard" title="Download a shareable stat card (PNG)">Share card ↓</button></div><div class="dim" style="margin-top:2px">${esc(c.meta.label)}</div></div></div>`));
   w.querySelector('#bcard').onclick=()=>playerCard({name:b.name,sub:c.meta.label+(meta.country?' · '+meta.country:''),badge:'Bowler',
     tiles:[["Wickets",b.wickets],["Economy",b.economy],["Average",b.bowl_avg],["Strike rate",b.bowl_sr],["Dot %",b.dot_pct],["Balls",b.balls]],
@@ -961,11 +1020,11 @@ function bowlerProfile(id){
 }
 /* ================= PLAYER DETAIL ================= */
 function playerView(pid){
-  const c=cur(),p=c.players[pid];if(!p){state.player=null;state.bowler=null;return $('<div>not found</div>');}
+  const c=cur(),p=c.players[pid];if(!p){state.player=null;state.bowler=null;state.venue=state.team=state.match=null;return $('<div>not found</div>');}
   const w=$(`<div></div>`);
   const meta=(window.CIL_PLAYERMETA||{})[pid]||{};
   const isHttp=location.protocol.indexOf('http')===0;
-  const photo=meta.photo||playerImg(p.name,meta.unique_name||meta.name,pid)||(isHttp?'/api/photo?name='+encodeURIComponent(meta.unique_name||meta.name||p.name):'');
+  const photo=meta.photo||playerImg(p.name,meta.unique_name||meta.name,pid)||(HAS_API?API_BASE+'/api/photo?name='+encodeURIComponent(meta.unique_name||meta.name||p.name):'');
   const ciLink=meta.cricinfo_id?`<a class="pill" href="https://www.espncricinfo.com/ci/content/player/${meta.cricinfo_id}.html" target="_blank" rel="noopener">ESPNcricinfo ↗</a>`:'';
   w.appendChild($(`<div class="row" style="margin-top:20px;align-items:center"><button class="pill" id="back">← back</button>${avatarHTML(p.name,photo)}<div><div class="row" style="gap:9px"><h1 style="margin:0">${esc(p.name)}</h1>${archPill(p.archetype)}${p.qualified?'':'<span class="badge">below rate qualifier</span>'}${meta.country?`<span class="badge">${esc(meta.country)}</span>`:''}${ciLink}<button class="pill" id="pcard" title="Download a shareable stat card (PNG)">Share card ↓</button></div><div class="dim" style="margin-top:2px">${esc(c.meta.label)}</div></div></div>`));
   w.querySelector('#pcard').onclick=()=>playerCard({name:p.name,sub:c.meta.label+(meta.country?' · '+meta.country:''),badge:p.archetype||'Batter',
@@ -1019,7 +1078,7 @@ function playerView(pid){
   const g4=$(`<div class="grid bento" style="margin-top:13px"></div>`);
   g4.appendChild($(muTbl(best,"Dominates (top matchups)")));g4.appendChild($(muTbl(worst,"Struggles against")));
   w.appendChild(g4);
-  w.querySelector('#back').onclick=()=>{state.player=null;state.bowler=null;render();};
+  w.querySelector('#back').onclick=()=>{state.player=null;state.bowler=null;state.venue=state.team=state.match=null;render();};
   wirePlinks(w);return w;
 }
 
@@ -1316,15 +1375,24 @@ function rankingsView(app){
 }
 
 /* ================= LIVE SCORES / SCHEDULE (server /api, or snapshot global) ================= */
-async function loadFeed(kind){
+async function loadFeed(kind,box){
   const g = kind==='live' ? window.CIL_LIVE : window.CIL_SCHEDULE;
   if(g) return g;
-  if(location.protocol.indexOf('http')===0){
-    try{const r=await fetch('/api/'+kind,{cache:'no-store'}); if(r.ok) return await r.json();}catch(e){}
-  }
+  if(!HAS_API) return null;
+  // The free live server sleeps when idle and takes ~30-60 s to wake (often answering 502/503
+  // meanwhile), so say so after a few seconds and retry instead of showing an empty page.
+  const slow=setTimeout(()=>{if(box&&box.classList.contains('loadbox'))box.innerHTML='<div class="spinner"></div><div>Waking up the live server… <div class="dim" style="margin-top:4px">Free hosting sleeps when nobody is using it. This can take up to a minute.</div></div>';},4000);
+  try{
+    for(let i=0;i<4;i++){
+      try{const r=await fetch(API_BASE+'/api/'+kind,{cache:'no-store'}); if(r.ok) return await r.json(); if(r.status<500) break;}catch(e){}
+      await new Promise(res=>setTimeout(res,5000*(i+1)));
+    }
+  }finally{clearTimeout(slow);}
   return null;
 }
 function setupHint(what){
+  if(location.protocol.indexOf('http')===0&&!HAS_API)return `<div class="cov">No ${what} on this copy of the site: it's the static version, without the live server. Every historical stat works; live scores need <span class="num">serve.py</span> running.</div>`;
+  if(location.protocol.indexOf('http')===0)return `<div class="cov">Couldn't reach the live server for ${what}. It may be waking up or Cricbuzz may be rate-limiting; try again in a minute.</div>`;
   return `<div class="cov">No ${what} available yet. Start the live app server:
     <div style="margin-top:7px"><span class="num">pip install requests</span></div>
     <div><span class="num">python serve.py</span> &nbsp;then open &nbsp;<span class="num">http://127.0.0.1:5000</span></div>
@@ -1342,7 +1410,7 @@ function matchCardHTML(m,clickable){
 function renderLiveList(box){
   const httpMode=location.protocol.indexOf('http')===0;
   box.className='loadbox';box.innerHTML='<div class="spinner"></div><div>Fetching live matches…</div>';
-  loadFeed('live').then(L=>{
+  loadFeed('live',box).then(L=>{
     box.className='';box.innerHTML='';
     if(!L){box.innerHTML=setupHint('live data');return;}
     const ms=L.matches||[];
@@ -1386,7 +1454,7 @@ function factsHTML(list){
 function showMatchDetail(box,mid,slug){
   const enc=encodeURIComponent,q='id='+enc(mid)+(slug?'&slug='+enc(slug):'');
   box.className='loadbox';box.innerHTML='<div class="spinner"></div><div>Loading match…</div>';
-  fetch('/api/match?'+q,{cache:'no-store'}).then(r=>r.ok?r.json():null).then(m=>{
+  fetch(API_BASE+'/api/match?'+q,{cache:'no-store'}).then(r=>r.ok?r.json():null).then(m=>{
     box.className='';if(!m){box.innerHTML='<div class="cov">Could not load this match.</div>';return;}
     box.innerHTML='';
     const mw=$('<div class="mdetail"></div>');box.appendChild(mw);
@@ -1422,7 +1490,7 @@ function showMatchDetail(box,mid,slug){
     function stopComm(){if(commTimer){clearInterval(commTimer);commTimer=null;}}
     function loadComm(live){
       if(!live){content.innerHTML='<div class="loadbox"><div class="spinner"></div><div>Loading…</div></div>';}
-      fetch('/api/commentary?'+q,{cache:'no-store'}).then(r=>r.ok?r.json():null)
+      fetch(API_BASE+'/api/commentary?'+q,{cache:'no-store'}).then(r=>r.ok?r.json():null)
         .then(d=>{content.innerHTML=commentaryHTML(d);})
         .catch(()=>{if(!live)content.innerHTML='<div class="cov">Could not load.</div>';});
     }
@@ -1432,12 +1500,12 @@ function showMatchDetail(box,mid,slug){
       if(t==='score')renderScore();
       else if(t==='squads'){content.innerHTML=squadsHTML(m.squads);wireXI();}
       else if(t==='comm'){loadComm(false);commTimer=regTimer(setInterval(()=>loadComm(true),20000));}
-      else if(t==='info')lazy('info','/api/facts?'+q,d=>factsHTML(d&&d.facts));
+      else if(t==='info')lazy('info',API_BASE+'/api/facts?'+q,d=>factsHTML(d&&d.facts));
     }
     const liveish=/progress|innings break|rain|delay|drinks|tea|lunch|stumps|\blive\b/i.test((m.state||'')+' '+(m.status||''));
     let scoreTimer=null;
     function stopScore(){if(scoreTimer){clearInterval(scoreTimer);scoreTimer=null;}}
-    function refreshScore(){fetch('/api/match?'+q,{cache:'no-store'}).then(r=>r.ok?r.json():null).then(nm=>{
+    function refreshScore(){fetch(API_BASE+'/api/match?'+q,{cache:'no-store'}).then(r=>r.ok?r.json():null).then(nm=>{
       if(!nm)return;m.teams=nm.teams||m.teams;m.status=nm.status||m.status;m.state=nm.state||m.state;m.innings=nm.innings||m.innings;fillSummary();
     }).catch(()=>{});}
     if(liveish)scoreTimer=regTimer(setInterval(refreshScore,25000));
@@ -1462,7 +1530,7 @@ function scheduleView(app){
   app.appendChild($(`<div><h1>Upcoming Schedule</h1><p class="sub">Upcoming international &amp; domestic fixtures, via Cricbuzz.</p></div>`));
   const box=$('<div class="loadbox"><div class="spinner"></div><div>Fetching fixtures…</div></div>');
   app.appendChild(box);
-  loadFeed('schedule').then(S=>{
+  loadFeed('schedule',box).then(S=>{
     box.classList.remove('loadbox'); box.innerHTML='';
     if(!S){box.innerHTML=setupHint('schedule data');return;}
     const ms=S.matches||[];
@@ -1529,8 +1597,8 @@ function setupSearch(){
     res.querySelectorAll('.sr').forEach(d=>d.onclick=()=>{
       const t=d.dataset.t,k=d.dataset.k;res.style.display='none';inp.value='';
       if(t==='player')state.player=k;
-      else if(t==='cohort'){state.cohort=k;state.player=null;state.bowler=null;}
-      else if(t==='page'){state.view=k;state.player=null;state.bowler=null;}
+      else if(t==='cohort'){state.cohort=k;state.player=null;state.bowler=null;state.venue=state.team=state.match=null;}
+      else if(t==='page'){state.view=k;state.player=null;state.bowler=null;state.venue=state.team=state.match=null;}
       render();
     });
   };
@@ -1628,7 +1696,7 @@ function homeView(app){
   const rest=IDX.cohorts.length-keyCohorts.length;
   const sw=$(`<div><div class="sechead">Competitions <span class="dim">· ${keyCohorts.length} shown${rest>0?` · ${rest} more in the selector above`:''}</span></div><div class="cohort-cards"></div></div>`);
   sw.querySelector('.cohort-cards').innerHTML=keyCohorts.map(mm=>`<div class="ccard${mm.key===state.cohort?' on':''}" data-k="${mm.key}"><span class="fmtpill" style="background:${(FMT_COLOR[mm.format]||'#888')}22;color:${FMT_COLOR[mm.format]||'#aaa'}">${(mm.format||'').toUpperCase()}</span><div class="t">${esc(mm.label)}</div><div class="m">${(mm.n_batters||0).toLocaleString()} batters · ${(mm.matches||0).toLocaleString()} matches${mm.coverage_from?` · ${String(mm.coverage_from).slice(0,4)}–${String(mm.coverage_to).slice(0,4)}`:''}</div></div>`).join('');
-  sw.querySelectorAll('.ccard').forEach(z=>z.onclick=()=>{state.cohort=z.dataset.k;state.player=null;state.bowler=null;render();});
+  sw.querySelectorAll('.ccard').forEach(z=>z.onclick=()=>{state.cohort=z.dataset.k;state.player=null;state.bowler=null;state.venue=state.team=state.match=null;render();});
   app.appendChild(sw);
   wirePlinks(app);wireSpt(app);
 }
@@ -1678,7 +1746,7 @@ function teamsView(app){
   const qs=new URLSearchParams({fmt:m.format||''});
   if(m.intl){qs.set('intl','1');if(m.gender)qs.set('gender',m.gender);qs.set('xleagues',IDX.cohorts.filter(x=>!x.intl).map(x=>x.label).filter(Boolean).join('|'));}
   else{qs.set('league',m.label||'');}
-  fetch('/api/teams?'+qs.toString(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(d=>{box.remove();render((d&&d.teams)||[]);}).catch(()=>{box.remove();render([]);});
+  fetch(API_BASE+'/api/teams?'+qs.toString(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(d=>{box.remove();render((d&&d.teams)||[]);}).catch(()=>{box.remove();render([]);});
 }
 function networkView(app){
   const c=cur(),P=c.players||{};
@@ -1805,7 +1873,8 @@ function mountVenues(app,pid){
 window.__metaReady=()=>{if(state.player||state.bowler)render();};
 /* Offline + installable (served over http only; file:// can't register a service worker). */
 if('serviceWorker' in navigator&&location.protocol.indexOf('http')===0)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
-init();
 </script>
+<script src="features.js"></script>
+<script>init();</script>
 </body>
 </html>
