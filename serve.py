@@ -45,12 +45,12 @@ CB_SQUADS_URL = "https://www.cricbuzz.com/cricket-match-squads/{mid}/{slug}"
 CB_COMMENTARY = "https://www.cricbuzz.com/live-cricket-scores/{mid}/{slug}"
 CB_FULLCOMM = "https://www.cricbuzz.com/live-cricket-full-commentary/{mid}/{slug}"
 CB_FACTS = "https://www.cricbuzz.com/cricket-match-facts/{mid}/{slug}"
-DB = os.path.join(ROOT, "cil.db")  # ball-by-ball SQLite, present after build_all.py
+DB = os.path.join(ROOT, "cil.db")  # ball-by-ball SQLite, present after scripts/build_all.py
 _BUILD_LOCK = os.path.join(ROOT, ".build.lock")
 
 
 def _db_ready():
-    """True only when cil.db exists and no build is mid-swap (build_all.py holds .build.lock)."""
+    """True only when cil.db exists and no build is mid-swap (scripts/build_all.py holds .build.lock)."""
     return os.path.isfile(DB) and not os.path.exists(_BUILD_LOCK)
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -775,7 +775,7 @@ def get_teams(fmt=None, gender=None, intl=False, league=None, xleagues=None):
         con = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
         con.row_factory = sqlite3.Row
         cols = {r[1] for r in con.execute("PRAGMA table_info(dim_match)")}
-        has_tt = "team_type" in cols   # correct schema (rebuilt via build_all.py)
+        has_tt = "team_type" in cols   # correct schema (rebuilt via scripts/build_all.py)
         where, args = [], []
         if has_tt:
             # Proper classification: fmt is normalized (t20/odi/test); intl vs club

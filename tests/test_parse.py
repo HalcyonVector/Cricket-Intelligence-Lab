@@ -26,7 +26,7 @@ def test_parse_basic():
     with tempfile.TemporaryDirectory() as d:
         p = os.path.join(d, "1234567.json")
         json.dump(GOLDEN, open(p, "w"))
-        info, rows = parse_match(p)
+        rows = parse_match(p).deliveries
     assert len(rows) == 3
     assert rows[0].batter_id == "abc12345"          # resolved via registry, not name
     assert rows[0].phase == "powerplay"             # over 0 in T20

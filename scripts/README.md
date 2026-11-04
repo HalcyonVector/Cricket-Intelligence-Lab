@@ -5,7 +5,7 @@ ESPNcricinfo profile links). You run them on your own machine; the dashboard pic
 up the results automatically. If you never run them, the dashboard works fine - the
 "ICC Rankings" tab and the profile links simply stay hidden.
 
-Run both from the **project root** (the folder with `build_all.py`).
+Run both from the **project root** (the folder with `serve.py`).
 
 ## 1. ESPNcricinfo links + countries - reliable
 ```
@@ -65,16 +65,3 @@ python serve.py
 Then open **http://127.0.0.1:5000**. Endpoints: `/api/live`, `/api/schedule`,
 `/api/results`, `/api/_debug`. The plain static dashboard (double-clicking
 `web/dashboard/index.html`) still works - these tabs just light up when the server runs.
-
-### Probe (only if Cricbuzz changes its markup)
-`scripts/probe_cricbuzz.py` saves the current live/schedule HTML into `scripts/` so the
-parser can be re-verified:
-```
-pip install requests
-python scripts/probe_cricbuzz.py
-# player profile (for stats/photos): paste a URL you opened in your browser
-python scripts/probe_cricbuzz.py --profile-url https://www.cricbuzz.com/profiles/1413/virat-kohli
-```
-
-The older `scripts/probe_cricinfo.py` and `scripts/probe_espn_api.py` target
-ESPNcricinfo and are kept only for reference - Cricbuzz is the live source now.

@@ -1,1 +1,1 @@
-"""Cricsheet ingestion: fetch -> parse -> load(raw) -> transform(core)."""
+"""Cricsheet ingestion: zip -> parse -> SQLite (see ingest_zip.py)."""

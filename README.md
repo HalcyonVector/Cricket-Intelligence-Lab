@@ -49,8 +49,8 @@ Ball-by-ball cricket intelligence across **48 competitions, 22,000+ matches, and
 Simply clone the repo and open the HTML file:
 
 ```bash
-git clone https://github.com/<you>/cricket-intelligence-lab.git
-cd cricket-intelligence-lab
+git clone https://github.com/HalcyonVector/Cricket-Intelligence-Lab.git
+cd Cricket-Intelligence-Lab
 # open web/landing.html for the front page, or web/dashboard/index.html to go straight to the app
 ```
 
@@ -73,7 +73,7 @@ Download the latest Cricsheet corpus and regenerate all cohort bundles:
 ```bash
 pip install requests orjson numpy
 # Download all_json.zip from https://cricsheet.org/downloads/ into the project root
-python build_all.py --zip all_json.zip
+python scripts/build_all.py --zip all_json.zip
 python serve.py
 ```
 
@@ -83,8 +83,8 @@ This streams every match into SQLite, recomputes all analytics, and rebuilds the
 ### macOS / Linux
 ```bash
 # 1. Clone the repository
-git clone https://github.com/<you>/cricket-intelligence-lab.git
-cd cricket-intelligence-lab
+git clone https://github.com/HalcyonVector/Cricket-Intelligence-Lab.git
+cd Cricket-Intelligence-Lab
 
 # 2. (Optional) Install Python dependencies for live data
 pip install requests orjson numpy
@@ -98,8 +98,8 @@ python serve.py  # http://127.0.0.1:5000
 ### Windows
 ```bash
 # 1. Clone the repository
-git clone https://github.com/<you>/cricket-intelligence-lab.git
-cd cricket-intelligence-lab
+git clone https://github.com/HalcyonVector/Cricket-Intelligence-Lab.git
+cd Cricket-Intelligence-Lab
 
 # 2. (Optional) Install Python dependencies
 pip install requests orjson numpy
@@ -113,52 +113,40 @@ python serve.py  # http://127.0.0.1:5000
 ---
 ## Project Structure
 ```
-cricket-intelligence-lab/
-├── README.md                     # This file
-├── render.yaml                   # Render deployment blueprint
-├── build_all.py                  # One-command ETL: Cricsheet zip → SQLite → bundles
-├── serve.py                      # Minimal stdlib server (live data + static dashboard)
-├── verify_build.py               # Post-build integrity checks
+Cricket-Intelligence-Lab/
+├── serve.py                       # Stdlib server: static site + live/photo/career API
+├── requirements.txt               # Runtime deps for serve.py (Render installs this)
+├── render.yaml                    # Render deployment blueprint
 │
 ├── packages/
-│   ├── etl/
-│   │   ├── parser.py             # Cricsheet JSON ingest
-│   │   ├── store.py              # SQLite schema and write
-│   │   └── bundle.py             # Per-cohort bundle generator
-│   └── analytics/
-│       ├── metrics.py            # Runs, averages, strike rates, era-adjusted scores
-│       ├── archetypes.py         # Player clustering and similarity
-│       ├── records.py            # Leaderboard calculations
-│       └── pipeline.py           # Full orchestration
-│
-├── web/
-│   ├── landing.html             # Animated marketing landing page (served at /)
-│   └── dashboard/
-│       ├── index.html            # Single-file interactive app (served at /dashboard/)
-│       ├── style.css             # All styling (responsive dark theme)
-│       ├── script.js             # Dashboard logic, search, filtering, exports
-│       ├── index.js              # Cohort manifest loader
-│       ├── playerimg.js          # Cricsheet-id → Cricbuzz photo map
-│       └── cohorts/
-│           ├── t20i_male.js      # Men's T20I data bundle
-│           ├── t20i_female.js    # Women's T20I data bundle
-│           ├── odi_male.js       # (and 45 other cohort bundles)
-│           └── ...
+│   ├── etl/cil_etl/
+│   │   ├── ingest_zip.py          # Stream Cricsheet zip -> SQLite
+│   │   ├── parse.py               # Cricsheet JSON parsing
+│   │   └── store.py               # SQLite schema
+│   └── analytics/cil_analytics/
+│       └── pipeline.py            # All per-cohort analytics -> bundles
 │
 ├── scripts/
-│   ├── update-photos.py          # Refresh Cricbuzz player photos
-│   ├── update-icc-rankings.py    # Fetch latest ICC rankings
-│   └── enrich-cricinfo.py        # Add Cricinfo metadata
+│   ├── build_all.py               # One command: zip -> SQLite -> bundles -> verify
+│   ├── verify_build.py            # Post-build integrity gate
+│   ├── fetch_icc_rankings.py      # ICC rankings -> web/dashboard/rankings.js
+│   ├── enrich_players_cricinfo.py # Countries + Cricinfo links -> playermeta.js
+│   ├── build_player_images.py     # Player photo map -> playerimg.js
+│   └── build_photo_byid.py        # Photo map keyed by Cricsheet id
 │
-├── docs/
-│   ├── architecture.md           # System design overview
-│   ├── adr/                      # Architecture decision records
-│   └── schema.md                 # SQLite and bundle schema
+├── web/
+│   ├── landing.html               # Landing page (served at /)
+│   ├── shots/                     # Screenshots used on the landing page
+│   └── dashboard/
+│       ├── index.html             # The whole app (served at /dashboard/)
+│       ├── index.js               # Cohort manifest (instant boot)
+│       ├── cohorts/*.js           # 48 lazy-loaded cohort bundles
+│       ├── careers.js, rankings.js, playermeta.js, playerimg.js
+│       └── live.js, schedule.js   # Live scores / fixtures (needs serve.py)
 │
-└── .github/
-    └── workflows/
-        ├── rebuild-data.yml      # Weekly: fetch Cricsheet, rebuild bundles, auto-commit
-        └── update-rankings.yml   # Weekly: refresh ICC rankings
+├── tests/                         # Parser unit tests
+├── docs/                          # ADR + original design spec
+└── .github/workflows/             # Weekly data rebuild + ICC rankings refresh
 ```
 ---
 ## Data & Methodology
@@ -184,13 +172,13 @@ All cricket data is from **[Cricsheet](https://cricsheet.org)**, released under 
 ```
 all_json.zip (Cricsheet)
     ↓
-build_all.py streams JSON into SQLite
+scripts/build_all.py streams JSON into SQLite
     ↓
-packages/analytics computes metrics, archetypes, records
+packages/analytics/pipeline.py computes metrics, percentiles, similarity, records
     ↓
 Per-cohort .js bundles generated (lazy-loaded)
     ↓
-verify_build.py gates integrity
+scripts/verify_build.py gates integrity
     ↓
 web/dashboard/index.html loads bundles on demand
 ```
@@ -222,9 +210,19 @@ Enable **Settings → Actions → General → Workflow permissions → Read and 
 ## Available Scripts
 | Script | Command | Description |
 |--------|---------|-------------|
-| **Build from scratch** | `python build_all.py --zip all_json.zip` | Ingest Cricsheet archive, recompute all analytics, regenerate bundles |
+| **Build from scratch** | `python scripts/build_all.py --zip all_json.zip` | Ingest Cricsheet archive, recompute all analytics, regenerate bundles |
 | **Start live server** | `python serve.py` | Serve dashboard at localhost:5000 + live/photo/career endpoints |
-| **Verify integrity** | `python verify_build.py` | Post-build gate: check bundle schemas, cohort consistency, data completeness |
+| **Verify integrity** | `python scripts/verify_build.py` | Post-build gate: check bundle schemas, cohort consistency, data completeness |
+| **Update photos** | `python scripts/build_player_images.py` | Rebuild the player photo map |
+| **Update rankings** | `python scripts/fetch_icc_rankings.py` | Fetch latest ICC rankings (needs Playwright) |
+| **Player metadata** | `python scripts/enrich_players_cricinfo.py` | Countries + ESPNcricinfo links |
+
+See [scripts/README.md](scripts/README.md) for setup details.
+
+--------|---------|-------------|
+| **Build from scratch** | `python scripts/build_all.py --zip all_json.zip` | Ingest Cricsheet archive, recompute all analytics, regenerate bundles |
+| **Start live server** | `python serve.py` | Serve dashboard at localhost:5000 + live/photo/career endpoints |
+| **Verify integrity** | `python scripts/verify_build.py` | Post-build gate: check bundle schemas, cohort consistency, data completeness |
 | **Update photos** | `python scripts/update-photos.py` | Re-scrape Cricbuzz for fresh player photos |
 | **Update rankings** | `python scripts/update-icc-rankings.py` | Fetch latest ICC rankings |
 
@@ -233,7 +231,7 @@ Enable **Settings → Actions → General → Workflow permissions → Read and 
 ### Issue: `FileNotFoundError: all_json.zip`
 **Solution:** Download the Cricsheet archive from https://cricsheet.org/downloads/, place it in the project root, and retry:
 ```bash
-python build_all.py --zip all_json.zip
+python scripts/build_all.py --zip all_json.zip
 ```
 
 ### Issue: `ModuleNotFoundError: requests` or `orjson`
@@ -243,7 +241,7 @@ pip install requests orjson numpy
 ```
 
 ### Issue: Port 5000 already in use
-**Solution:** Bind to a different port by editing `serve.py` or use:
+**Solution:** Set the `PORT` environment variable:
 ```bash
 PORT=8080 python serve.py
 ```
@@ -254,19 +252,12 @@ PORT=8080 python serve.py
 ### Issue: Live scores not updating / blank feed
 **Solution:** Confirm the live server is running (`python serve.py`) and check the browser's Network tab for `/api/live` requests. The Cricbuzz scraper may be rate-limited; retry after a few minutes.
 
-### Issue: Build takes too long / memory error with large zip
-**Solution:** The ETL streams matches but loads the full mart into memory. For very large builds, break the zip into smaller chunks:
-```bash
-# Extract and rebuild per-country or per-year instead
-python build_all.py --zip all_json.zip --filter "men|T20I"
-```
-
 ### Issue: Cohort bundle is corrupted / old data showing
 **Solution:** Clean and rebuild:
 ```bash
-rm -rf cil.db web/dashboard/cohorts/*.js
-python build_all.py --zip all_json.zip
-python verify_build.py
+rm -f cil.db
+python scripts/build_all.py --zip all_json.zip
+python scripts/verify_build.py
 ```
 
 ---

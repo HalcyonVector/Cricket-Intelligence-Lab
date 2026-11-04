@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """One-command build: Cricsheet zip -> SQLite -> per-cohort dashboard bundles.
 
-    python build_all.py --zip all_json.zip
+    python scripts/build_all.py --zip all_json.zip
 
 Steps:
   1. Stream-ingest EVERY match in the zip into cil.db, classified correctly by
@@ -16,7 +16,7 @@ Then open web/dashboard/index.html in a browser.
 from __future__ import annotations
 import argparse, os, sys, glob, sqlite3, subprocess
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # repo root (this file lives in scripts/)
 sys.path.insert(0, os.path.join(ROOT, "packages", "etl"))
 sys.path.insert(0, os.path.join(ROOT, "packages", "analytics"))
 
@@ -85,7 +85,7 @@ def main():
             os.remove(LOCK)
 
     print("[3/3] Verifying build...")
-    vp = os.path.join(ROOT, "verify_build.py")
+    vp = os.path.join(ROOT, "scripts", "verify_build.py")
     if os.path.exists(vp):
         rc = subprocess.call([sys.executable, vp])
         if rc != 0:

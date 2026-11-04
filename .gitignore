@@ -1,28 +1,41 @@
 # Large raw inputs & generated DB (exceed GitHub's 100 MB per-file limit)
-all_json.zip
 *.zip
-cil.db
+*.zip.tmp
 *.db
 *.db-wal
 *.db-shm
+cil.db.building*
+.build.lock
 
 # Superseded monolithic bundle (replaced by cohorts/*.js + index.js)
 web/dashboard/data.js
 
-# API-only per-cohort JSON; regenerate with build_all.py
+# API-only per-cohort JSON; regenerate with scripts/build_all.py
 web/data/
 
 # Local server runtime cache (photo URLs etc., created by serve.py)
 .cache/
 
-# Diagnostic dum
+# Scraper diagnostic dumps (fetch_icc_rankings.py --debug, Cricbuzz probes)
+scripts/_debug_*.html
+scripts/_cb_*.html
+probe_output.txt
 
-# Sandbox / editor / build junk (never commit)
-.fuse_hidden*
+# Local secrets / personal tool config
+.env
+.env.*
+.claude/
+.vscode/
+.idea/
+
+# Python / OS / editor junk
 __pycache__/
 *.pyc
+.venv/
+venv/
+.pytest_cache/
 *.tmp
-.build.lock
-probe_output.txt
 *.xlsx
-cil.db.building*
+.fuse_hidden*
+.DS_Store
+Thumbs.db

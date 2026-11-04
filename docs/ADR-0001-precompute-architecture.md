@@ -1,7 +1,9 @@
 # ADR-0001: Offline pre-compute with thin read API
 
 ## Status
-Accepted.
+Superseded. The project moved to a stdlib + SQLite build (`scripts/build_all.py`)
+that writes static per-cohort JS bundles; there is no Postgres, Polars or FastAPI.
+The core idea below (precompute everything offline, serve static reads, swap atomically) still holds.
 
 ## Context
 Cricket data is largely static once a match concludes, but the analytics

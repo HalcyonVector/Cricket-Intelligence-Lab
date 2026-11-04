@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Post-rebuild integrity check for Cricket Intelligence Lab.
-Run AFTER:  python build_all.py --zip all_json.zip
-Usage:      python verify_build.py
+Run AFTER:  python scripts/build_all.py --zip all_json.zip
+Usage:      python scripts/verify_build.py
 Exits 0 if all green, 1 if anything is still broken."""
 import os, re, json, glob, sqlite3, sys
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # repo root (this file lives in scripts/)
 DASH = os.path.join(ROOT, "web", "dashboard")
 COH  = os.path.join(DASH, "cohorts")
 ok = True

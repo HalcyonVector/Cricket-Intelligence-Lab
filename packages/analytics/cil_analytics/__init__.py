@@ -1,1 +1,1 @@
-"""Metrics, percentiles, similarity, clustering, outlier detection."""
+"""Per-cohort analytics: metrics, percentiles, similarity, outliers (see pipeline.py)."""

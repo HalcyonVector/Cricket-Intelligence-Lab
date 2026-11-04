@@ -1,5 +1,5 @@
 # #3 — Auto-rebuild the whole dataset from the latest Cricsheet corpus, on a schedule.
-# Downloads all_json.zip, runs build_all.py (which self-verifies), commits the refreshed
+# Downloads all_json.zip, runs scripts/build_all.py (which self-verifies), commits the refreshed
 # cohort bundles + careers.js. Free on GitHub Actions for public repos.
 name: Rebuild data from Cricsheet
 
@@ -62,7 +62,7 @@ jobs:
             exit 1
           fi
       - name: Build (ingest -> SQLite -> bundles -> verify)
-        run: python build_all.py --zip all_json.zip
+        run: python scripts/build_all.py --zip all_json.zip
       - name: Commit if data changed
         run: |
           git config user.name  "github-actions[bot]"

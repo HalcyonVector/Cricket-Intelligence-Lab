@@ -604,7 +604,7 @@ function setupPalette(){
   });
 }
 function init(){
-  if(!IDX.cohorts.length){document.getElementById('app').innerHTML='<div class="cov" style="margin-top:30px">No data found. Run <b>build_all.py</b> to generate cohort bundles, then open this file.</div>';return;}
+  if(!IDX.cohorts.length){document.getElementById('app').innerHTML='<div class="cov" style="margin-top:30px">No data found. Run <b>scripts/build_all.py</b> to generate cohort bundles, then open this file.</div>';return;}
   const groups=[["Men's Internationals",c=>c.intl&&c.gender==='male'],["Women's Internationals",c=>c.intl&&c.gender==='female'],
     ["Men's Domestic & Franchise",c=>!c.intl&&c.gender==='male'],["Women's Domestic & Franchise",c=>!c.intl&&c.gender==='female']];
   const ditems=[];groups.forEach(([lab,f])=>IDX.cohorts.filter(f).forEach(c=>ditems.push({v:c.key,label:c.label,group:lab})));
@@ -1566,7 +1566,7 @@ function teamsView(app){
   const c=cur(),m=c.meta;
   app.appendChild($(`<div><h1>Teams</h1><p class="sub">Win-loss record by team for ${gLabel(m)} ${(m.format||'').toUpperCase()}, from ball-by-ball match results.</p></div>`));
   const render=(ts)=>{
-    if(!ts||!ts.length){app.appendChild($('<div class="cov">No team records yet - run <span class="num">build_all.py</span> to generate them.</div>'));return;}
+    if(!ts||!ts.length){app.appendChild($('<div class="cov">No team records yet - run <span class="num">scripts/build_all.py</span> to generate them.</div>'));return;}
     const cols=[["team","Team",0],["matches","Matches",1],["wins","Wins",1],["winpct","Win %",1]];
     const dt=dataTable({cols,rows:ts.slice(),sortKey:'matches',per:30,getVal:(v,k)=>v[k],
       rowHTML:v=>`<tr><td>${esc(v.team)}</td><td class="n">${v.matches}</td><td class="n">${v.wins}</td><td class="n">${v.winpct}%</td></tr>`,empty:'no teams'});
