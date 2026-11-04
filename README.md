@@ -7,7 +7,11 @@ Ball-by-ball cricket intelligence across **48 competitions, 22,000+ matches, and
 - **Batter & Bowler Intelligence:** Every player paginated, sortable, and clickable for full profiles with percentile ranks, phase splits, context splits, and career timelines
 - **Records & Leaderboards:** Runs, wickets, averages, strike rates, era-adjusted indices; each ranked by the value shown
 - **Partnerships & Spells:** Biggest stands and best wicket-taking spells across every competition
-- **Outliers Detection:** Batting (average ↔ strike rate) and bowling (economy ↔ strike rate) players plotted against trend lines
+- **Outliers Detection:** Batting (average ↔ strike rate) and bowling (economy ↔ strike rate) players plotted against trend lines; only players with an established sample (3× the rate qualifier) can be flagged
+- **Matchup Lookup:** Any batter vs any bowler with 12+ balls (18 in Tests) faced, not just the headline pairs
+- **Form by Year:** Runs, average or strike rate per calendar year on every batter profile
+- **Shareable Player Cards:** One click on a profile downloads a 1200×630 PNG stat card (shares natively on phones)
+- **Works Offline & Installable:** A service worker caches the app and any competition you've opened; install it from the browser as an app
 - **Player Comparison:** Head-to-head analysis for up to four players with percentile radar, side-by-side splits, and shared bowler match-ups
 - **Similarity Network:** Each batter linked to their nearest statistical peers across 12 metrics
 - **Venue & Team Analytics:** Ground scoring/result tendencies and team win-loss records
@@ -32,7 +36,7 @@ Ball-by-ball cricket intelligence across **48 competitions, 22,000+ matches, and
 | Component | Technology | Details |
 |-----------|-----------|---------|
 | **Dashboard** | HTML + Vanilla JavaScript | Single-file interactive app; zero build step required |
-| **Data Format** | Lazy-loaded JSON bundles | Pre-computed per-cohort (.js), ~500KB each when gzipped |
+| **Data Format** | Lazy-loaded JSON bundles | Pre-computed per-cohort (.js); `serve.py` gzips them (~5× smaller) and answers repeat visits with 304s |
 | **Backend (optional)** | Python 3.10+ stdlib | Minimal stdlib HTTP server; only for live data |
 | **Live Data Source** | Cricbuzz scraper | Requests library for real-time scores |
 | **Build System** | Python + ETL pipeline | Batch ingest from Cricsheet zip → SQLite → per-cohort bundles |
@@ -141,7 +145,10 @@ Cricket-Intelligence-Lab/
 │       ├── index.html             # The whole app (served at /dashboard/)
 │       ├── index.js               # Cohort manifest (instant boot)
 │       ├── cohorts/*.js           # 48 lazy-loaded cohort bundles
-│       ├── careers.js, rankings.js, playermeta.js, playerimg.js
+│       ├── cohorts/matchups/*.js  # Every batter-vs-bowler pair, loaded by the Matchups view
+│       ├── careers/0-f.js         # Year-by-year form + venues, 16 shards by player id
+│       ├── rankings.js, playermeta.js, playerimg.js
+│       ├── sw.js, manifest.webmanifest  # Offline cache + install as app
 │       └── live.js, schedule.js   # Live scores / fixtures (needs serve.py)
 │
 ├── tests/                         # Parser unit tests
@@ -265,12 +272,9 @@ python scripts/verify_build.py
 - [ ] Streaming live database (instead of rebuilding weekly)
 - [ ] Custom stat definitions (allow users to define derived metrics)
 - [ ] Interactive prediction model (win probability, score forecasts)
-- [ ] Mobile-optimized responsive UI
 - [ ] Player injury/form timeline
 - [ ] Venue-specific weather integration
-- [ ] Multi-season trend analysis with year-on-year comparison
 - [ ] Collaborative filtering for player recommendations
-- [ ] Dark/light theme toggle
 
 ---
 ## Author

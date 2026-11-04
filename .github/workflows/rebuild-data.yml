@@ -1,6 +1,6 @@
 # #3 — Auto-rebuild the whole dataset from the latest Cricsheet corpus, on a schedule.
 # Downloads all_json.zip, runs scripts/build_all.py (which self-verifies), commits the refreshed
-# cohort bundles + careers.js. Free on GitHub Actions for public repos.
+# cohort bundles + career shards. Free on GitHub Actions for public repos.
 name: Rebuild data from Cricsheet
 
 on:

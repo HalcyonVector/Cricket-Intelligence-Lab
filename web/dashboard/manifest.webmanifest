@@ -1,0 +1,13 @@
+{
+  "name": "Cricket Intelligence Lab",
+  "short_name": "CricLab",
+  "description": "Ball-by-ball cricket analytics across 48 competitions.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0A0608",
+  "theme_color": "#16100E",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

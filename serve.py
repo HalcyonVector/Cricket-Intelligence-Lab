@@ -835,6 +835,11 @@ class H(BaseHTTPRequestHandler):
         self.send_header("Content-Type", ctype)
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Cache-Control", cache)
+        if len(b) > 1400 and "gzip" in (self.headers.get("Accept-Encoding") or ""):
+            import gzip
+            b = gzip.compress(b, compresslevel=5)
+            self.send_header("Content-Encoding", "gzip")
+            self.send_header("Vary", "Accept-Encoding")
         self.send_header("Content-Length", str(len(b)))
         self.end_headers()
         self.wfile.write(b)
@@ -906,18 +911,71 @@ class H(BaseHTTPRequestHandler):
                 })
         except Exception as e:
             return self._send(500, {"error": repr(e), "hint": "pip install requests"})
+        self._static(path)
+
+    def _static(self, path):
         rel = path.lstrip("/") or "landing.html"
         fp = os.path.normpath(os.path.join(WEB, rel))
+        if os.path.isdir(fp):
+            fp = os.path.join(fp, "index.html")
         if not fp.startswith(WEB) or not os.path.isfile(fp):
             return self._send(404, {"error": "not found"})
-        ctype = {"html": "text/html", "js": "application/javascript", "css": "text/css",
-                 "json": "application/json", "svg": "image/svg+xml", "webp": "image/webp",
-                 "png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg",
-                 "ico": "image/x-icon"}.get(fp.rsplit(".", 1)[-1], "application/octet-stream")
-        is_text = ctype.startswith("text") or "javascript" in ctype
-        # images never change without a new commit, so let browsers keep them for a day
-        cache = "public, max-age=86400" if ctype.startswith("image/") else "no-store"
-        self._send(200, open(fp, "rb").read(), ctype + ("; charset=utf-8" if is_text else ""), cache)
+        ext = fp.rsplit(".", 1)[-1].lower()
+        ctype = _CTYPES.get(ext, "application/octet-stream")
+        is_text = ctype.startswith("text") or ext in ("js", "json", "svg", "webmanifest")
+        st = os.stat(fp)
+        etag = f'"{st.st_mtime_ns:x}-{st.st_size:x}"'
+        # Images only change with a new commit: cache a day. Everything else (bundles,
+        # html) is revalidated each visit; the ETag makes that a tiny 304, not a re-download.
+        cache = "public, max-age=86400" if ctype.startswith("image/") else "no-cache"
+        if self.headers.get("If-None-Match") == etag:
+            self.send_response(304)
+            self.send_header("ETag", etag)
+            self.send_header("Cache-Control", cache)
+            self.end_headers()
+            return
+        gz = is_text and "gzip" in (self.headers.get("Accept-Encoding") or "")
+        body = _static_bytes(fp, st, gz)
+        self.send_response(200)
+        self.send_header("Content-Type", ctype + ("; charset=utf-8" if is_text else ""))
+        self.send_header("Cache-Control", cache)
+        self.send_header("ETag", etag)
+        if is_text:
+            self.send_header("Vary", "Accept-Encoding")
+        if gz:
+            self.send_header("Content-Encoding", "gzip")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+
+_CTYPES = {"html": "text/html", "js": "application/javascript", "css": "text/css",
+           "json": "application/json", "svg": "image/svg+xml", "webp": "image/webp",
+           "png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg",
+           "ico": "image/x-icon", "webmanifest": "application/manifest+json"}
+_gz_cache: dict = {}
+_gz_lock = threading.Lock()
+
+
+def _static_bytes(fp, st, gz):
+    """File bytes, gzip-compressed once per (file, mtime) and kept in memory.
+
+    Cohort bundles are 1-11 MB of JSON and compress ~6-8x, so this cuts egress
+    (Render free tier bandwidth) and load time by the same factor."""
+    if not gz:
+        with open(fp, "rb") as f:
+            return f.read()
+    key = (fp, st.st_mtime_ns, st.st_size)
+    with _gz_lock:
+        hit = _gz_cache.get(fp)
+        if hit and hit[0] == key:
+            return hit[1]
+    import gzip
+    with open(fp, "rb") as f:
+        data = gzip.compress(f.read(), compresslevel=6, mtime=0)
+    with _gz_lock:
+        _gz_cache[fp] = (key, data)
+    return data
 
 
 def main():

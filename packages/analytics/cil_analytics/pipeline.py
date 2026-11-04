@@ -182,7 +182,14 @@ def percentiles(values, invert=False):
     return {items[i][0]: round(float(pct[i]), 1) for i in range(len(items))}
 
 
-def linfit(pids, x, y, names, z_thresh=2.5):
+# A player must have faced/bowled this many times the rate qualifier before they can be
+# flagged as an outlier; otherwise associate tail-enders on 60 balls dominate the list.
+FLAG_SAMPLE_MULT = 3
+
+
+def linfit(pids, x, y, names, z_thresh=2.5, can_flag=None):
+    """Fit y~x and z-score the residuals. can_flag[i]=False keeps a point on the
+    chart but never flags it (small samples are noisy, not interesting)."""
     x = np.array(x, float); y = np.array(y, float)
     if len(x) < 6:
         return {"slope": 0, "intercept": 0, "points": []}
@@ -190,7 +197,9 @@ def linfit(pids, x, y, names, z_thresh=2.5):
     resid = y - (slope * x + intercept)
     z = (resid - resid.mean()) / (resid.std() + 1e-9)
     pts = [{"pid": pids[i], "name": names[i], "x": round(float(x[i]), 2), "y": round(float(y[i]), 2),
-            "z": round(float(z[i]), 2), "flag": bool(abs(z[i]) > z_thresh)} for i in range(len(x))]
+            "z": round(float(z[i]), 2),
+            "flag": bool(abs(z[i]) > z_thresh and (can_flag is None or can_flag[i]))}
+           for i in range(len(x))]
     return {"slope": round(float(slope), 4), "intercept": round(float(intercept), 4), "points": pts}
 
 
@@ -500,7 +509,8 @@ def build_cohort(conn, spec, names):
 
     def pair(mx, my):
         return linfit(qbat, [bat[p][mx] for p in qbat], [bat[p][my] for p in qbat],
-                      [names.get(p, p) for p in qbat])
+                      [names.get(p, p) for p in qbat],
+                      can_flag=[oa[p]["balls"] >= FLAG_SAMPLE_MULT * rmin_b for p in qbat])
     outliers = {"avg_vs_sr": {"x": "Average", "y": "Strike Rate", **pair("avg", "sr")},
                 "boundary_vs_dot": {"x": "Boundary %", "y": "Dot %", **pair("boundary_pct", "dot_pct")},
                 "avg_vs_consistency": {"x": "Average", "y": "Consistency %", **pair("avg", "consistency")}}
@@ -508,7 +518,8 @@ def build_cohort(conn, spec, names):
     qbs = [p for p in qbowl if bowl[p].get("bowl_sr") is not None]
     def bpair(mx, my):
         return linfit(qbs, [bowl[p][mx] for p in qbs], [bowl[p][my] for p in qbs],
-                      [names.get(p, p) for p in qbs])
+                      [names.get(p, p) for p in qbs],
+                      can_flag=[(bowl[p].get("balls") or 0) >= FLAG_SAMPLE_MULT * rmin_w for p in qbs])
     bowl_outliers = {"econ_vs_sr": {"x": "Economy", "y": "Strike Rate", **bpair("economy", "bowl_sr")},
                      "dot_vs_econ": {"x": "Dot %", "y": "Economy", **bpair("dot_pct", "economy")}}
 
@@ -599,6 +610,7 @@ def build_cohort(conn, spec, names):
                      "archetypes": dict(arch_dist)},
             "players": bat, "bowlers": bowl,
             "matchups_top": sorted(matchups, key=lambda x: x["balls"], reverse=True)[:400],
+            "_matchups_all": matchups,  # popped by build(); written to its own lazy file
             "outliers": outliers, "bowl_outliers": bowl_outliers, "venues": venues, "records": records,
             "partnerships": top_partnerships(conn, names),
             "spells": top_spells(conn, names),
@@ -663,6 +675,54 @@ def _awrite(path, data):
     os.replace(tmp, path)
 
 
+def write_matchups(jsdir, key, matchups, meta):
+    """cohorts/matchups/<key>.js: every batter-vs-bowler pair above the ball floor, compact.
+
+    The main bundle only carries the top 400 pairs; the Matchups view lazy-loads this so
+    any pair can be looked up. Rows are [batter_idx, bowler_idx, balls, runs, outs, dominance]
+    into the bat/bowl name+id tables, which keeps T20I men's to a few hundred KB gzipped."""
+    out = os.path.join(jsdir, "matchups")
+    os.makedirs(out, exist_ok=True)
+    bi, wi, bat, bowl, rows = {}, {}, [], [], []
+    for m in sorted(matchups, key=lambda x: x["balls"], reverse=True):
+        if m["batter"] not in bi:
+            bi[m["batter"]] = len(bat); bat.append([m["batter"], m["batter_name"]])
+        if m["bowler"] not in wi:
+            wi[m["bowler"]] = len(bowl); bowl.append([m["bowler"], m["bowler_name"]])
+        rows.append([bi[m["batter"]], wi[m["bowler"]], m["balls"], m["runs"], m["outs"], m["dominance"]])
+    body = json.dumps({"min_balls": 18 if meta.get("format") == "test" else 12,
+                       "bat": bat, "bowl": bowl, "rows": rows}, separators=(",", ":"))
+    _awrite(os.path.join(out, f"{key}.js"), f"window.__matchupsLoaded({json.dumps(key)},{body});")
+
+
+CAREER_SHARDS = "0123456789abcdef"
+
+
+def career_shard(pid):
+    """Shard key for a player id: first hex char of the Cricsheet id (16 shards)."""
+    c = (pid or "0")[0].lower()
+    return c if c in CAREER_SHARDS else "0"
+
+
+def write_career_shards(dashdir, career, venues):
+    """Write careers/<0-f>.js so a profile downloads ~1/16th of the career data.
+
+    Each shard calls window.__careerShard(key, {c: {pid: years}, v: {pid: venues}})."""
+    out = os.path.join(dashdir, "careers")
+    os.makedirs(out, exist_ok=True)
+    parts = {k: ({}, {}) for k in CAREER_SHARDS}
+    for pid, yrs in career.items():
+        parts[career_shard(pid)][0][pid] = yrs
+    for pid, vs in venues.items():
+        parts[career_shard(pid)][1][pid] = vs
+    for k, (c, v) in parts.items():
+        body = json.dumps({"c": c, "v": v}, separators=(",", ":"))
+        _awrite(os.path.join(out, f"{k}.js"), f"window.__careerShard({json.dumps(k)},{body});\n")
+    old = os.path.join(dashdir, "careers.js")  # pre-shard monolith
+    if os.path.exists(old):
+        os.remove(old)
+
+
 def build(db="cil.db", outdir="web/data", jsdir="web/dashboard/cohorts"):
     conn = sqlite3.connect(db)
     conn.execute("PRAGMA temp_store=MEMORY")
@@ -680,6 +740,7 @@ def build(db="cil.db", outdir="web/data", jsdir="web/dashboard/cohorts"):
         b = build_cohort(conn, spec, names)
         if not b or b["meta"]["n_batters"] < 4:
             print(f"  {spec['key']}: too small, skipped"); continue
+        write_matchups(jsdir, spec["key"], b.pop("_matchups_all", []), b["meta"])
         payload = json.dumps(b, separators=(",", ":"))
         _awrite(jpath, payload)
         _awrite(os.path.join(jsdir, f"{spec['key']}.js"),
@@ -699,10 +760,8 @@ def build(db="cil.db", outdir="web/data", jsdir="web/dashboard/cohorts"):
     _awrite(os.path.join(os.path.dirname(jsdir), "index.js"),
             "window.CIL_INDEX=" + json.dumps(index, separators=(",", ":")) + ";")
     career, venues = global_profiles(conn)
-    _awrite(os.path.join(os.path.dirname(jsdir), "careers.js"),
-            "window.CIL_CAREER=" + json.dumps(career, separators=(",", ":")) + ";\n"
-            + "window.CIL_VENUES=" + json.dumps(venues, separators=(",", ":")) + ";\n")
-    print(f"  careers.js: {len(career)} batters with career, {len(venues)} with venues")
+    write_career_shards(os.path.dirname(jsdir), career, venues)
+    print(f"  careers/: {len(career)} batters with career, {len(venues)} with venues")
     conn.close()
     return index
 

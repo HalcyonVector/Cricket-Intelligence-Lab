@@ -4,7 +4,10 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Cricket Intelligence Lab</title>
-<link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+<link rel="icon" type="image/svg+xml" href="icon.svg"/>
+<link rel="manifest" href="manifest.webmanifest"/>
+<meta name="theme-color" content="#16100E"/>
+<meta name="description" content="Ball-by-ball cricket analytics across 48 competitions: players, matchups, outliers, records and live scores."/>
 <style>
  :root{
   --base:#0A0608;--panel:#16100E;--panel2:#1F1512;--panel3:#2A1B16;--hair:#3A241E;--hair2:#4A2E22;
@@ -14,6 +17,12 @@
   --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
  }
  *{box-sizing:border-box}
+ :focus-visible{outline:2px solid var(--accent2);outline-offset:2px;border-radius:4px}
+ .skip{position:absolute;left:12px;top:-60px;z-index:1000;background:var(--accent2);color:#2A0C06;padding:9px 14px;border-radius:8px;font-weight:700;text-decoration:none}
+ .skip:focus{top:10px}
+ #app:focus{outline:none}
+ .aclist div.kb{background:rgba(210,104,46,.22)}
+ @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
  html,body{margin:0;min-height:100%;background:
    radial-gradient(1300px 780px at 84% -12%,rgba(210,104,46,.30),transparent 58%),
    radial-gradient(1150px 720px at -8% 2%,rgba(138,46,60,.26),transparent 55%),
@@ -449,6 +458,7 @@
   <ellipse cx="286" cy="596" rx="338" ry="256"/><ellipse cx="296" cy="606" rx="426" ry="322"/>
  </g>
 </svg>
+<a class="skip" href="#app" onclick="event.preventDefault();document.getElementById('app').focus()">Skip to content</a>
 <header>
  <div class="cbar">
    <span class="wm" id="home" title="Home">CIL</span>
@@ -464,14 +474,14 @@
  </div>
  <div class="raterow">
    <div class="modebar" id="modebar"></div>
-   <nav id="nav" class="subnav"></nav>
+   <nav id="nav" class="subnav" aria-label="Section"></nav>
  </div>
 </header>
-<div class="wrap" id="app"></div>
+<main class="wrap" id="app" tabindex="-1"></main>
 <div class="tooltip" id="tip"></div>
 <footer>Cricket Intelligence Lab · open <a href="https://cricsheet.org">Cricsheet</a> ball-by-ball data (ODbL / CC BY-SA) · <span id="srcnote"></span> · Made by <a class="credit" href="https://github.com/HalcyonVector" target="_blank" rel="noopener">HalcyonVector</a></footer>
 
-<script src="playermeta.js" onerror="window.__noMeta=1"></script>
+<script src="playermeta.js" async onload="window.__metaReady&&__metaReady()" onerror="window.__noMeta=1"></script>
 <script src="playerimg.js" onerror="window.__noImg=1"></script>
 <script src="live.js" onerror="window.__noLive=1"></script>
 <script src="schedule.js" onerror="window.__noSched=1"></script>
@@ -480,9 +490,16 @@
 <script>
 const IDX = window.CIL_INDEX || {cohorts:[]};
 const COH = {};                 // lazily loaded cohort bundles, keyed by cohort key
-window.__cohortLoaded=(k,d)=>{ COH[k]=d; };
+/* Outlier flags need an established sample (3x the rate qualifier), else associate tail-enders
+   on 60 balls fill the list. Mirrors FLAG_SAMPLE_MULT in pipeline.py; harmless on new bundles. */
+function _gateOutliers(d){
+  const m=d.meta||{},gate=(grp,pool,min)=>Object.values(grp||{}).forEach(o=>(o.points||[]).forEach(p=>{
+    if(p.flag&&((pool[p.pid]||{}).balls||0)<3*(min||0))p.flag=false;}));
+  gate(d.outliers,d.players||{},m.rate_min_bat);gate(d.bowl_outliers,d.bowlers||{},m.rate_min_bowl);
+}
+window.__cohortLoaded=(k,d)=>{ _gateOutliers(d); COH[k]=d; };
 
-const ARCH_COLOR={Anchor:"#EBA24C",Accumulator:"#33D17A",Aggressor:"#FF6B7E",Finisher:"#FFB454",Rotator:"#B49A8C"};
+const ARCH_COLOR={Anchor:"#EBA24C",Accumulator:"#33D17A",Aggressor:"#FF6B7E",Finisher:"#6FA8FF",Rotator:"#B49A8C"};
 const CRED_NOTE='Rate-stat boards rank by the value shown. A format-aware minimum-ball qualifier (noted above) is applied first, so two-ball wonders are excluded while the order matches the displayed number.';
 const HOME_NOTE='Boards here rank by a confidence-adjusted score: a player with fewer balls in a given situation is pulled toward the field average. The number shown is the raw value, so the order can differ from it. Rate stats also need a minimum number of balls to qualify.';
 const SHRINK_TIP='Ranked by a confidence-adjusted score, not the raw number shown. A player with fewer balls in this situation gets pulled toward the field average, so a small sample can rank below a bigger sample with a higher raw number - this keeps small-sample flukes from topping the list.';
@@ -551,8 +568,18 @@ function dropdown(items,value,onpick){
   let html='',lastG=null;
   items.forEach(x=>{if(x.group&&x.group!==lastG){html+=`<div class="drop-g">${esc(x.group)}</div>`;lastG=x.group;}html+=`<div class="drop-o${String(x.v)===String(value)?' on':''}" data-v="${esc(String(x.v))}">${esc(x.label)}</div>`;});
   menu.innerHTML=html;
-  function close(){menu.style.display='none';el.classList.remove('open');}
-  function open(){menu.style.display='block';el.classList.add('open');const on=menu.querySelector('.drop-o.on');if(on&&on.scrollIntoView)on.scrollIntoView({block:'nearest'});}
+  function close(){menu.style.display='none';el.classList.remove('open');btn.setAttribute('aria-expanded','false');}
+  function open(){menu.style.display='block';el.classList.add('open');btn.setAttribute('aria-expanded','true');const on=menu.querySelector('.drop-o.on');if(on&&on.scrollIntoView)on.scrollIntoView({block:'nearest'});}
+  btn.setAttribute('aria-haspopup','listbox');btn.setAttribute('aria-expanded','false');menu.setAttribute('role','listbox');
+  menu.querySelectorAll('.drop-o').forEach(o=>{o.setAttribute('role','option');o.tabIndex=-1;});
+  el.addEventListener('keydown',e=>{
+    const os=[...menu.querySelectorAll('.drop-o')],isOpen=menu.style.display==='block';
+    if(e.key==='Escape'&&isOpen){close();btn.focus();e.preventDefault();return;}
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();if(!isOpen)open();
+      let i=os.indexOf(document.activeElement);if(i<0)i=os.findIndex(o=>o.classList.contains('on'));
+      i=Math.max(0,Math.min(os.length-1,i+(e.key==='ArrowDown'?1:-1)));os[i].focus();return;}
+    if((e.key==='Enter'||e.key===' ')&&document.activeElement.classList.contains('drop-o')){e.preventDefault();document.activeElement.click();btn.focus();}
+  });
   btn.onclick=e=>{e.stopPropagation();menu.style.display==='block'?close():open();};
   menu.querySelectorAll('.drop-o').forEach(o=>o.onclick=()=>{close();el.setValue(o.dataset.v);onpick(o.dataset.v);});
   document.addEventListener('click',e=>{if(!el.contains(e.target))close();});
@@ -636,8 +663,8 @@ function render(){
   nav.innerHTML=subs.map(([v,lab])=>`<button data-v="${v}">${esc(lab)}</button>`).join('');
   nav.querySelectorAll('button').forEach(b=>b.onclick=()=>{state.view=b.dataset.v;state.player=null;state.bowler=null;render();});
   nav.style.display=subs.length>1?'flex':'none';
-  document.querySelectorAll('.modebtn').forEach(b=>b.classList.toggle('on',b.dataset.m===cm));
-  nav.querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.v===state.view));
+  document.querySelectorAll('.modebtn').forEach(b=>{b.classList.toggle('on',b.dataset.m===cm);b.setAttribute('aria-pressed',b.dataset.m===cm);});
+  nav.querySelectorAll('button').forEach(b=>{const on=b.dataset.v===state.view;b.classList.toggle('active',on);if(on)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
   const dm=meta(state.cohort)||{},ds=document.getElementById('dsline');
   if(ds){const y0=String(dm.coverage_from||'').slice(0,4),y1=String(dm.coverage_to||'').slice(0,4);
     ds.innerHTML=`<span>${(((dm.deliveries||0))/1e6).toFixed(1)}M balls</span><span class="dot">•</span><span>${(dm.matches||0).toLocaleString()} matches</span>${(y0&&y1)?`<span class="dot">•</span><span>Coverage ${y0}–${y1}</span>`:''}`;}
@@ -650,7 +677,11 @@ function render(){
   }
   paint(app);
 }
+let _lastViewKey='';
 function paint(app){
+  const vk=state.cohort+'|'+state.view+'|'+state.player+'|'+state.bowler;
+  if(_lastViewKey&&vk!==_lastViewKey&&document.activeElement&&document.activeElement!==document.body&&!document.activeElement.closest('header'))requestAnimationFrame(()=>app.focus({preventScroll:true}));
+  _lastViewKey=vk;
   clearLiveTimers();
   app.innerHTML='';
   if(state.player){app.appendChild(playerView(state.player));try{mountCareer(app,state.player);}catch(e){}try{mountVenues(app,state.player);}catch(e){}}
@@ -905,7 +936,11 @@ function bowlerProfile(id){
   const meta=(window.CIL_PLAYERMETA||{})[id]||{};
   const isHttp=location.protocol.indexOf('http')===0;
   const photo=meta.photo||playerImg(b.name,meta.unique_name||meta.name,id)||(isHttp?'/api/photo?name='+encodeURIComponent(meta.unique_name||meta.name||b.name):'');
-  w.appendChild($(`<div class="row" style="margin-top:20px;align-items:center"><button class="pill" id="bback">← back</button>${avatarHTML(b.name,photo)}<div><div class="row" style="gap:9px"><h1 style="margin:0">${esc(b.name)}</h1><span class="badge">Bowler</span>${b.qualified?'':'<span class="badge">below rate qualifier</span>'}</div><div class="dim" style="margin-top:2px">${esc(c.meta.label)}</div></div></div>`));
+  w.appendChild($(`<div class="row" style="margin-top:20px;align-items:center"><button class="pill" id="bback">← back</button>${avatarHTML(b.name,photo)}<div><div class="row" style="gap:9px"><h1 style="margin:0">${esc(b.name)}</h1><span class="badge">Bowler</span>${b.qualified?'':'<span class="badge">below rate qualifier</span>'}<button class="pill" id="bcard" title="Download a shareable stat card (PNG)">Share card ↓</button></div><div class="dim" style="margin-top:2px">${esc(c.meta.label)}</div></div></div>`));
+  w.querySelector('#bcard').onclick=()=>playerCard({name:b.name,sub:c.meta.label+(meta.country?' · '+meta.country:''),badge:'Bowler',
+    tiles:[["Wickets",b.wickets],["Economy",b.economy],["Average",b.bowl_avg],["Strike rate",b.bowl_sr],["Dot %",b.dot_pct],["Balls",b.balls]],
+    pct:b.pct?[["Economy",b.pct.economy],["Strike rate",b.pct.bowl_sr],["Dot %",b.pct.dot_pct],["Era index",b.pct.era_index]]:[],
+    pctOf:c.meta.n_qual_bowl+' rated bowlers'});
   const tiles=[["Wickets",b.wickets],["Economy",b.economy],["Average",b.bowl_avg],["Strike Rate",b.bowl_sr],["Balls",b.balls],["Runs",b.runs],["Dot %",b.dot_pct],["Boundary %",b.bnd_pct]];
   const g=$(`<div class="grid bento" style="margin-top:14px"></div>`);
   g.innerHTML=tiles.map(t=>`<div class="s3"><div class="panel kpi"><div class="l">${t[0]}</div><div class="n"${typeof t[1]==='number'?' data-count':''}>${fmtN(t[1])}</div></div></div>`).join('');
@@ -932,7 +967,11 @@ function playerView(pid){
   const isHttp=location.protocol.indexOf('http')===0;
   const photo=meta.photo||playerImg(p.name,meta.unique_name||meta.name,pid)||(isHttp?'/api/photo?name='+encodeURIComponent(meta.unique_name||meta.name||p.name):'');
   const ciLink=meta.cricinfo_id?`<a class="pill" href="https://www.espncricinfo.com/ci/content/player/${meta.cricinfo_id}.html" target="_blank" rel="noopener">ESPNcricinfo ↗</a>`:'';
-  w.appendChild($(`<div class="row" style="margin-top:20px;align-items:center"><button class="pill" id="back">← back</button>${avatarHTML(p.name,photo)}<div><div class="row" style="gap:9px"><h1 style="margin:0">${esc(p.name)}</h1>${archPill(p.archetype)}${p.qualified?'':'<span class="badge">below rate qualifier</span>'}${meta.country?`<span class="badge">${esc(meta.country)}</span>`:''}${ciLink}</div><div class="dim" style="margin-top:2px">${esc(c.meta.label)}</div></div></div>`));
+  w.appendChild($(`<div class="row" style="margin-top:20px;align-items:center"><button class="pill" id="back">← back</button>${avatarHTML(p.name,photo)}<div><div class="row" style="gap:9px"><h1 style="margin:0">${esc(p.name)}</h1>${archPill(p.archetype)}${p.qualified?'':'<span class="badge">below rate qualifier</span>'}${meta.country?`<span class="badge">${esc(meta.country)}</span>`:''}${ciLink}<button class="pill" id="pcard" title="Download a shareable stat card (PNG)">Share card ↓</button></div><div class="dim" style="margin-top:2px">${esc(c.meta.label)}</div></div></div>`));
+  w.querySelector('#pcard').onclick=()=>playerCard({name:p.name,sub:c.meta.label+(meta.country?' · '+meta.country:''),badge:p.archetype||'Batter',
+    tiles:[["Runs",p.runs],["Average",p.avg],["Strike rate",p.sr],["Innings",p.innings],["50s / 100s",`${p.fifties}/${p.hundreds}`],["Highest",p.highest]],
+    pct:p.pct?[["Average",p.pct.avg],["Strike rate",p.pct.sr],["Boundary %",p.pct.boundary_pct],["Consistency",p.pct.consistency],["Era index",p.pct.era_index]]:[],
+    pctOf:c.meta.n_qual_bat+' rated batters',color:ARCH_COLOR[p.archetype]});
   const tiles=[["Runs",p.runs],["Average",p.avg],["Strike Rate",p.sr],["Innings",p.innings],["50/100",`${p.fifties}/${p.hundreds}`],["Highest",p.highest],["Boundary %",p.boundary_pct],["Sixes",p.sixes]];
   const g=$(`<div class="grid bento" style="margin-top:14px"></div>`);
   g.innerHTML=tiles.map(t=>`<div class="s3"><div class="panel kpi"><div class="l">${t[0]}</div><div class="n"${typeof t[1]==='number'?' data-count':''}>${fmtN(t[1])}</div></div></div>`).join('');
@@ -1035,11 +1074,38 @@ function radar(players,axes,cols){
 }
 
 /* ================= MATCHUPS ================= */
+/* cohorts/matchups/<key>.js holds every batter-vs-bowler pair above the ball floor
+   (the main bundle only has the top 400). Loaded lazily the first time Matchups opens. */
+const _muStore={};
+window.__matchupsLoaded=(key,d)=>{
+  _muStore[key]={min:d.min_balls,rows:d.rows.map(r=>{const b=d.bat[r[0]],w=d.bowl[r[1]];
+    return {batter:b[0],batter_name:b[1],bowler:w[0],bowler_name:w[1],balls:r[2],runs:r[3],outs:r[4],
+      sr:r[2]?Math.round(1000*r[3]/r[2])/10:null,avg:r[4]?Math.round(10*r[3]/r[4])/10:null,dominance:r[5]};})};
+};
+function ensureMatchups(key,cb){
+  const st=_muStore[key];
+  if(st&&st.rows){cb(st);return;}
+  if(st&&st.waiting){st.waiting.push(cb);return;}
+  const w=_muStore[key]={waiting:[cb]};
+  const s=document.createElement('script');s.src='cohorts/matchups/'+key+'.js';
+  const done=()=>{const r=_muStore[key].rows?_muStore[key]:{rows:null};w.waiting.forEach(f=>f(r));if(!r.rows)delete _muStore[key];};
+  s.onload=done;s.onerror=done;document.head.appendChild(s);
+}
 function matchupsView(app){
   const c=cur();
-  app.appendChild($(`<div><h1>Matchup Intelligence</h1><p class="sub">Search a batter vs bowler, or browse the biggest head-to-heads.</p></div>`));
-  const bat=[...new Set(c.matchups_top.map(m=>m.batter_name))].sort();
-  const bowl=[...new Set(c.matchups_top.map(m=>m.bowler_name))].sort();
+  const intro=$(`<div><h1>Matchup Intelligence</h1><p class="sub">Search any batter vs any bowler, or browse the biggest head-to-heads. <span id="mucount" class="dim">Loading every pair…</span></p></div>`);
+  app.appendChild(intro);
+  ensureMatchups(c.meta.key,st=>{
+    if(state.view!=='matchups'||cur()!==c)return;
+    const host=intro.parentNode;if(!host)return;
+    const all=st.rows||c.matchups_top;
+    intro.querySelector('#mucount').textContent=st.rows?`${all.length.toLocaleString()} pairs with ${st.min}+ balls.`:'Showing the 400 biggest pairs.';
+    _matchupsBody(host,c,all,st.min||12);
+  });
+}
+function _matchupsBody(app,c,all,minBalls){
+  const bat=[...new Set(all.map(m=>m.batter_name))].sort();
+  const bowl=[...new Set(all.map(m=>m.bowler_name))].sort();
   const box=$(`<div class="panel"><div class="row">
     <div class="ac"><input id="mb" placeholder="Batter…" autocomplete="off" style="width:200px"/><div class="aclist" style="display:none"></div></div>
     <span class="dim">vs</span>
@@ -1050,7 +1116,8 @@ function matchupsView(app){
   function detail(){
     const res=box.querySelector('#mres');
     if(!selB&&!selW){res.innerHTML='<span class="note">Pick a batter and/or bowler.</span>';return;}
-    let rows=c.matchups_top.filter(m=>(!selB||m.batter_name===selB)&&(!selW||m.bowler_name===selW));
+    let rows=all.filter(m=>(!selB||m.batter_name===selB)&&(!selW||m.bowler_name===selW));
+    if(!rows.length){res.innerHTML=`<span class="note">No meeting with at least ${minBalls} balls${selB&&selW?` between ${esc(selB)} and ${esc(selW)}`:''} in ${esc(c.meta.label)}.</span>`;return;}
     if(selB&&selW&&rows.length){const m=rows[0];
       res.innerHTML=`<div class="grid bento"><div class="panel s12" style="background:linear-gradient(120deg,rgba(210,104,46,.13),transparent)"><div class="row" style="justify-content:space-between"><h1 style="margin:0;font-size:19px">${esc(m.batter_name)} <span class="dim">vs</span> ${esc(m.bowler_name)}</h1><span class="arch" style="background:${m.dominance>=.55?'#33D17A22':m.dominance<=.45?'#FF6B7E22':'#8884'};color:${m.dominance>=.55?'var(--pos)':m.dominance<=.45?'var(--neg)':'var(--ink)'}">dominance ${m.dominance}</span></div>
         <div class="grid bento" style="margin-top:10px">${[["Balls",m.balls],["Runs",m.runs],["Dismissals",m.outs],["Strike Rate",m.sr],["Average",m.avg]].map(t=>`<div class="s4"><div class="kpi"><div class="l">${t[0]}</div><div class="n">${fmtN(t[1])}</div></div></div>`).join('')}</div></div></div>`;return;}
@@ -1121,16 +1188,32 @@ function researchView(app){
   }
   ctrl.querySelectorAll('select,input').forEach(e=>e.oninput=draw);draw();
 }
+/* Axis ticks: "nice" round values + labels, so charts show real numbers, not just arrows. */
+function niceTicks(lo,hi,n){
+  if(!(hi>lo))return [lo];
+  const raw=(hi-lo)/Math.max(1,n),p=Math.pow(10,Math.floor(Math.log10(raw))),f=raw/p;
+  const step=(f<1.5?1:f<3?2:f<7?5:10)*p,out=[];
+  for(let v=Math.ceil(lo/step)*step;v<=hi+step*1e-9;v+=step)out.push(+v.toFixed(6));
+  return out;
+}
+function _tickFmt(v){return Math.abs(v)>=1000?(v/1000).toFixed(v%1000?1:0)+'k':(Math.round(v*10)/10).toString();}
+function axisTicksSVG(sx,sy,xr,yr,box,o){
+  o=o||{};const [x0,y0,x1,y1]=box,fs=o.fs||9,col='#8A6A5C',grid=o.grid!==false;
+  let s='';
+  if(xr)niceTicks(xr[0],xr[1],o.nx||5).forEach(v=>{const x=sx(v);s+=(grid?`<line x1="${x.toFixed(1)}" y1="${y0}" x2="${x.toFixed(1)}" y2="${y1}" stroke="#1F1512"/>`:'')+`<text x="${x.toFixed(1)}" y="${y1+12}" text-anchor="middle" fill="${col}" font-size="${fs}">${_tickFmt(v)}</text>`;});
+  if(yr)niceTicks(yr[0],yr[1],o.ny||4).forEach(v=>{const y=sy(v);s+=(grid?`<line x1="${x0}" y1="${y.toFixed(1)}" x2="${x1}" y2="${y.toFixed(1)}" stroke="#1F1512"/>`:'')+`<text x="${x0-5}" y="${(y+3).toFixed(1)}" text-anchor="end" fill="${col}" font-size="${fs}">${_tickFmt(v)}</text>`;});
+  return s;
+}
 function scatter(pts,slope,inter,colmode,xl,yl){
   const W=640,H=400,pad=46;const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y);
   const xmin=Math.min(...xs),xmax=Math.max(...xs),ymin=Math.min(...ys),ymax=Math.max(...ys);
   const sx=x=>pad+(x-xmin)/((xmax-xmin)||1)*(W-2*pad),sy=y=>H-pad-(y-ymin)/((ymax-ymin)||1)*(H-2*pad);
-  let svg=`<svg viewBox="0 0 ${W} ${H}" width="100%">`;
-  for(let i=0;i<=4;i++){const gx=pad+i/4*(W-2*pad),gy=pad+i/4*(H-2*pad);svg+=`<line x1="${gx}" y1="${pad}" x2="${gx}" y2="${H-pad}" stroke="#1F1512"/><line x1="${pad}" y1="${gy}" x2="${W-pad}" y2="${gy}" stroke="#1F1512"/>`;}
+  let svg=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(yl)} against ${esc(xl)}, ${pts.length} players">`;
+  svg+=axisTicksSVG(sx,sy,[xmin,xmax],[ymin,ymax],[pad,pad,W-pad,H-pad],{fs:10});
   svg+=`<line x1="${sx(xmin)}" y1="${sy(slope*xmin+inter)}" x2="${sx(xmax)}" y2="${sy(slope*xmax+inter)}" stroke="#EBA24C" stroke-dasharray="5 4" opacity=".7"/>`;
   pts.forEach(p=>{const fill=colmode==='flag'?(p.flag?'#FF6B7E':'#46291F'):(ARCH_COLOR[p.arch]||'#EBA24C');
     svg+=`<circle class="scatter-pt" cx="${sx(p.x)}" cy="${sy(p.y)}" r="${p.flag?5.5:3.6}" fill="${fill}" opacity="${p.flag?1:.72}" data-n="${esc(p.name).replace(/"/g,'')}" data-x="${p.x}" data-y="${p.y}" data-z="${p.z}" data-pid="${p.pid}"/>`;});
-  svg+=`<text x="${W/2}" y="${H-12}" fill="#C7A99B" font-size="11" text-anchor="middle">${xl}</text><text x="14" y="${H/2}" fill="#C7A99B" font-size="11" text-anchor="middle" transform="rotate(-90 14 ${H/2})">${yl}</text></svg>`;
+  svg+=`<text x="${W/2}" y="${H-6}" fill="#C7A99B" font-size="11" text-anchor="middle">${xl}</text><text x="11" y="${H/2}" fill="#C7A99B" font-size="11" text-anchor="middle" transform="rotate(-90 11 ${H/2})">${yl}</text></svg>`;
   const el=$(`<div>${svg}</div>`);
   el.querySelectorAll('.scatter-pt').forEach(ci=>{ci.onmousemove=e=>showTip(`<b>${ci.dataset.n}</b><br>${xl}: ${ci.dataset.x}<br>${yl}: ${ci.dataset.y}<br>resid ${ci.dataset.z}σ`,e.clientX,e.clientY);ci.onmouseleave=hideTip;ci.onclick=()=>{state.player=ci.dataset.pid;render();};});
   return el;
@@ -1401,14 +1484,29 @@ function scheduleView(app){
 }
 
 /* ================= helpers ================= */
-function wirePlinks(root){root.querySelectorAll('.plink').forEach(a=>{if(a.dataset.pid)a.onclick=()=>{state.player=a.dataset.pid;render();};});}
+function wirePlinks(root){root.querySelectorAll('.plink').forEach(a=>{if(a.dataset.pid){a.onclick=()=>{state.player=a.dataset.pid;render();};if(!a.hasAttribute('href'))a.setAttribute('href','#c='+encodeURIComponent(state.cohort)+'&p='+encodeURIComponent(a.dataset.pid));}});}
+/* .plink anchors get a real deep-link href, so Tab/Enter reach them and middle/ctrl-click opens
+   a new tab. A plain click is handled in-app by onclick; stop the default hash jump there. */
+document.addEventListener('click',e=>{if(e.button||e.ctrlKey||e.metaKey||e.shiftKey)return;const a=e.target.closest&&e.target.closest('a.plink[data-pid]');if(a)e.preventDefault();},true);
 function autocomplete(inp,items,onpick){
   const list=inp.parentElement.querySelector('.aclist');
-  inp.oninput=()=>{const q=inp.value.toLowerCase().trim();if(!q){list.style.display='none';onpick('');return;}
-    const hits=items.filter(x=>x.toLowerCase().includes(q)).slice(0,12);
-    list.innerHTML=hits.map(x=>`<div>${esc(x)}</div>`).join('')||'<div class="muted">no match</div>';list.style.display='block';
-    list.querySelectorAll('div').forEach(d=>d.onclick=()=>{if(d.textContent==='no match')return;inp.value=d.textContent;list.style.display='none';onpick(d.textContent);});};
-  inp.onblur=()=>setTimeout(()=>list.style.display='none',180);
+  const lid='ac'+Math.random().toString(36).slice(2,8);list.id=lid;list.setAttribute('role','listbox');
+  inp.setAttribute('role','combobox');inp.setAttribute('aria-autocomplete','list');inp.setAttribute('aria-controls',lid);inp.setAttribute('aria-expanded','false');
+  if(!inp.getAttribute('aria-label')&&inp.placeholder)inp.setAttribute('aria-label',inp.placeholder.replace(/…$/,''));
+  let kb=-1;
+  const show=v=>{list.style.display=v?'block':'none';inp.setAttribute('aria-expanded',v?'true':'false');if(!v){kb=-1;inp.removeAttribute('aria-activedescendant');}};
+  const pick=d=>{if(!d)return;inp.value=d.textContent;show(false);onpick(d.textContent);};
+  inp.oninput=()=>{const q=inp.value.toLowerCase().trim();if(!q){show(false);onpick('');return;}
+    const hits=items.filter(x=>x.toLowerCase().includes(q)).slice(0,12);kb=-1;
+    list.innerHTML=hits.map((x,i)=>`<div role="option" id="${lid}-${i}">${esc(x)}</div>`).join('')||'<div class="muted">no match</div>';show(true);
+    list.querySelectorAll('div[role=option]').forEach(d=>d.onclick=()=>pick(d));};
+  inp.onkeydown=e=>{const os=[...list.querySelectorAll('div[role=option]')];
+    if(e.key==='Escape'){show(false);return;}
+    if(!os.length||list.style.display==='none')return;
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();kb=(kb+(e.key==='ArrowDown'?1:-1)+os.length)%os.length;
+      os.forEach((o,i)=>{o.classList.toggle('kb',i===kb);o.setAttribute('aria-selected',i===kb);});inp.setAttribute('aria-activedescendant',os[kb].id);os[kb].scrollIntoView({block:'nearest'});}
+    else if(e.key==='Enter'){e.preventDefault();pick(os[kb>=0?kb:0]);}};
+  inp.onblur=()=>setTimeout(()=>show(false),180);
 }
 function setupSearch(){
   const inp=document.getElementById('search'),res=document.getElementById('searchAc');
@@ -1464,29 +1562,31 @@ function discovery(c){
 }
 function scatterSVG(c){
   const o=c.outliers&&c.outliers.avg_vs_sr;if(!o||!o.points||!o.points.length)return '<div class="note">No data.</div>';
-  const pts=o.points.filter(p=>!_isId(p.name)),W=560,H=300,pad=38;
+  const pts=o.points.filter(p=>!_isId(p.name)),W=560,H=300,pad=42;
   if(!pts.length)return '<div class="note">No data.</div>';
   const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y);
   const xmin=Math.min(...xs),xmax=Math.max(...xs),ymin=Math.min(...ys),ymax=Math.max(...ys);
   const X=v=>pad+(v-xmin)/((xmax-xmin)||1)*(W-2*pad),Y=v=>H-pad-(v-ymin)/((ymax-ymin)||1)*(H-2*pad);
   const dots=pts.map(p=>{const fl=p.flag;return `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="${fl?4.4:2.3}" fill="${fl?'#FF6B7E':'#D2682E'}" fill-opacity="${fl?0.95:0.38}" ${p.pid?`class="spt" data-pid="${p.pid}"`:''}><title>${esc(p.name)} - avg ${p.x}, SR ${p.y}</title></circle>`;}).join('');
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">
+    ${axisTicksSVG(X,Y,[xmin,xmax],[ymin,ymax],[pad,pad,W-pad,H-pad])}
     <line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="#4A2E22"/><line x1="${pad}" y1="${pad}" x2="${pad}" y2="${H-pad}" stroke="#4A2E22"/>
-    <text x="${W/2}" y="${H-6}" text-anchor="middle" fill="#A6816E" font-size="10">Average →</text>
-    <text x="12" y="${H/2}" transform="rotate(-90 12 ${H/2})" text-anchor="middle" fill="#A6816E" font-size="10">Strike rate →</text>
+    <text x="${W/2}" y="${H-4}" text-anchor="middle" fill="#A6816E" font-size="10">Average →</text>
+    <text x="10" y="${H/2}" transform="rotate(-90 10 ${H/2})" text-anchor="middle" fill="#A6816E" font-size="10">Strike rate →</text>
     ${dots}</svg>`;
 }
 function galaxySVG(c){
   const ps=Object.entries(c.players||{}).filter(([id,p])=>p.qualified&&p.pct&&p.pct.sr!=null&&p.pct.avg!=null).sort((a,b)=>(b[1].runs||0)-(a[1].runs||0)).slice(0,220);
   if(!ps.length)return '<div class="note">No data.</div>';
-  const W=560,H=320,pad=24;
+  const W=560,H=320,pad=36;
   const X=v=>pad+v/100*(W-2*pad),Y=v=>H-pad-v/100*(H-2*pad);
   const dots=ps.map(([id,p])=>`<circle cx="${X(p.pct.sr).toFixed(1)}" cy="${Y(p.pct.avg).toFixed(1)}" r="3.5" fill="${ARCH_COLOR[p.archetype]||'#B49A8C'}" fill-opacity="0.78" class="spt" data-pid="${id}"><title>${esc(p.name)} - ${p.archetype||''} (avg %ile ${p.pct.avg}, SR %ile ${p.pct.sr})</title></circle>`).join('');
   const leg=Object.keys(ARCH_COLOR).map(k=>`<span><span class="sw" style="background:${ARCH_COLOR[k]}"></span>${k}</span>`).join('');
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">
+    ${axisTicksSVG(X,Y,[0,100],[0,100],[pad,pad,W-pad,H-pad],{nx:4,ny:4})}
     <line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="#4A2E22"/><line x1="${pad}" y1="${pad}" x2="${pad}" y2="${H-pad}" stroke="#4A2E22"/>
-    <text x="${W/2}" y="${H-6}" text-anchor="middle" fill="#A6816E" font-size="10">Strike-rate percentile →</text>
-    <text x="12" y="${H/2}" transform="rotate(-90 12 ${H/2})" text-anchor="middle" fill="#A6816E" font-size="10">Average percentile →</text>
+    <text x="${W/2}" y="${H-4}" text-anchor="middle" fill="#A6816E" font-size="10">Strike-rate percentile →</text>
+    <text x="10" y="${H/2}" transform="rotate(-90 10 ${H/2})" text-anchor="middle" fill="#A6816E" font-size="10">Average percentile →</text>
     ${dots}</svg><div class="legend" style="margin-top:8px">${leg}</div>`;
 }
 function wireSpt(root){root.querySelectorAll('.spt').forEach(e=>{const id=e.getAttribute('data-pid');if(id){e.style.cursor='pointer';e.onclick=()=>{state.player=id;render();};}});}
@@ -1594,33 +1694,98 @@ function networkView(app){
   autocomplete(bar.querySelector('#netq'),names,(nm)=>{if(nm&&nameToId[nm]){state.netPlayer=nameToId[nm];render();}});
   panel.querySelectorAll('.netn').forEach(g=>g.onclick=()=>{state.netPlayer=g.getAttribute('data-pid');render();});
 }
-/* ===================== CAREER TIMELINE + VENUES (static, lazy-loaded careers.js) ===================== */
-let _carLoading=false,_carWaiters=[];
-function ensureCareers(cb){
-  if(window.CIL_CAREER){cb();return;}
-  _carWaiters.push(cb);
-  if(_carLoading)return;_carLoading=true;
-  const s=document.createElement('script');s.src='careers.js';
-  const done=()=>{window.CIL_CAREER=window.CIL_CAREER||{};window.CIL_VENUES=window.CIL_VENUES||{};_carWaiters.forEach(f=>f());_carWaiters=[];};
-  s.onload=done;s.onerror=done;document.head.appendChild(s);
+/* ===================== CAREER TIMELINE + VENUES (static, lazy-loaded careers/<shard>.js) ===================== */
+/* ===================== SHAREABLE PLAYER CARD (canvas -> PNG, no libraries) ===================== */
+function playerCard(o){
+  const W=1200,H=630,cv=document.createElement('canvas');cv.width=W;cv.height=H;
+  const x=cv.getContext('2d'),F='system-ui,-apple-system,"Segoe UI",Roboto,sans-serif',acc=o.color||'#EBA24C';
+  const bg=x.createLinearGradient(0,0,W,H);bg.addColorStop(0,'#1C100C');bg.addColorStop(1,'#0C0706');x.fillStyle=bg;x.fillRect(0,0,W,H);
+  const glow=x.createRadialGradient(W*0.85,-40,10,W*0.85,-40,520);glow.addColorStop(0,'rgba(210,104,46,.35)');glow.addColorStop(1,'rgba(210,104,46,0)');x.fillStyle=glow;x.fillRect(0,0,W,H);
+  x.fillStyle=acc;x.fillRect(0,0,10,H);
+  x.fillStyle='#A6816E';x.font=`600 20px ${F}`;x.fillText('CRICKET INTELLIGENCE LAB',64,74);
+  x.fillStyle='#F4E6DE';x.font=`700 64px ${F}`;let nm=o.name;while(x.measureText(nm).width>W-128&&nm.length>4)nm=nm.slice(0,-2);x.fillText(nm===o.name?nm:nm+'…',64,152);
+  x.font=`500 24px ${F}`;x.fillStyle='#C7A99B';x.fillText(o.sub||'',64,192);
+  if(o.badge){x.font=`700 20px ${F}`;const bw=x.measureText(o.badge).width+28;x.fillStyle=acc+'33';x.beginPath();x.roundRect(W-64-bw,50,bw,38,19);x.fill();x.fillStyle=acc;x.fillText(o.badge,W-64-bw+14,76);}
+  const tw=(W-128-5*20)/6;
+  o.tiles.forEach((t,i)=>{const tx=64+i*(tw+20),ty=232;x.fillStyle='rgba(255,255,255,.04)';x.beginPath();x.roundRect(tx,ty,tw,120,14);x.fill();
+    x.fillStyle='#A6816E';x.font=`600 17px ${F}`;x.fillText(String(t[0]).toUpperCase(),tx+18,ty+36);
+    x.fillStyle='#F4E6DE';x.font=`700 40px ${F}`;x.fillText(t[1]==null?'–':String(t[1]),tx+18,ty+92);});
+  if(o.pct&&o.pct.length){
+    x.fillStyle='#A6816E';x.font=`600 18px ${F}`;x.fillText(`PERCENTILE vs ${o.pctOf||''}`.toUpperCase(),64,404);
+    const rows=o.pct.filter(r=>r[1]!=null),cols=Math.ceil(rows.length/2)>2?3:2,cw=(W-128-(cols-1)*40)/cols;
+    rows.forEach((r,i)=>{const col=i%cols,row=Math.floor(i/cols),px=64+col*(cw+40),py=436+row*74;
+      x.fillStyle='#C7A99B';x.font=`500 19px ${F}`;x.fillText(r[0],px,py+18);
+      x.fillStyle='#F4E6DE';x.font=`700 19px ${F}`;const v=Math.round(r[1]);x.textAlign='right';x.fillText(String(v),px+cw,py+18);x.textAlign='left';
+      x.fillStyle='rgba(255,255,255,.08)';x.beginPath();x.roundRect(px,py+30,cw,10,5);x.fill();
+      x.fillStyle=v>=75?'#33D17A':v>=40?'#EBA24C':'#FF6B7E';x.beginPath();x.roundRect(px,py+30,Math.max(6,cw*v/100),10,5);x.fill();});
+  }
+  x.fillStyle='#6E5246';x.font=`500 16px ${F}`;x.fillText('Ball-by-ball data: cricsheet.org',64,H-30);
+  x.textAlign='right';x.fillText(location.host||'',W-64,H-30);x.textAlign='left';
+  const file=(o.name||'player').replace(/[^a-z0-9]+/gi,'-').toLowerCase()+'-card.png';
+  cv.toBlob(async blob=>{
+    if(!blob)return;
+    const f=new File([blob],file,{type:'image/png'});
+    if(navigator.canShare&&navigator.canShare({files:[f]})&&matchMedia('(pointer:coarse)').matches){try{await navigator.share({files:[f],title:o.name});return;}catch(e){}}
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=file;document.body.appendChild(a);a.click();
+    setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);
+  },'image/png');
 }
-function careerSVG(years){
-  const W=720,H=210,pad=36,n=years.length;
-  const mx=Math.max(...years.map(y=>y.runs||0),1),gap=(W-2*pad)/n,bw=Math.min(34,gap*0.66);
-  const peak=years.reduce((a,b)=>(b.runs||0)>(a.runs||0)?b:a,years[0]);
-  const bars=years.map((y,i)=>{const x=pad+i*gap+(gap-bw)/2,h=(y.runs/mx)*(H-2*pad-14),yy=H-pad-h,pk=y.year===peak.year;
-    return `<g><rect x="${x.toFixed(1)}" y="${yy.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(1,h).toFixed(1)}" rx="2" fill="${pk?'#FFB454':'#D2682E'}" fill-opacity="${pk?0.95:0.62}"><title>${y.year}: ${y.runs} runs in ${y.inns} inns · avg ${y.avg} · SR ${y.sr}</title></rect>${n<=24?`<text x="${(x+bw/2).toFixed(1)}" y="${H-pad+13}" text-anchor="middle" fill="#A6816E" font-size="8.5">'${String(y.year).slice(2)}</text>`:''}</g>`;}).join('');
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block"><line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="#4A2E22"/>${bars}<text x="${pad}" y="18" fill="#C7A99B" font-size="10">Peak ${peak.year}: ${peak.runs} runs</text></svg>`;
+/* careers/<0-f>.js: 16 shards keyed by the first hex char of the player id, so a
+   profile pulls ~700 KB (~130 KB gzipped) instead of the whole 11 MB set. */
+window.CIL_CAREER=window.CIL_CAREER||{};window.CIL_VENUES=window.CIL_VENUES||{};
+const _carShards={};
+window.__careerShard=(k,d)=>{Object.assign(CIL_CAREER,d.c||{});Object.assign(CIL_VENUES,d.v||{});};
+function ensureCareers(pid,cb){
+  const k=/^[0-9a-f]/i.test(pid||'')?pid[0].toLowerCase():'0';
+  let sh=_carShards[k];
+  if(sh&&sh.done){cb();return;}
+  if(!sh){
+    sh=_carShards[k]={done:false,waiters:[]};
+    const s=document.createElement('script');s.src='careers/'+k+'.js';
+    const done=()=>{sh.done=true;sh.waiters.forEach(f=>f());sh.waiters=[];};
+    s.onload=done;s.onerror=done;document.head.appendChild(s);
+  }
+  sh.waiters.push(cb);
+}
+/* Year-by-year form, all formats in the dataset. metric: runs (bars) | avg | sr (line). */
+const CAREER_METRICS={runs:{lab:'Runs',unit:'runs',bar:true},avg:{lab:'Average',unit:'avg'},sr:{lab:'Strike rate',unit:'SR'}};
+function careerSVG(years,metric){
+  metric=CAREER_METRICS[metric]?metric:'runs';const M=CAREER_METRICS[metric];
+  const W=720,H=210,pad=36,n=years.length,val=y=>+(y[metric]||0);
+  const mx=Math.max(...years.map(val),1),gap=(W-2*pad)/n,bw=Math.min(34,gap*0.66);
+  // peak ignores tiny-sample years for rate stats (a 9-ball year at SR 200 isn't a peak)
+  const elig=metric==='runs'?years:years.filter(y=>(y.balls||0)>=60);
+  const pool=elig.length?elig:years,peak=pool.reduce((a,b)=>val(b)>val(a)?b:a,pool[0]);
+  const cy=v=>H-pad-(v/mx)*(H-2*pad-14),cx=i=>pad+i*gap+gap/2;
+  const tip=y=>`${y.year}: ${y.runs} runs in ${y.inns} inns · avg ${y.avg} · SR ${y.sr} · ${y.balls} balls`;
+  const lab=(y,i)=>n<=24?`<text x="${cx(i).toFixed(1)}" y="${H-pad+13}" text-anchor="middle" fill="#A6816E" font-size="8.5">'${String(y.year).slice(2)}</text>`:'';
+  let marks;
+  if(M.bar){
+    marks=years.map((y,i)=>{const x=cx(i)-bw/2,h=(val(y)/mx)*(H-2*pad-14),pk=y.year===peak.year;
+      return `<g><rect x="${x.toFixed(1)}" y="${(H-pad-h).toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(1,h).toFixed(1)}" rx="2" fill="${pk?'#FFB454':'#D2682E'}" fill-opacity="${pk?0.95:0.62}"><title>${tip(y)}</title></rect>${lab(y,i)}</g>`;}).join('');
+  }else{
+    const pts=years.map((y,i)=>`${cx(i).toFixed(1)},${cy(val(y)).toFixed(1)}`).join(' ');
+    marks=`<polyline points="${pts}" fill="none" stroke="#D2682E" stroke-width="2" stroke-opacity=".8"/>`+
+      years.map((y,i)=>{const pk=y.year===peak.year,small=(y.balls||0)<60;
+        return `<g><circle cx="${cx(i).toFixed(1)}" cy="${cy(val(y)).toFixed(1)}" r="${pk?5:3.6}" fill="${pk?'#FFB454':small?'#2A1A15':'#D2682E'}" stroke="#D2682E" stroke-width="${small?1.2:0}"><title>${tip(y)}${small?' (small sample)':''}</title></circle>${lab(y,i)}</g>`;}).join('');
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block" role="img" aria-label="${M.lab} per year, peak ${peak.year}">${axisTicksSVG(null,cy,null,[0,mx],[pad,pad,W-pad,H-pad],{ny:3})}<line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="#4A2E22"/>${marks}<text x="${pad}" y="18" fill="#C7A99B" font-size="10">Peak ${peak.year}: ${val(peak)} ${M.unit}</text></svg>`;
 }
 function mountCareer(app,pid){
   const w=app.firstElementChild;if(!w)return;
   const panel=document.createElement('div');panel.className='panel';panel.style.marginTop='13px';
   panel.innerHTML='<h2>Career timeline <span class="r">loading…</span></h2>';
   if(w.children.length>1)w.insertBefore(panel,w.children[1]);else w.appendChild(panel);
-  ensureCareers(()=>{
+  ensureCareers(pid,()=>{
     const years=(window.CIL_CAREER||{})[pid];
     if(!years||!years.length){panel.remove();return;}
-    panel.innerHTML='<h2>Career timeline <span class="r">runs per year · gold = peak</span></h2>'+careerSVG(years);
+    let metric=state.careerMetric||'runs';
+    const draw=()=>{
+      panel.innerHTML=`<div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px"><h2 style="margin:0">Form by year <span class="r">all formats · gold = peak</span></h2>
+        <div class="seg" role="group" aria-label="Career metric">${Object.entries(CAREER_METRICS).map(([k,m])=>`<button data-m="${k}" class="${k===metric?'on':''}" aria-pressed="${k===metric}">${m.lab}</button>`).join('')}</div></div>`+careerSVG(years,metric);
+      panel.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{metric=state.careerMetric=b.dataset.m;draw();});
+    };
+    draw();
   });
 }
 function mountVenues(app,pid){
@@ -1628,7 +1793,7 @@ function mountVenues(app,pid){
   const panel=document.createElement('div');panel.className='panel';panel.style.marginTop='13px';
   panel.innerHTML='<h2>By venue <span class="r">loading…</span></h2>';
   w.appendChild(panel);
-  ensureCareers(()=>{
+  ensureCareers(pid,()=>{
     const venues=(window.CIL_VENUES||{})[pid];
     if(!venues||!venues.length){panel.remove();return;}
     const mx=Math.max(...venues.map(v=>v.runs||0),1);
@@ -1636,6 +1801,10 @@ function mountVenues(app,pid){
       venues.map(v=>`<div class="minibar norank"><span title="${esc(v.venue)}${v.city?', '+esc(v.city):''}" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(v.venue)}</span><div class="bar"><span style="width:${(v.runs/mx*100).toFixed(1)}%"></span></div><span class="num" title="${v.inns} inns · ${v.balls} balls · avg ${v.avg} · SR ${v.sr}">${v.runs}</span></div>`).join('');
   });
 }
+/* playermeta.js loads async (1 MB); if a profile rendered before it arrived, redraw once for flags/links. */
+window.__metaReady=()=>{if(state.player||state.bowler)render();};
+/* Offline + installable (served over http only; file:// can't register a service worker). */
+if('serviceWorker' in navigator&&location.protocol.indexOf('http')===0)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 init();
 </script>
 </body>
