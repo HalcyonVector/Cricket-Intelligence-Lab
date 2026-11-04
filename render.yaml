@@ -5,5 +5,5 @@ services:
     name: cricket-intelligence-lab
     runtime: python
     plan: free
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && python scripts/fetch_data.py
     startCommand: python serve.py

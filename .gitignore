@@ -39,3 +39,15 @@ venv/
 .fuse_hidden*
 .DS_Store
 Thumbs.db
+
+# Generated site data: built weekly by .github/workflows/site.yml and published as the
+# data-latest release asset (not committed, so git history stops growing every week).
+# Get it locally with: python scripts/fetch_data.py
+web/dashboard/index.js
+web/dashboard/rankings.js
+web/dashboard/players.js
+web/dashboard/cohorts/
+web/dashboard/careers/
+# Pages deploy writes these
+web/index.html
+web/.nojekyll
