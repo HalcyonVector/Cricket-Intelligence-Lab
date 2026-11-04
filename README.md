@@ -11,7 +11,7 @@ Ball-by-ball cricket intelligence across **48 competitions, 22,000+ matches, and
 - **Matchup Lookup:** Any batter vs any bowler with 12+ balls (18 in Tests) faced, not just the headline pairs
 - **Form by Year:** Runs, average or strike rate per calendar year on every batter profile
 - **Shareable Player Cards:** One click on a profile downloads a 1200×630 PNG stat card (shares natively on phones)
-- **Works Offline & Installable:** A service worker caches the app and any competition you've opened; install it from the browser as an app
+- **Works Offline & Installable:** Always loads the latest data when online; anything you have opened before still works offline. Install it from the browser as an app
 - **Player Comparison:** Head-to-head analysis for up to four players with percentile radar, side-by-side splits, and shared bowler match-ups
 - **Similarity Network:** Each batter linked to their nearest statistical peers across 12 metrics
 - **Venue & Team Analytics:** Ground scoring/result tendencies and team win-loss records
