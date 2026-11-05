@@ -453,6 +453,20 @@ def build_cohort(conn, spec, names):
         else:
             m["partner_dep"] = None; m["n_partners"] = len(pr); m["top_partner"] = None
 
+    # per-player venue record within THIS competition (profile "By venue"; detail file only)
+    pv = defaultdict(list)
+    for r in _rows(conn, f"""SELECT batter_id pid, venue v, MAX(city) c, SUM(runs_batter) r,
+            SUM(CASE WHEN {LEGAL} THEN 1 ELSE 0 END) b, COUNT(DISTINCT match_id||'-'||innings_no) i,
+            SUM(CASE WHEN player_out_id=batter_id THEN 1 ELSE 0 END) o
+            FROM sd WHERE venue IS NOT NULL AND venue<>'' GROUP BY batter_id, venue"""):
+        if r["pid"] in bat and r["b"]:
+            pv[r["pid"]].append(r)
+    for p, rows in pv.items():
+        bat[p]["venues"] = [{"venue": r["v"], "city": r["c"] or "", "runs": r["r"] or 0, "balls": r["b"], "inns": r["i"],
+                             "avg": round((r["r"] or 0) / r["o"], 1) if r["o"] else (r["r"] or 0),
+                             "sr": round(100 * (r["r"] or 0) / r["b"], 1)}
+                            for r in sorted(rows, key=lambda x: -(x["r"] or 0))[:12]]
+
     ball = bowling_table(conn)
     allbowl = list(ball.keys())
     qbowl = [p for p in allbowl if ball[p]["balls"] >= rmin_w]
@@ -744,7 +758,7 @@ def _awrite(path, data):
 
 # Profile-only fields: moved out of the first-load bundle into cohorts/d/<key>.js, which
 # the dashboard fetches in the background (Overview paints from the core file alone).
-DETAIL_FIELDS = {"players": ("phases", "matchups", "similar", "context"), "bowlers": ("similar", "context")}
+DETAIL_FIELDS = {"players": ("phases", "matchups", "similar", "context", "venues"), "bowlers": ("similar", "context")}
 
 
 def split_bundle(b):

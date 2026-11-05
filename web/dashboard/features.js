@@ -344,6 +344,28 @@ mountCareer = function (app, pid) {
   ensureCareers(pid, go); ensureExtras(state.cohort, go);
 };
 
+/* By venue: this competition by default (detail file), all competitions on demand (career shards).
+   Older data has only the all-competitions list, which is then labelled as such. */
+mountVenues = function (app, pid) {
+  const w = app.firstElementChild; if (!w) return;
+  const panel = document.createElement('div'); panel.className = 'panel'; panel.style.marginTop = '13px';
+  panel.innerHTML = '<h2>By venue <span class="r">loading…</span></h2>'; w.appendChild(panel);
+  ensureCareers(pid, () => {
+    const c = cur(), comp = ((c.players || {})[pid] || {}).venues || [], all = (window.CIL_VENUES || {})[pid] || [];
+    if (!comp.length && !all.length) { panel.remove(); return; }
+    let scope = state.venueScope === 'all' || !comp.length ? 'all' : 'comp';
+    const draw = () => {
+      const vs = scope === 'comp' ? comp : all, mx = Math.max(...vs.map(v => v.runs || 0), 1);
+      const label = scope === 'comp' ? esc(c.meta.label) : 'all competitions in the data';
+      panel.innerHTML = `<div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px"><h2 style="margin:0">By venue <span class="r">runs at each ground · ${label}</span></h2>
+        ${comp.length && all.length ? `<div class="seg" role="group" aria-label="Venue scope"><button data-s="comp" class="${scope === 'comp' ? 'on' : ''}">${esc(c.meta.label)}</button><button data-s="all" class="${scope === 'all' ? 'on' : ''}">All competitions</button></div>` : ''}</div>` +
+        vs.map(v => `<div class="minibar norank"><span title="${esc(v.venue)}${v.city ? ', ' + esc(v.city) : ''}" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(v.venue)}</span><div class="bar"><span style="width:${(v.runs / mx * 100).toFixed(1)}%"></span></div><span class="num" title="${v.inns} inns · ${v.balls} balls · avg ${v.avg} · SR ${v.sr}">${v.runs}</span></div>`).join('');
+      panel.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { scope = state.venueScope = b.dataset.s; draw(); });
+    };
+    draw();
+  });
+};
+
 /* ===================== bowler profile ===================== */
 const BOWL_ARCH_COLOR = { 'Strike bowler': '#FF6B7E', 'Holder': '#33D17A', 'Powerplay specialist': '#6FA8FF', 'Death specialist': '#F7C873', 'Workhorse': '#9AA0A8' };
 const BOWL_DEFS = { wkts: { lab: 'Wickets', unit: 'wkts', bar: true }, econ: { lab: 'Economy', unit: 'econ', lowerBetter: true }, sr: { lab: 'Strike rate', unit: 'balls/wkt', lowerBetter: true } };

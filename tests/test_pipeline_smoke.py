@@ -86,6 +86,7 @@ def test_full_build():
         det = load(os.path.join(cohorts, "d", "t20i_men.js"))
         assert any("context" in v for v in det["bowlers"].values()), "bowler context splits missing"
         assert any("phases" in v for v in det["players"].values()), "player phases missing from detail"
+        assert any(v.get("venues") for v in det["players"].values()), "per-competition venues missing"
         x = load(os.path.join(cohorts, "x", "t20i_men.js"))
         for k in ("yb", "yw", "venues", "teams", "recent", "week", "p"):
             assert k in x, k
