@@ -93,6 +93,7 @@ def test_full_build():
         assert {r[1] for r in x["yb"]} >= {2019, 2024}
         fm = x["fm"]
         assert fm["yb"] and fm["yw"] and fm["wp"] and "mu" in fm
+        assert fm["adv"] and len(fm["adv"][0]) == 7
         assert len(fm["yb"]) < len(x["yb"]), "full-member scope should drop the associate's matches"
         assert x["bp"] and x["wp"]
         assert os.path.exists(os.path.join(cohorts, "matchups", "t20i_men.js"))

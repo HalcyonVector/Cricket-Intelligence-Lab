@@ -267,6 +267,33 @@ def matchups_scope(conn, P, src, rpo, minballs):
     return out
 
 
+def clutch_collapse(conn, P, src, fmt):
+    """Per batter in the scope: [pi, balls, runs, knockout balls, knockout runs, balls after a
+    collapse, runs after a collapse]. Lets the dashboard recompute clutch index and collapse
+    resistance for the full-member scope (pipeline.py computes them for all matches)."""
+    k = {"t20": 3, "odi": 4, "test": 4}.get(fmt, 3)
+    conn.execute("DROP TABLE IF EXISTS fpx")
+    conn.execute(f"""CREATE TEMP TABLE fpx AS
+        WITH wk AS (SELECT match_id, innings_no, (over_no*6+ball_in_over) AS ord,
+            ROW_NUMBER() OVER (PARTITION BY match_id, innings_no ORDER BY over_no, ball_in_over) rn
+            FROM {src} WHERE wicket_kind IS NOT NULL)
+        SELECT match_id, innings_no, ord AS fall_ord FROM wk WHERE rn={k}""")
+    conn.execute("CREATE INDEX ix_fpx ON fpx(match_id, innings_no)")
+    col = {r["pid"]: r for r in _rows(conn, f"""SELECT s.batter_id pid, COUNT(*) b, SUM(s.runs_batter) r
+            FROM {src} s JOIN fpx ON fpx.match_id=s.match_id AND fpx.innings_no=s.innings_no
+            WHERE (s.over_no*6+s.ball_in_over) > fpx.fall_ord AND {LEGAL.replace('extra_type', 's.extra_type')}
+            GROUP BY s.batter_id""")}
+    out = []
+    for r in _rows(conn, f"""SELECT batter_id pid, COUNT(*) b, SUM(runs_batter) r,
+            SUM(CASE WHEN is_knockout=1 THEN 1 ELSE 0 END) kb, SUM(CASE WHEN is_knockout=1 THEN runs_batter ELSE 0 END) kr
+            FROM {src} WHERE {LEGAL} GROUP BY batter_id"""):
+        if not r["pid"] or not r["b"]:
+            continue
+        c = col.get(r["pid"]) or {"b": 0, "r": 0}
+        out.append([P(r["pid"]), r["b"], r["r"] or 0, r["kb"] or 0, r["kr"] or 0, c["b"] or 0, c["r"] or 0])
+    return out
+
+
 def build_extras(conn, names, intl=False, fmt="t20", rpo=8.0):
     P = _Ix(names)
     yb, yw = per_year(conn, P)
@@ -277,7 +304,8 @@ def build_extras(conn, names, intl=False, fmt="t20", rpo=8.0):
         fyb, fyw = per_year(conn, P, "sdfm")
         fbp, fwp = phase_tables(conn, P, "sdfm")
         data["fm"] = {"teams": list(FULL_MEMBERS), "yb": fyb, "yw": fyw, "bp": fbp, "wp": fwp,
-                      "mu": matchups_scope(conn, P, "sdfm", rpo, 18 if fmt == "test" else 12)}
+                      "mu": matchups_scope(conn, P, "sdfm", rpo, 18 if fmt == "test" else 12),
+                      "adv": clutch_collapse(conn, P, "sdfm", fmt)}
     data["p"] = P.p
     return data
 

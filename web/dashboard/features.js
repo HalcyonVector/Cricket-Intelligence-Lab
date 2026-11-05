@@ -704,23 +704,54 @@ homeView = function (app) {
         ${rows.map(({ r, bat }) => `<a class="hx-row" ${goAttr('match', r[5])}><span><span class="hx-tag${bat ? '' : ' wk'}">${bat ? 'bat' : 'bowl'}</span>${esc(pName(x, r[0]))} <span class="dim">vs ${esc(r[4] || '')}</span></span>
           <b>${bat ? `${r[1]} <span class="dim">(${r[2]})</span>` : `${r[1]}/${r[2]}`}</b></a>`).join('')}</div>`));
     }
+    if (fmOn) fmTrending(app, c, x);
     // milestone watch: active players (played in the last two seasons) close to a round number
     const lastY = +String(c.meta.coverage_to || '').slice(0, 4), RUN = 1000, WKS = c.meta.format === 'test' ? 100 : 50;
     const active = rows => rows && rows.some(r => r[1] >= lastY - 1);
     const near = [];
-    for (const id in c.players) { const p = c.players[id]; if (p.runs < RUN * 0.75 || !active(x._byB[id])) continue;
-      const next = (Math.floor(p.runs / RUN) + 1) * RUN, need = next - p.runs; if (need <= RUN * 0.2) near.push({ id, name: p.name, have: p.runs, need, next, unit: 'run', r: need / RUN }); }
-    for (const id in (c.bowlers || {})) { const b = c.bowlers[id]; if (b.wickets < WKS * 0.75 || !active(x._byW[id])) continue;
-      const next = (Math.floor(b.wickets / WKS) + 1) * WKS, need = next - b.wickets; if (need <= WKS * 0.2) near.push({ id, name: b.name, have: b.wickets, need, next, unit: 'wicket', r: need / WKS, bowler: 1 }); }
+    // totals: all matches, or only matches between full members when that filter is on
+    const S = scopeRows(x), tot = (rows, i) => (rows || []).reduce((a, r) => a + r[i], 0);
+    for (const id in c.players) { const p = c.players[id], have = fmOn ? tot(S.byB[id], 3) : p.runs;
+      if (have < RUN * 0.75 || !active(x._byB[id])) continue;
+      const next = (Math.floor(have / RUN) + 1) * RUN, need = next - have; if (need <= RUN * 0.2) near.push({ id, name: p.name, have, need, next, unit: 'run', r: need / RUN }); }
+    for (const id in (c.bowlers || {})) { const b = c.bowlers[id], have = fmOn ? tot(S.byW[id], 4) : b.wickets;
+      if (have < WKS * 0.75 || !active(x._byW[id])) continue;
+      const next = (Math.floor(have / WKS) + 1) * WKS, need = next - have; if (need <= WKS * 0.2) near.push({ id, name: b.name, have, need, next, unit: 'wicket', r: need / WKS, bowler: 1 }); }
     near.sort((a, b) => a.r - b.r);
-    if (near.length) slot.appendChild($(`<div class="panel s6"><h2>Milestone watch <span class="r">active in ${lastY - 1} or ${lastY}</span></h2>
+    if (near.length) slot.appendChild($(`<div class="panel s6"><h2>Milestone watch <span class="r">active in ${lastY - 1} or ${lastY}${fmOn ? ' · vs full members' : ''}</span></h2>
       ${near.slice(0, 5).map(n => `<div class="hx-ms"><div class="top">${pidLink(n.id, n.name, n.bowler)}<span class="dim"><b style="color:var(--ink)">${n.have.toLocaleString()}</b> / ${n.next.toLocaleString()} ${n.unit}s</span></div>
         <div class="hx-bar${n.bowler ? ' wk' : ''}"><span style="width:${(100 * n.have / n.next).toFixed(1)}%"></span></div>
         <div class="hx-go">${plural(n.need, n.unit)} to go</div></div>`).join('')}
-      <div class="note" style="margin-top:8px">Counts are within ${esc(c.meta.label)}.</div></div>`));
+      <div class="note" style="margin-top:8px">Counts are within ${esc(c.meta.label)}${fmOn ? ', matches between full members only' : ''}.</div></div>`));
     if (!slot.children.length) slot.remove(); else wireLinks(slot);
   });
 };
+
+/* "Full members only" on the Overview: rebuild Trending research from the full-member scope.
+   Clutch index and collapse resistance come from fm.adv (computed in extras.py), strike
+   bowlers from the filtered cohort. Trait cards below stay all-matches and say so. */
+function fmTrending(app, c, x) {
+  const trend = app.querySelector('.trend'); if (!trend || !x.fm || !x.fm.adv) return;
+  const minB = c.meta.rate_min_bat || 60, minK = c.meta.format === 'test' ? 120 : 30;
+  const nameOf = i => pName(x, i), idOf = i => pId(x, i);
+  const ratio = (num, den) => Math.round(100 * num / den);
+  const clutch = x.fm.adv.filter(r => r[1] >= minB && r[3] >= minK && r[2]).map(r => ({ id: idOf(r[0]), name: nameOf(r[0]), v: ratio(r[4] / r[3], r[2] / r[1]) }));
+  const coll = x.fm.adv.filter(r => r[1] >= minB && r[5] >= minK && r[2]).map(r => ({ id: idOf(r[0]), name: nameOf(r[0]), v: ratio(r[6] / r[5], r[2] / r[1]) }));
+  const f = filteredCohort(c, x, state.since || 0, true);
+  const sb = Object.entries(f.bowlers).filter(([, b]) => b.balls >= 3 * (c.meta.rate_min_bowl || 60) && b.bowl_sr).map(([id, b]) => ({ id, name: b.name, v: b.bowl_sr, bowler: 1 }));
+  const top = (arr, asc) => arr.sort((p, q) => asc ? p.v - q.v : q.v - p.v).slice(0, 5);
+  const cols = trend.querySelectorAll('.trcol');
+  [[top(clutch)], [top(coll)], [top(sb, true)]].forEach(([rows], k) => {
+    const col = cols[k]; if (!col) return;
+    col.querySelectorAll('.trrow').forEach(r => r.remove());
+    col.insertAdjacentHTML('beforeend', rows.map((r, i) => `<div class="trrow"><span class="rank ${i < 3 ? 'r' + (i + 1) : ''}">${i + 1}</span>${pidLink(r.id, r.name, r.bowler)}<b class="num">${r.v}</b></div>`).join('') || '<span class="note">Not enough full-member data.</span>');
+  });
+  const head = trend.parentNode.querySelector('.sechead');
+  if (head && !head.querySelector('.fmtag')) head.insertAdjacentHTML('beforeend', ' <span class="dim fmtag">· matches between full members</span>');
+  const traits = [...app.querySelectorAll('.sechead')].find(h => /Explore by trait/.test(h.textContent));
+  if (traits && !traits.querySelector('.fmtag')) traits.insertAdjacentHTML('beforeend', ' <span class="dim fmtag">· all matches</span>');
+  wireLinks(trend);
+}
 
 /* ===================== global search across competitions ===================== */
 const _setupSearch = setupSearch;
