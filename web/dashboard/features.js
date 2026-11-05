@@ -232,21 +232,30 @@ function withSince(fn, app) {
 const FILTER_VIEWS = ['players', 'bowlers', 'records', 'bowlto', 'matchups', 'home'];
 function mountSinceControl() {
   const host = document.getElementById('scopeHost'); if (!host || document.getElementById('sinceHost')) return;
-  const wrap = document.createElement('span'); wrap.id = 'sinceHost'; wrap.className = 'scope';
-  wrap.innerHTML = `<label class="sr-only" for="sincesel">Time window</label><select id="sincesel" title="Time window for leaderboards, records and profiles"></select>
-    <button type="button" id="fmbtn" class="fmbtn" aria-pressed="false" title="Only count matches where both teams are ICC full members">Full members only</button>`;
+  // Filters live together: time window (themed dropdown, not a native <select>) + full-members switch
+  const wrap = document.createElement('div'); wrap.id = 'sinceHost'; wrap.className = 'hfilters';
+  wrap.innerHTML = `<span class="hf-time" title="Time window for leaderboards, records and profiles"><svg class="hf-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span class="hf-drop"></span></span>
+    <button type="button" id="fmbtn" class="fmsw" role="switch" aria-checked="false" title="Only count matches where both teams are ICC full members"><span class="trk"><span class="knob"></span></span>Full members</button>`;
   host.after(wrap);
-  const sel = wrap.querySelector('select'), fmb = wrap.querySelector('#fmbtn');
-  sel.onchange = () => { state.since = +sel.value || 0; render(); };
+  const slot = wrap.querySelector('.hf-drop'), fmb = wrap.querySelector('#fmbtn');
   fmb.onclick = () => { state.fm = !state.fm; render(); };
+  let drop = null, dropKey = '';
   window._syncSince = () => {
     const opts = sinceOptions(); if (state.since && !opts.some(o => o[0] === state.since)) state.since = 0;
-    sel.innerHTML = opts.map(([y, l]) => `<option value="${y}"${y === state.since ? ' selected' : ''}>${l}</option>`).join('');
+    const key = JSON.stringify(opts);
+    if (key !== dropKey) { // rebuild only when the competition's seasons change
+      dropKey = key; slot.innerHTML = '';
+      drop = dropdown(opts.map(([y, l]) => ({ v: String(y), label: l.replace(/ \(\d+\+\)$/, '') })), String(state.since || 0),
+        v => { state.since = +v || 0; render(); });
+      drop.querySelector('.drop-btn').setAttribute('aria-label', 'Time window');
+      slot.appendChild(drop);
+    } else if (drop) drop.setValue(String(state.since || 0));
     const intl = !!meta(state.cohort).intl;
     fmb.style.display = intl ? '' : 'none';
-    fmb.classList.toggle('on', !!state.fm && intl); fmb.setAttribute('aria-pressed', String(!!state.fm && intl));
+    fmb.classList.toggle('on', !!state.fm && intl); fmb.setAttribute('aria-checked', String(!!state.fm && intl));
     const applies = FILTER_VIEWS.includes(state.view) || state.player || state.bowler;
-    wrap.style.opacity = applies ? 1 : .55; wrap.title = applies ? '' : 'Filters apply to Batters, Bowlers, Records, Matchups, Bowl to… and player profiles';
+    wrap.classList.toggle('idle', !applies);
+    wrap.title = applies ? '' : 'Filters apply to Batters, Bowlers, Records, Matchups, Bowl to… and player profiles';
   };
 }
 /* Matchup rows for the current filters: the full-member set comes from the extras file. */

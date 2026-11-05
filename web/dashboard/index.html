@@ -550,6 +550,53 @@
  .dh-kic{display:none}
  .dh-lbl{text-transform:none;letter-spacing:0;font-size:12.5px;color:var(--accent2);margin-top:0}
  .dh-head{background:none;-webkit-background-clip:initial;background-clip:initial;color:var(--ink);font-weight:700}
+ /* ---- header v3: one consistent control style; supersedes the older header layers above ---- */
+ header{background:rgba(14,15,18,.94)!important;backdrop-filter:blur(10px)!important;-webkit-backdrop-filter:blur(10px)!important;border-bottom:1px solid var(--hair)!important}
+ header .cbar{max-width:1340px;margin:0 auto;padding:12px 22px!important;gap:10px!important;align-items:center}
+ header .wm{font-family:var(--mono);font-size:14px!important;letter-spacing:.18em;color:var(--ink);display:inline-flex;align-items:center;gap:8px}
+ header .wm::before{content:"";width:10px;height:10px;border-radius:3px;background:var(--accent2);box-shadow:0 0 0 3px rgba(242,178,76,.18)}
+ header .cbar-div{display:none!important}
+ /* competition + time window + full members share one control look */
+ header .scope .drop-btn,header .hf-time,header .fmsw{height:36px;border:1px solid var(--hair2);background:var(--panel2);border-radius:9px;color:var(--ink);font-family:inherit!important;font-size:13px!important;font-weight:600!important;letter-spacing:0!important;transition:border-color .12s,background .12s}
+ header .scope .drop-btn{padding:0 12px!important;gap:8px}
+ header .scope .drop-btn:hover,header .hf-time:hover,header .fmsw:hover{border-color:#4A4D56}
+ header .scope .drop-btn .chev,.hfilters .drop-btn .chev{color:var(--dim)!important}
+ .hfilters{display:flex;align-items:center;gap:8px;flex:none;transition:opacity .15s}
+ .hfilters.idle{opacity:.55}
+ header .hf-time{display:inline-flex;align-items:center;gap:7px;padding:0 0 0 11px}
+ header .hf-time .hf-ic{width:15px;height:15px;color:var(--dim);flex:none}
+ header .hf-time .drop-btn{height:34px;padding:0 12px 0 0;color:var(--ink);font-family:inherit;font-size:13px;font-weight:600}
+ header .hf-time .drop-menu{min-width:190px;left:-30px}
+ .fmsw{display:inline-flex;align-items:center;gap:9px;padding:0 12px 0 9px;cursor:pointer;white-space:nowrap}
+ .fmsw .trk{width:28px;height:16px;border-radius:999px;background:#33363E;position:relative;transition:background .15s;flex:none}
+ .fmsw .knob{position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:#B4B7BE;transition:transform .15s,background .15s}
+ .fmsw.on{border-color:rgba(242,178,76,.55)!important;color:var(--accent2)}
+ .fmsw.on .trk{background:rgba(242,178,76,.35)}
+ .fmsw.on .knob{transform:translateX(12px);background:var(--accent2)}
+ header .cmd{height:36px;border-radius:9px!important;background:var(--panel2)!important}
+ header .cmd input{padding:0!important;font-size:13.5px!important}
+ header .cbar-r{font-family:inherit!important;font-size:12px!important;color:var(--dim)!important}
+ @media(max-width:1280px){header .cbar-r{display:none!important}}
+ /* section tabs: sentence case, calm underline */
+ header .raterow{margin-top:0!important}
+ header .modebtn{font-family:inherit!important;font-size:13.5px!important;font-weight:600!important;letter-spacing:0!important;text-transform:none!important;padding:12px 16px!important;color:var(--dim)!important}
+ header .modebtn::after{left:12px!important;right:12px!important}
+ header .subnav button{background:transparent!important;box-shadow:none!important;color:var(--dim);font-size:13px!important;font-weight:500;padding:8px 10px!important;border-radius:7px}
+ header .subnav button:hover{color:var(--ink);background:rgba(255,255,255,.04)!important}
+ header .subnav button.active{color:var(--ink)!important;background:var(--panel2)!important;box-shadow:inset 0 0 0 1px var(--hair2)!important}
+ header .subnav button.active::after,header .subnav button.active::before{display:none!important}
+ @media(max-width:860px){
+   header .cbar{flex-wrap:wrap;padding:10px 14px!important}
+   header .cmd{order:5;flex:1 1 100%!important}
+   .hfilters{gap:6px}
+   header .scope .drop-btn,header .hf-time,header .fmsw{height:34px;font-size:12.5px!important}
+   header .scope .drop-cur{max-width:150px;overflow:hidden;text-overflow:ellipsis}
+ }
+ @media(max-width:720px){header .modebtn{font-size:12px!important}}
+ .drop-menu{background:#1D2026!important;border:1px solid var(--hair2)!important;box-shadow:0 18px 40px -12px rgba(0,0,0,.6)!important;padding:6px!important}
+ .drop-o{color:var(--muted)}.drop-o:hover{background:rgba(255,255,255,.05)}
+ .drop-o.on{color:var(--accent2)!important;background:rgba(242,178,76,.12)!important}.drop-o.on::before{box-shadow:none!important}
+ .drop-g{font-family:inherit!important;letter-spacing:0!important;text-transform:none!important;font-size:11.5px!important}
 </style>
 </head>
 <body>
@@ -763,7 +810,7 @@ function init(){
     ["LIVE",[["live","Live Scores"],["schedule","Schedule"]]],
   ];
   window.VIEW_MODE={};window.MODES.forEach(([mo,subs])=>subs.forEach(([v])=>window.VIEW_MODE[v]=mo));
-  document.getElementById('modebar').innerHTML=window.MODES.map(([mo])=>`<button class="modebtn" data-m="${mo}">${mo}</button>`).join('');
+  document.getElementById('modebar').innerHTML=window.MODES.map(([mo])=>`<button class="modebtn" data-m="${mo}">${mo.charAt(0)+mo.slice(1).toLowerCase()}</button>`).join('');
   document.querySelectorAll('.modebtn').forEach(b=>b.onclick=()=>{const subs=window.MODES.find(x=>x[0]===b.dataset.m)[1];state.view=subs[0][0];state.player=null;state.bowler=null;state.venue=state.team=state.match=null;render();});
   document.getElementById('home').onclick=()=>{state.view="home";state.player=null;state.bowler=null;state.venue=state.team=state.match=null;render();};
   document.getElementById('srcnote').textContent=`${IDX.cohorts.length} competitions`;
