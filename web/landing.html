@@ -211,6 +211,8 @@ footer a{color:var(--muted)}
   .ul path{stroke-dashoffset:0;animation:none!important}
   *{scroll-behavior:auto!important}
 }
+.covline{max-width:860px;margin:22px auto 0;text-align:center;color:var(--muted);font-size:14px;line-height:1.65}
+.covline a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--line2)}
 </style>
 </head>
 <body>
@@ -275,7 +277,7 @@ footer a{color:var(--muted)}
   </div>
 </section>
 
-<section class="band" id="coverage"><div class="wrap"><div class="statgrid" id="statgrid"></div></div></section>
+<section class="band" id="coverage"><div class="wrap"><div class="statgrid" id="statgrid"></div><p class="covline">What isn't in the data: ball-by-ball records start in 2001 for men's internationals and 2003 for women's, Cricsheet withholds every match involving Afghanistan (<a href="https://cricsheet.org/article/explanation-for-withholding-of-afghanistani-matches/">a protest over Afghan women's cricket</a>), and some games are <a href="https://cricsheet.org/missing/">missing from their archive</a>. So a player's totals here can be lower than their official career figures.</p></div></section>
 
 <section id="how" class="pad">
   <div class="wrap"><div class="steps">
@@ -286,7 +288,7 @@ footer a{color:var(--muted)}
     <div class="steplist">
       <div class="step reveal"><div class="no">1</div><div><h4>Ingest</h4><p>Every Cricsheet match goes into SQLite, one delivery at a time.</p></div></div>
       <div class="step reveal" style="--d:.06s"><div class="no">2</div><div><h4>Compute</h4><p>Percentiles, splits, similarity and era indices, once per competition.</p></div></div>
-      <div class="step reveal" style="--d:.12s"><div class="no">3</div><div><h4>Check</h4><p>Each data file of about 500 KB is verified before it replaces the old one.</p></div></div>
+      <div class="step reveal" style="--d:.12s"><div class="no">3</div><div><h4>Check</h4><p>Over 400,000 cross-checks between the data files run before anything is published.</p></div></div>
       <div class="step reveal" style="--d:.18s"><div class="no">4</div><div><h4>Open</h4><p>The browser loads the file. No backend, no database.</p></div></div>
     </div>
   </div></div>

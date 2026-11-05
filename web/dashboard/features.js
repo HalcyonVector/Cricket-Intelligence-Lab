@@ -308,6 +308,8 @@ playerView = function (pid) {
   if (useF) { const b = $(filterBanner()); w.insertBefore(b, w.children[1] || null); _wireClear(b); }
   if (outside) w.insertBefore($('<div class="cov">No balls faced in the current filter selection, so this profile shows all their matches.</div>'), w.children[1] || null);
   w.insertBefore(alsoPlayedStrip(pid, false), w.children[1] || null);
+  { const note = $(`<div>${covNote(c, 'profile')}</div>`); w.insertBefore(note, w.children[2] || null);
+    ensureExtras(c.meta.key, x => { if (startedBeforeCoverage(c, x, pid, false)) note.insertAdjacentHTML('beforeend', covNote(c, 'early')); }); }
   if (p.qualified) {
     const P = c.players, dp = $('<div class="grid bento" style="margin-top:13px"></div>');
     dp.appendChild($(`<div class="panel s12"><h2>Where they stand <span class="r">every rated batter in ${esc(c.meta.label)}, gold = ${esc(p.name)}, dashed = median</span></h2><div class="distgrid">
@@ -384,6 +386,8 @@ bowlerProfile = function (id) {
   if (useSince) { const bn = $(filterBanner()); w.insertBefore(bn, w.children[1] || null); _wireClear(bn); }
   if (outsideB) w.insertBefore($('<div class="cov">No balls bowled in the current filter selection, so this profile shows all their matches.</div>'), w.children[1] || null);
   w.insertBefore(alsoPlayedStrip(id, true), w.children[1] || null);
+  { const note = $(`<div>${covNote(c, 'profile')}</div>`); w.insertBefore(note, w.children[2] || null);
+    ensureExtras(c.meta.key, x => { if (startedBeforeCoverage(c, x, id, true)) note.insertAdjacentHTML('beforeend', covNote(c, 'early')); }); }
 
   // form by year (this competition)
   const form = $('<div class="panel" style="margin-top:13px"><h2>Form by year <span class="r">loading…</span></h2></div>');
@@ -651,6 +655,7 @@ function teamDetail(app, x, name) {
   const back = $('<div class="row" style="margin-top:20px"><button class="pill" id="tback">← teams</button></div>'); app.appendChild(back);
   back.querySelector('#tback').onclick = () => { state.team = null; render(); };
   app.appendChild($(`<div style="margin-top:10px"><h1 style="margin:0">${esc(name)}</h1><p class="sub">${esc(c.meta.label)}</p></div>`));
+  if (c.meta.intl) app.appendChild($(`<div style="margin-bottom:10px">${covNote(c, 'afg')}</div>`));
   const lost = d ? d.years.reduce((s, y) => s + y[3], 0) : null;
   const k = (l, val) => `<div class="s3"><div class="panel kpi"><div class="l">${l}</div><div class="n">${val == null ? '-' : fmtN(val)}</div></div></div>`;
   const g = $('<div class="grid bento"></div>'); g.innerHTML = k('Matches', t.matches) + k('Won', t.wins) + k('Lost', lost) + k('Win %', t.winpct); app.appendChild(g);
@@ -689,6 +694,7 @@ window.EXTRA_VIEWS = { bowlto: app => withSince(bowlToView, app), matches: match
 const _matchupsView = matchupsView;
 matchupsView = function (app) {
   const c = cur();
+  if (c.meta.intl) setTimeout(() => { const h = app.querySelector('.sub'); if (h && !app.querySelector('.covnote')) h.insertAdjacentHTML('afterend', covNote(c, 'afg')); }, 0);
   if (!(state.fm && meta(c.meta.key).intl)) return _matchupsView(app);
   const intro = $(`<div><h1>Matchup Intelligence</h1><p class="sub">Any batter vs any bowler, <b>matches between full members only</b>. <span id="mucount" class="dim">Loading…</span></p></div>`);
   app.appendChild(intro);
@@ -705,6 +711,7 @@ homeView = function (app) {
   _homeView(app);
   const c = cur(), key = c.meta.key, slot = $('<div class="grid bento homex" style="margin-top:13px"></div>');
   const first = app.firstElementChild; if (first && first.nextSibling) app.insertBefore(slot, first.nextSibling); else app.appendChild(slot);
+  slot.before($(`<div style="margin-top:10px">${covNote(c, 'site')}</div>`));
   ensureExtras(key, x => {
     if (!x || state.cohort !== key) { slot.remove(); return; }
     // "Full members only" also applies here: keep performances where both sides are full members
@@ -849,6 +856,39 @@ function decorateCompare(root) {
     });
   });
 }
+
+/* ===================== data coverage notes (what Cricsheet does and doesn't include) ===================== */
+const CS_MISSING = 'https://cricsheet.org/missing/';
+const CS_AFG = 'https://cricsheet.org/article/explanation-for-withholding-of-afghanistani-matches/';
+const covLink = (href, text) => `<a href="${href}" target="_blank" rel="noopener">${text}</a>`;
+const COV_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>';
+/* One short line; `kind` picks which gaps matter where it's shown. */
+function covNote(c, kind) {
+  const m = c.meta, intl = !!m.intl, female = m.gender === 'female';
+  const bits = [];
+  if (kind === 'site') {
+    bits.push(`Ball-by-ball data from ${covLink('https://cricsheet.org', 'Cricsheet')}: men's internationals from 2001, women's from 2003, leagues from their first covered season.`);
+    bits.push(`Cricsheet withholds every match involving Afghanistan (${covLink(CS_AFG, 'a protest over Afghan women’s cricket')}) and is missing some games (${covLink(CS_MISSING, 'list')}), so totals can be lower than official career figures.`);
+  } else if (kind === 'profile') {
+    bits.push(intl ? `Totals cover ${esc(m.label)} in Cricsheet's data only: no matches against Afghanistan (${covLink(CS_AFG, 'withheld')}) and none Cricsheet is ${covLink(CS_MISSING, 'missing')}, so they can be below official figures.`
+      : `Totals cover the ${esc(m.label)} seasons in Cricsheet's data; a few matches are ${covLink(CS_MISSING, 'missing')}.`);
+  } else if (kind === 'early') {
+    bits.push(`This career started before ball-by-ball coverage (${female ? '2003' : '2001'} for internationals), so earlier matches aren't included.`);
+  } else if (kind === 'afg') {
+    bits.push(`Matches against Afghanistan aren't included: Cricsheet ${covLink(CS_AFG, 'withholds them')} as a protest over Afghan women's cricket.`);
+  }
+  return `<div class="covnote">${COV_ICON}<span>${bits.join(' ')}</span></div>`;
+}
+/* Started before coverage = their first season in the data is the cohort's first (Tests/ODIs only;
+   T20Is and leagues began inside the coverage window). */
+function startedBeforeCoverage(c, x, pid, bowler) {
+  if (!x || !c.meta.intl || c.meta.format === 't20') return false;
+  const rows = (bowler ? x._byW : x._byB)[pid]; if (!rows || !rows.length) return false;
+  const first = Math.min(...rows.map(r => r[1])), start = +String(c.meta.coverage_from || '').slice(0, 4);
+  return first <= start + 1;
+}
+const _coverageBanner = coverageBanner;
+coverageBanner = function () { return `<div>${_coverageBanner()}${covNote(cur(), 'site')}</div>`; }; // callers keep only the first element
 
 /* ===================== metric explanations ===================== */
 const GLOSSARY = {
