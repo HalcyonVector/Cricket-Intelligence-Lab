@@ -30,8 +30,20 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 WEB = os.path.join(ROOT, "web")
-CACHE = os.path.join(ROOT, ".cache")
+# Serverless hosts (Vercel) only allow writes under /tmp
+CACHE = os.environ.get("CIL_CACHE_DIR") or (
+    "/tmp/cil-cache" if os.environ.get("VERCEL") else os.path.join(ROOT, ".cache"))
 os.makedirs(CACHE, exist_ok=True)
+
+# CDN cache lifetimes (seconds) for API responses. Browsers ignore s-maxage; a CDN in front
+# (Vercel's edge) serves repeats without running Python, which keeps free-tier CPU tiny.
+API_CDN = {"/api/live": 30, "/api/match": 20, "/api/commentary": 15, "/api/facts": 300,
+           "/api/schedule": 600, "/api/results": 300, "/api/player": 86400, "/api/photo": 86400}
+
+
+def _cdn_header(path):
+    ttl = API_CDN.get(path)
+    return f"public, max-age=0, s-maxage={ttl}, stale-while-revalidate={ttl * 4}" if ttl else None
 PORT = int(os.environ.get("PORT", "5000"))
 
 CB_LIVE = "https://www.cricbuzz.com/cricket-match/live-scores"
@@ -83,45 +95,43 @@ def cached(key, ttl, fn):
 
 
 # ---------- Cricbuzz Next.js payload extraction ----------
+_session = None
+
+
 def _http_get(url):
-    import requests
-    r = requests.get(url, headers=HEADERS, timeout=30, allow_redirects=True)
+    # one pooled session per process: warm calls (and warm serverless instances) skip
+    # re-loading TLS certificates and re-handshaking with Cricbuzz
+    global _session
+    if _session is None:
+        import requests
+        _session = requests.Session()
+        _session.headers.update(HEADERS)
+    r = _session.get(url, timeout=30, allow_redirects=True)
     r.raise_for_status()
     return r.text
 
 
+_JSON = json.JSONDecoder()
+
+
 def _decode_next_stream(html):
-    """Concatenate + unescape every self.__next_f.push([_, "<chunk>"]) string."""
+    """Concatenate + unescape every self.__next_f.push([_, "<chunk>"]) string.
+
+    Each push(...) argument is a JSON array, so the C-accelerated raw_decode parses it
+    in place (much cheaper than scanning character by character in Python)."""
     out, key, i = [], "self.__next_f.push(", 0
     while True:
         j = html.find(key, i)
         if j < 0:
             break
         k = j + len(key)
-        depth, end, instr, esc = 0, k, False, False
-        while end < len(html):
-            c = html[end]
-            if esc:
-                esc = False
-            elif c == "\\":
-                esc = True
-            elif c == '"':
-                instr = not instr
-            elif not instr:
-                if c == "(":
-                    depth += 1
-                elif c == ")":
-                    if depth == 0:
-                        break
-                    depth -= 1
-            end += 1
         try:
-            a = json.loads(html[k:end])
+            a, end = _JSON.raw_decode(html, k)
             if isinstance(a, list) and len(a) > 1 and isinstance(a[1], str):
                 out.append(a[1])
-        except Exception:
-            pass
-        i = end + 1
+            i = end
+        except ValueError:
+            i = k
     return "".join(out)
 
 
@@ -831,6 +841,8 @@ def get_teams(fmt=None, gender=None, intl=False, league=None, xleagues=None):
 class H(BaseHTTPRequestHandler):
     def _send(self, code, body, ctype="application/json", cache="no-store"):
         b = body if isinstance(body, bytes) else json.dumps(body).encode()
+        if code == 200 and cache == "no-store":
+            cache = _cdn_header(urllib.parse.urlparse(self.path).path) or cache
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Access-Control-Allow-Origin", "*")
@@ -848,6 +860,7 @@ class H(BaseHTTPRequestHandler):
         self.send_response(302)
         self.send_header("Location", url)
         self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Cache-Control", _cdn_header("/api/photo"))
         self.end_headers()
 
     def log_message(self, *a):

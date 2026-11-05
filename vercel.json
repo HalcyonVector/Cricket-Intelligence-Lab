@@ -1,0 +1,18 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": "",
+  "outputDirectory": "vercel",
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/index?__p=:path*"
+    }
+  ],
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- api serve.py vercel.json requirements.txt vercel"
+}

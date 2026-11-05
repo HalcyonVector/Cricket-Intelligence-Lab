@@ -1,0 +1,9 @@
+# Vercel only hosts the live-scores API (api/ + serve.py). The site itself is on GitHub Pages.
+web/
+packages/
+scripts/
+tests/
+docs/
+.github/
+*.db
+*.zip

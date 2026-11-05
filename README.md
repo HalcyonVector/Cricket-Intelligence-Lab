@@ -62,12 +62,12 @@ This streams every match into SQLite (`cil.db`), recomputes all analytics, write
 | Weekly data build | **GitHub Actions** (`site.yml`) | Mondays 05:00 UTC: Cricsheet → bundles → ICC rankings → `data-latest` release → Pages |
 | Code deploys | **GitHub Actions** (`site.yml`) | Any push touching `web/` redeploys with the latest data, no rebuild |
 | Checks | **GitHub Actions** (`ci.yml`) | Every push/PR: compile, unit + pipeline smoke tests, JS syntax |
-| Live scores API | **Render** free web service (optional) | `serve.py`; sleeps when idle, the site shows a "waking up" message |
+| Live scores API | **Vercel** serverless function (`api/index.py`) | Runs `serve.py`'s `/api/*`; starts in ~1 s, CDN-cached (live 30 s, schedule 10 min) so most requests never run Python |
 
 ### One-time setup
 1. **Settings → Pages → Source: GitHub Actions.**
 2. **Actions → Build data & deploy site → Run workflow** (with "Rebuild data" ticked) to publish the first data release and deploy.
-3. *(Optional, for live scores on the Pages site)* deploy `render.yaml` on Render (Dashboard → New → Blueprint → this repo), then add a repository variable **`LIVE_API_URL`** = your Render URL (Settings → Secrets and variables → Actions → Variables) and re-run the workflow. Without it the Pages site works fully except the Live tabs, which explain that the live server isn't connected.
+3. **Live scores:** on [vercel.com](https://vercel.com) → Add New → Project → import this repo → Deploy (`vercel.json` sets everything; it only rebuilds when the API files change). Then add a repository variable **`LIVE_API_URL`** = your Vercel URL (Settings → Secrets and variables → Actions → Variables) and re-run the workflow. Without it the site works fully except the Live tabs, which say the live server isn't connected. (`render.yaml` is still there if you'd rather host the API on Render, which sleeps when idle.)
 
 ---
 ## Project structure
