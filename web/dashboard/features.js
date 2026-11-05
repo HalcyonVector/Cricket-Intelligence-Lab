@@ -771,7 +771,7 @@ setupSearch = function () {
         out.push([e[0], pid, ix.k[best[0]], best[1] + best[2] * 25, best[2] > 0 && !best[1]]); if (out.length > 40) break; }
       out.sort((a, b) => b[3] - a[3]);
       if (!out.length) return;
-      res.querySelectorAll('.muted').forEach(m => m.remove());
+      res.querySelectorAll('.muted, .sr-x').forEach(m => m.remove()); // a repeated query must not append twice
       res.insertAdjacentHTML('beforeend', out.slice(0, 6).map(o => `<div class="sr sr-x" data-pid="${esc(o[1])}" data-k="${esc(o[2])}" data-b="${o[4] ? 1 : 0}"><span class="srt">OTHER</span>${esc(o[0])} <span class="dim">· ${esc(cohortLabel(o[2]))}</span></div>`).join(''));
       res.style.display = 'block';
       res.querySelectorAll('.sr-x').forEach(d => d.onclick = () => { res.style.display = 'none'; inp.value = '';
@@ -908,6 +908,15 @@ const _init = init;
 init = function () {
   _init();
   mountSinceControl(); window._syncSince && window._syncSince();
+  // phones: search hides behind a button so the header stays two rows tall
+  const cbar = document.querySelector('header .cbar'), hdr = document.querySelector('header');
+  if (cbar && !cbar.querySelector('.hsearch-btn')) {
+    const sb = document.createElement('button'); sb.type = 'button'; sb.className = 'hsearch-btn'; sb.setAttribute('aria-label', 'Search');
+    sb.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>';
+    sb.onclick = () => { const on = hdr.classList.toggle('searching'); sb.setAttribute('aria-expanded', on);
+      if (on) { const i = document.getElementById('search'); i && i.focus(); } setH(); };
+    cbar.appendChild(sb);
+  }
   const setH = () => document.documentElement.style.setProperty('--hdr', (document.querySelector('header') || {}).offsetHeight + 'px');
   setH(); window.addEventListener('resize', setH);
 };
