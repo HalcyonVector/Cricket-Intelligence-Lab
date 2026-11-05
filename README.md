@@ -67,7 +67,7 @@ This streams every match into SQLite (`cil.db`), recomputes all analytics, write
 ### One-time setup
 1. **Settings → Pages → Source: GitHub Actions.**
 2. **Actions → Build data & deploy site → Run workflow** (with "Rebuild data" ticked) to publish the first data release and deploy.
-3. **Live scores:** on [vercel.com](https://vercel.com) → Add New → Project → import this repo → Deploy (`vercel.json` sets everything; it only rebuilds when the API files change). Then add a repository variable **`LIVE_API_URL`** = your Vercel URL (Settings → Secrets and variables → Actions → Variables) and re-run the workflow. Without it the site works fully except the Live tabs, which say the live server isn't connected.
+3. **Live scores:** on [vercel.com](https://vercel.com) → Add New → Project → import this repo → Deploy (`vercel.json` sets everything). Then add a repository variable **`LIVE_API_URL`** = your Vercel URL (Settings → Secrets and variables → Actions → Variables) and re-run the workflow. Without it the site works fully except the Live tabs, which say the live server isn't connected.
 
 ---
 ## Project structure
