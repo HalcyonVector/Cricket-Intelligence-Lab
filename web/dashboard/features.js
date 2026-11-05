@@ -695,7 +695,7 @@ homeView = function (app) {
       const tile = (k, big, small, who, sub, mid, wkCol) => `<a class="hx-tile" ${goAttr('match', mid)}><div class="hx-k">${k}</div>
         <div class="hx-big" style="color:${wkCol ? 'var(--wk)' : 'var(--accent2)'}">${big}${small ? ` <small>${small}</small>` : ''}</div>
         <div class="hx-who">${esc(who)}</div><div class="hx-sub">${sub}</div></a>`;
-      const rows = [...inns.slice(1, 4).map(r => ({ r, bat: 1 })), ...spells.slice(1, 3).map(r => ({ r, bat: 0 }))];
+      const rows = [...inns.slice(1, 5).map(r => ({ r, bat: 1 })), ...spells.slice(1, 5).map(r => ({ r, bat: 0 }))];
       slot.appendChild($(`<div class="panel s6"><h2>Last 30 days <span class="r">${esc(wk.from)} to ${esc(wk.to)} · ${plural(wk.matches, 'match', 'matches')}${fmOn ? ' · full members' : ''}</span></h2>
         <div class="hx-feat">
           ${bi ? tile('Top innings', bi[1], `(${bi[2]})`, pName(x, bi[0]), `vs ${esc(bi[4] || '')} · SR ${bi[2] ? (100 * bi[1] / bi[2]).toFixed(0) : '-'}`, bi[5]) : ''}
