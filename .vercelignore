@@ -7,3 +7,7 @@ docs/
 .github/
 *.db
 *.zip
+.cache/
+.claude/
+.venv/
+__pycache__/
