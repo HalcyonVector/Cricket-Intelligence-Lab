@@ -78,6 +78,9 @@ jobs:
       - name: Build (ingest -> SQLite -> bundles -> verify)
         run: python scripts/build_all.py --zip all_json.zip
 
+      - name: Cross-check all data files (blocks publishing on any inconsistency)
+        run: python tests/data_consistency.py
+
       - name: Refresh ICC rankings
         id: rankings
         continue-on-error: true   # a markup change at icc-cricket.com shouldn't block the data
@@ -109,7 +112,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url || steps.deployment_retry.outputs.page_url }}
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
@@ -144,4 +147,11 @@ jobs:
           path: web
       - id: deployment
         if: steps.ready.outputs.ok == 'true'
+        continue-on-error: true   # Pages refuses while the previous deployment is still finishing
+        uses: actions/deploy-pages@v4
+      - name: Wait for the previous Pages deployment to finish
+        if: steps.ready.outputs.ok == 'true' && steps.deployment.outcome == 'failure'
+        run: sleep 90
+      - id: deployment_retry
+        if: steps.ready.outputs.ok == 'true' && steps.deployment.outcome == 'failure'
         uses: actions/deploy-pages@v4

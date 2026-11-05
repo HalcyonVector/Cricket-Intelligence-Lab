@@ -28,6 +28,9 @@ except ImportError:  # run as a plain script
     from winprob import train as train_winprob, write as write_winprob
 
 LEGAL = "(extra_type IS NULL OR extra_type IN ('byes','legbyes'))"
+# Batting counts every delivery except wides: a no-ball is a ball faced and its runs off the bat
+# count. (LEGAL, which also drops no-balls, is the bowler/over definition.)
+BAT = "(extra_type IS NULL OR extra_type <> 'wides')"
 RPO = {"t20": 8.0, "odi": 5.5, "test": 3.3}
 # Light rate-stat floors (balls). Counting stats are NOT filtered.
 RATE_MIN_BAT = {"t20": 60, "odi": 150, "test": 300}
@@ -120,7 +123,7 @@ def batting_table(conn, extra="", params=()):
         SUM(CASE WHEN runs_batter=1 THEN 1 ELSE 0 END) ones,
         SUM(CASE WHEN runs_batter IN (1,2,3) THEN 1 ELSE 0 END) rot,
         SUM(CASE WHEN runs_batter IN (4,6) THEN runs_batter ELSE 0 END) bnd_runs
-        FROM sd WHERE {LEGAL} {extra} GROUP BY batter_id"""
+        FROM sd WHERE {BAT} {extra} GROUP BY batter_id"""
     return {r["pid"]: r for r in _rows(conn, sql, params) if r["pid"] and r["balls"]}
 
 
@@ -133,7 +136,7 @@ def dismissals(conn, extra="", params=()):
 def innings_scores(conn):
     by = defaultdict(list)
     for r in _rows(conn, f"""SELECT batter_id pid, SUM(runs_batter) score FROM sd
-            WHERE {LEGAL} GROUP BY batter_id, match_id, innings_no"""):
+            WHERE {BAT} GROUP BY batter_id, match_id, innings_no"""):
         if r["pid"]:
             by[r["pid"]].append(r["score"])
     return by
@@ -314,7 +317,7 @@ def build_cohort(conn, spec, names):
             ("defend", "is_chase=0"), ("knockout", "is_knockout=1")]
     selb = ", ".join(f"SUM(CASE WHEN {cond} THEN 1 ELSE 0 END) {cn}_b, "
                      f"SUM(CASE WHEN {cond} THEN runs_batter ELSE 0 END) {cn}_r" for cn, cond in CTXS)
-    ctx_bat = {r["pid"]: r for r in _rows(conn, f"SELECT batter_id pid, {selb} FROM sd WHERE {LEGAL} GROUP BY batter_id") if r["pid"]}
+    ctx_bat = {r["pid"]: r for r in _rows(conn, f"SELECT batter_id pid, {selb} FROM sd WHERE {BAT} GROUP BY batter_id") if r["pid"]}
     selo = ", ".join(f"SUM(CASE WHEN {cond} THEN 1 ELSE 0 END) {cn}_o" for cn, cond in CTXS)
     ctx_out = {r["pid"]: r for r in _rows(conn, f"SELECT player_out_id pid, {selo} FROM sd WHERE player_out_id IS NOT NULL GROUP BY player_out_id") if r["pid"]}
     inn = innings_scores(conn)
@@ -387,11 +390,11 @@ def build_cohort(conn, spec, names):
     ERA_MAX = 1900000
     base, bbase = {}, {}
     if n <= ERA_MAX:
-        for r in _rows(conn, f"SELECT yr, SUM(runs_batter) br, SUM(runs_batter+runs_extras) tr, SUM(CASE WHEN {LEGAL} THEN 1 ELSE 0 END) balls FROM sd GROUP BY yr"):
+        for r in _rows(conn, f"SELECT yr, SUM(runs_batter) br, SUM(runs_batter+runs_extras) tr, SUM(CASE WHEN {LEGAL} THEN 1 ELSE 0 END) balls, SUM(CASE WHEN {BAT} THEN 1 ELSE 0 END) bballs FROM sd GROUP BY yr"):
             if r["yr"] and r["balls"]:
-                base[r["yr"]] = r["br"] / r["balls"]; bbase[r["yr"]] = r["tr"] / r["balls"]
+                base[r["yr"]] = r["br"] / r["bballs"]; bbase[r["yr"]] = r["tr"] / r["balls"]
         py = defaultdict(lambda: [0.0, 0.0])
-        for r in _rows(conn, f"SELECT batter_id pid, yr, SUM(runs_batter) runs, SUM(CASE WHEN {LEGAL} THEN 1 ELSE 0 END) balls FROM sd GROUP BY batter_id, yr"):
+        for r in _rows(conn, f"SELECT batter_id pid, yr, SUM(runs_batter) runs, SUM(CASE WHEN {BAT} THEN 1 ELSE 0 END) balls FROM sd GROUP BY batter_id, yr"):
             if r["pid"] and r["yr"] in base:
                 py[r["pid"]][0] += r["runs"]; py[r["pid"]][1] += r["balls"] * base[r["yr"]]
         for p in allbat:
@@ -415,7 +418,7 @@ def build_cohort(conn, spec, names):
         for r in _rows(conn, f"""SELECT s.batter_id pid, COUNT(*) balls, SUM(s.runs_batter) runs,
                 SUM(CASE WHEN s.player_out_id=s.batter_id THEN 1 ELSE 0 END) outs
               FROM sd s JOIN fp ON fp.match_id=s.match_id AND fp.innings_no=s.innings_no
-              WHERE (s.over_no*6+s.ball_in_over) > fp.fall_ord AND {LEGAL}
+              WHERE (s.over_no*6+s.ball_in_over) > fp.fall_ord AND {BAT}
               GROUP BY s.batter_id"""):
             if r["pid"] and r["balls"]:
                 col[r["pid"]] = r
@@ -437,7 +440,7 @@ def build_cohort(conn, spec, names):
     # ---- partnership dependence: concentration of runs across batting partners ----
     pruns = defaultdict(dict)
     for r in _rows(conn, f"SELECT batter_id b, non_striker_id w, SUM(runs_batter) r FROM sd "
-                         f"WHERE {LEGAL} AND non_striker_id IS NOT NULL GROUP BY batter_id, non_striker_id"):
+                         f"WHERE {BAT} AND non_striker_id IS NOT NULL GROUP BY batter_id, non_striker_id"):
         if r["b"] and r["w"] and r["r"]:
             pruns[r["b"]][r["w"]] = r["r"]
     for p in allbat:
@@ -456,7 +459,7 @@ def build_cohort(conn, spec, names):
     # per-player venue record within THIS competition (profile "By venue"; detail file only)
     pv = defaultdict(list)
     for r in _rows(conn, f"""SELECT batter_id pid, venue v, MAX(city) c, SUM(runs_batter) r,
-            SUM(CASE WHEN {LEGAL} THEN 1 ELSE 0 END) b, COUNT(DISTINCT match_id||'-'||innings_no) i,
+            SUM(CASE WHEN {BAT} THEN 1 ELSE 0 END) b, COUNT(DISTINCT match_id||'-'||innings_no) i,
             SUM(CASE WHEN player_out_id=batter_id THEN 1 ELSE 0 END) o
             FROM sd WHERE venue IS NOT NULL AND venue<>'' GROUP BY batter_id, venue"""):
         if r["pid"] in bat and r["b"]:
@@ -497,7 +500,7 @@ def build_cohort(conn, spec, names):
 
     minballs = 18 if fmt == "test" else 12
     mu = _rows(conn, f"""SELECT batter_id b, bowler_id w,
-        SUM(CASE WHEN {LEGAL} THEN 1 ELSE 0 END) balls, SUM(runs_batter) runs,
+        SUM(CASE WHEN {BAT} THEN 1 ELSE 0 END) balls, SUM(runs_batter) runs,
         SUM(CASE WHEN player_out_id=batter_id THEN 1 ELSE 0 END) outs
         FROM sd GROUP BY batter_id,bowler_id HAVING balls>=?""", (minballs,))
     per_bat, matchups = defaultdict(list), []
