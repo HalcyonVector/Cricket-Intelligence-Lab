@@ -21,6 +21,11 @@ BOWLER_WKT = ("wicket_kind IS NOT NULL AND wicket_kind NOT IN ('run out','retire
               "'obstructing the field','timed out','handled the ball')")
 CV = "TRIM(CASE WHEN instr(m.venue,',')>0 THEN substr(m.venue,1,instr(m.venue,',')-1) ELSE m.venue END)"
 RECENT_MATCHES = 40
+# ICC Full Members. "Full members only" restricts international stats to matches where both
+# sides are full members, so records built against associates don't dominate the boards.
+FULL_MEMBERS = ("Afghanistan", "Australia", "Bangladesh", "England", "India", "Ireland", "New Zealand",
+                "Pakistan", "South Africa", "Sri Lanka", "West Indies", "Zimbabwe")
+PHASES = ("powerplay", "middle", "death")
 
 
 def _rows(conn, sql, params=()):
@@ -41,21 +46,21 @@ class _Ix:
         return self.ix[pid]
 
 
-def per_year(conn, P):
+def per_year(conn, P, src="sd"):
     """Batting and bowling aggregates per player per calendar year (drives the time filter,
     bowler form charts and milestone tracking in the dashboard)."""
     inns = defaultdict(lambda: [0, 0, 0])  # (pid, yr) -> [innings, 50s, 100s]
-    for r in _rows(conn, f"""SELECT batter_id pid, yr, SUM(runs_batter) s FROM sd WHERE {LEGAL}
+    for r in _rows(conn, f"""SELECT batter_id pid, yr, SUM(runs_batter) s FROM {src} WHERE {LEGAL}
             GROUP BY batter_id, match_id, innings_no"""):
         if r["pid"] and r["yr"]:
             a = inns[(r["pid"], r["yr"])]; s = r["s"] or 0
             a[0] += 1; a[1] += 50 <= s < 100; a[2] += s >= 100
-    outs = {(r["pid"], r["yr"]): r["o"] for r in _rows(conn, """SELECT player_out_id pid, yr, COUNT(*) o
-            FROM sd WHERE player_out_id IS NOT NULL GROUP BY player_out_id, yr""")}
+    outs = {(r["pid"], r["yr"]): r["o"] for r in _rows(conn, f"""SELECT player_out_id pid, yr, COUNT(*) o
+            FROM {src} WHERE player_out_id IS NOT NULL GROUP BY player_out_id, yr""")}
     yb = []
     for r in _rows(conn, f"""SELECT batter_id pid, yr, COUNT(*) balls, SUM(runs_batter) runs,
             SUM(runs_batter=4) f, SUM(runs_batter=6) s, SUM(runs_batter=0) d
-            FROM sd WHERE {LEGAL} GROUP BY batter_id, yr"""):
+            FROM {src} WHERE {LEGAL} GROUP BY batter_id, yr"""):
         if not r["pid"] or not r["yr"] or not str(r["yr"]).isdigit():
             continue
         k = (r["pid"], r["yr"]); i = inns.get(k, [0, 0, 0])
@@ -66,7 +71,7 @@ def per_year(conn, P):
             SUM(runs_batter+runs_extras) runs, SUM(CASE WHEN {BOWLER_WKT} THEN 1 ELSE 0 END) w,
             SUM(CASE WHEN (runs_batter+runs_extras)=0 AND {LEGAL} THEN 1 ELSE 0 END) d,
             SUM(runs_batter IN (4,6)) b
-            FROM sd GROUP BY bowler_id, yr"""):
+            FROM {src} GROUP BY bowler_id, yr"""):
         if not r["pid"] or not r["yr"] or not str(r["yr"]).isdigit() or not r["balls"]:
             continue
         yw.append([P(r["pid"]), int(r["yr"]), r["balls"], r["runs"] or 0, r["w"] or 0, r["d"] or 0, r["b"] or 0])
@@ -216,11 +221,60 @@ def this_week(conn, P, days=30, n=8):
             "spells": [[P(r["pid"]), r["w"], r["r"], r["d"], r["vs"], r["id"]] for r in spl if r["pid"] and r["w"]]}
 
 
-def build_extras(conn, names):
+def full_member_scope(conn):
+    """sdfm = this cohort's deliveries from matches where BOTH teams are ICC full members."""
+    ph = ",".join("?" * len(FULL_MEMBERS))
+    conn.execute("DROP TABLE IF EXISTS sdfm")
+    conn.execute(f"""CREATE TEMP TABLE sdfm AS SELECT s.* FROM sd s JOIN dim_match m ON m.match_id=s.match_id
+        WHERE m.team_a IN ({ph}) AND m.team_b IN ({ph})""", FULL_MEMBERS + FULL_MEMBERS)
+    return conn.execute("SELECT COUNT(DISTINCT match_id) FROM sdfm").fetchone()[0]
+
+
+def phase_tables(conn, P, src):
+    """Per-player phase totals (all seasons) for the scope table: batting [pi, phase, balls, runs, outs],
+    bowling [pi, phase, balls, runs, wkts, dots]."""
+    bp, wp = [], []
+    for r in _rows(conn, f"""SELECT batter_id pid, phase ph, SUM(CASE WHEN {LEGAL} THEN 1 ELSE 0 END) b,
+            SUM(runs_batter) r, SUM(CASE WHEN player_out_id=batter_id THEN 1 ELSE 0 END) o FROM {src} WHERE phase IN ('powerplay','middle','death')
+            GROUP BY batter_id, phase"""):
+        if r["pid"] and r["b"]:
+            bp.append([P(r["pid"]), PHASES.index(r["ph"]), r["b"], r["r"] or 0, r["o"] or 0])
+    for r in _rows(conn, f"""SELECT bowler_id pid, phase ph, SUM(CASE WHEN {LEGAL} THEN 1 ELSE 0 END) b,
+            SUM(runs_batter+runs_extras) r, SUM(CASE WHEN {BOWLER_WKT} THEN 1 ELSE 0 END) w,
+            SUM(CASE WHEN (runs_batter+runs_extras)=0 AND {LEGAL} THEN 1 ELSE 0 END) d
+            FROM {src} WHERE phase IN ('powerplay','middle','death') GROUP BY bowler_id, phase"""):
+        if r["pid"] and r["b"]:
+            wp.append([P(r["pid"]), PHASES.index(r["ph"]), r["b"], r["r"] or 0, r["w"] or 0, r["d"] or 0])
+    return bp, wp
+
+
+def matchups_scope(conn, P, src, rpo, minballs):
+    """Batter-vs-bowler pairs in the scope table with the same dominance score as the main bundle."""
+    import math
+    out = []
+    for r in _rows(conn, f"""SELECT batter_id b, bowler_id w, SUM(CASE WHEN {LEGAL} THEN 1 ELSE 0 END) balls,
+            SUM(runs_batter) runs, SUM(CASE WHEN player_out_id=batter_id THEN 1 ELSE 0 END) outs FROM {src}
+            GROUP BY batter_id, bowler_id HAVING balls>=?""", (minballs,)):
+        if not r["b"] or not r["w"] or not r["balls"]:
+            continue
+        edge = r["runs"] / r["balls"] - rpo / 6; dis = r["outs"] / r["balls"]
+        raw = 1 / (1 + math.exp(-(2.2 * edge - 26 * dis)))
+        out.append([P(r["b"]), P(r["w"]), r["balls"], r["runs"] or 0, r["outs"] or 0,
+                    round((r["balls"] * raw + 6) / (r["balls"] + 12), 2)])
+    return out
+
+
+def build_extras(conn, names, intl=False, fmt="t20", rpo=8.0):
     P = _Ix(names)
     yb, yw = per_year(conn, P)
-    data = {"yb": yb, "yw": yw, "venues": venue_detail(conn, P), "teams": team_detail(conn, P),
+    bp, wp = phase_tables(conn, P, "sd")
+    data = {"yb": yb, "yw": yw, "bp": bp, "wp": wp, "venues": venue_detail(conn, P), "teams": team_detail(conn, P),
             "recent": recent_matches(conn, P), "week": this_week(conn, P)}
+    if intl and full_member_scope(conn):
+        fyb, fyw = per_year(conn, P, "sdfm")
+        fbp, fwp = phase_tables(conn, P, "sdfm")
+        data["fm"] = {"teams": list(FULL_MEMBERS), "yb": fyb, "yw": fyw, "bp": fbp, "wp": fwp,
+                      "mu": matchups_scope(conn, P, "sdfm", rpo, 18 if fmt == "test" else 12)}
     data["p"] = P.p
     return data
 

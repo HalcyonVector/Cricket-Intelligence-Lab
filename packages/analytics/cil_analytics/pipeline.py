@@ -823,7 +823,7 @@ def build(db="cil.db", outdir="web/data", jsdir="web/dashboard/cohorts"):
             print(f"  {spec['key']}: too small, skipped"); continue
         write_matchups(jsdir, spec["key"], b.pop("_matchups_all", []), b["meta"])
         xdir = os.path.join(jsdir, "x"); os.makedirs(xdir, exist_ok=True)
-        write_extras(os.path.join(xdir, f"{spec['key']}.js"), spec["key"], build_extras(conn, names), _awrite)
+        write_extras(os.path.join(xdir, f"{spec['key']}.js"), spec["key"], build_extras(conn, names, intl=bool(spec.get("intl")), fmt=spec["format"], rpo=RPO.get(spec["format"], 6.0)), _awrite)
         for pid, pl in b["players"].items():
             players_ix.setdefault(pid, {})[spec["key"]] = [pl.get("runs", 0), 0]
         for pid, bw in b["bowlers"].items():

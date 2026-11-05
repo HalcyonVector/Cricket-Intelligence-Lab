@@ -15,7 +15,8 @@ Ball-by-ball cricket analytics across **48 competitions, 22,000+ matches and 11 
 - **Shareable player cards:** a 1200×630 PNG stat card (opens the share sheet on phones)
 
 **Analysis**
-- **Time window:** "All time", "Last 2 seasons", "Since 2015"… recomputes leaderboards, records and profile numbers for that window
+- **Time window:** "All time", "Last 2 seasons", "Since 2015"… recomputes leaderboards, records, percentiles, archetypes and profile numbers for that window
+- **Full members only** (international competitions): counts only matches between the 12 ICC full members, so figures built against associate nations don't top the boards. Works with the time window, Matchups and Bowl to…
 - **Matchups:** any batter against any bowler with 12+ balls between them (18 in Tests)
 - **Who should bowl to…:** pick a batter and a phase; get the bowlers with the best record against them and the best options for that phase
 - **Records, outliers, research lab, similarity network, 4-player comparison**
@@ -107,7 +108,7 @@ All cricket data is from **[Cricsheet](https://cricsheet.org)** under the **Open
 - **Qualifiers:** counting stats include everyone; rate stats, percentiles and archetypes use a format-aware ball floor (T20 60, ODI 150/120, Test 300). Outlier flags need 3× that sample.
 - **Era-adjusted index:** runs against what an average batter would score on the same balls in the same seasons (100 = par).
 - **Dominance:** a batter-vs-bowler score from 0 to 1 combining scoring rate and dismissal rate, shrunk toward 0.5 for small samples.
-- **Time window:** rebuilt in the browser from per-season totals; percentiles, archetypes and advanced metrics stay all-time.
+- **Filters (time window, full members only):** rebuilt in the browser from per-season totals; percentiles and archetypes are recomputed for the selection, advanced metrics and similarity stay unfiltered.
 
 ```
 all_json.zip ─► scripts/build_all.py ─► cil.db (SQLite) ─► pipeline.py + extras.py

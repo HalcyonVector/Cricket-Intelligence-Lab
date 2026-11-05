@@ -9,7 +9,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "packages", "etl"))
 sys.path.insert(0, os.path.join(ROOT, "packages", "analytics"))
 
-TEAMS = {t: [f"{t[:3]} P{i}" for i in range(11)] for t in ("Alpha", "Bravo", "Charlie", "Delta")}
+# three ICC full members + one associate, so the "full members only" scope is exercised
+TEAMS = {t: [f"{t[:3]} P{i}" for i in range(11)] for t in ("India", "Australia", "England", "Nepal")}
 
 
 def _pid(name):
@@ -87,6 +88,10 @@ def test_full_build():
             assert k in x, k
         assert x["yb"] and x["recent"] and x["teams"]
         assert {r[1] for r in x["yb"]} >= {2019, 2024}
+        fm = x["fm"]
+        assert fm["yb"] and fm["yw"] and fm["wp"] and "mu" in fm
+        assert len(fm["yb"]) < len(x["yb"]), "full-member scope should drop the associate's matches"
+        assert x["bp"] and x["wp"]
         assert os.path.exists(os.path.join(cohorts, "matchups", "t20i_men.js"))
         assert len(os.listdir(os.path.join(dash, "careers"))) == 16
         players = json.loads(open(os.path.join(dash, "players.js"), encoding="utf-8").read()[len("window.__playersLoaded("):-2])

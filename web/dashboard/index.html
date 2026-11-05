@@ -58,6 +58,10 @@
  tr.cl.on td{background:rgba(210,104,46,.12)}
  .row>h2 .r{margin-left:8px}
  .sinceban{border-color:rgba(235,162,76,.45)}
+ .fmbtn{margin-left:8px;background:transparent;border:1px solid var(--hair2);border-radius:999px;color:var(--muted);font-family:var(--mono);font-size:11px;font-weight:600;padding:4px 10px;cursor:pointer;white-space:nowrap}
+ .fmbtn:hover{color:var(--ink)}
+ .fmbtn.on{background:rgba(235,162,76,.16);border-color:var(--accent2);color:var(--accent2)}
+ @media(max-width:720px){.fmbtn{font-size:10px;padding:3px 8px}}
  .sinceban a{color:var(--accent2)}
  @media(max-width:600px){.mrow{grid-template-columns:1fr;gap:3px}.mres{text-align:left}}
  /* phone: mode switcher becomes a bottom tab bar */
@@ -581,6 +585,7 @@ function stateToHash(){
   if(state.team)q.set('tm',state.team);
   if(state.match)q.set('mt',state.match);
   if(state.since)q.set('since',state.since);
+  if(state.fm)q.set('fm','1');
   const h='#'+q.toString();
   if(location.hash!==h){_hashLock=true;location.hash=h;}
 }
@@ -594,6 +599,7 @@ function hashToState(){
   state.netPlayer=q.get('n')||null;
   state.venue=q.get('vn')||null;state.team=q.get('tm')||null;state.match=q.get('mt')||null;
   state.since=+q.get('since')||0;
+  state.fm=q.get('fm')==='1';
 }
 const meta=(k)=>IDX.cohorts.find(c=>c.key===k)||{};
 const cur=()=>COH[state.cohort];

@@ -119,30 +119,80 @@ function _agg(rows, since) {
   rows.forEach(r => { if (r[1] < since) return; for (let i = 2; i < r.length; i++) a[i] = (a[i] || 0) + r[i]; });
   return a;
 }
-/* Rebuild the cohort's player/bowler tables from per-year rows for years >= since.
-   Counting + simple rate stats are recomputed; percentiles, archetypes and advanced metrics
-   are all-time and stay attached (labelled in the UI), mixed-window metrics are blanked. */
-function sinceCohort(c, x, since) {
-  const m = c.meta, players = {}, bowlers = {};
-  for (const id in x._byB) {
-    const a = _agg(x._byB[id], since); if (!a[2]) continue;
-    const base = c.players[id] || { name: (x.p.find(p => p[0] === id) || [])[1] || id };
+/* Filters: time window (state.since) and, for international cohorts, full members only (state.fm).
+ * Both rebuild the cohort's player/bowler tables in the browser from per-season rows, then
+ * recompute percentiles and archetypes over the filtered, rate-qualified set. Advanced
+ * metrics (era index, clutch, ...) and similarity stay all-time and are labelled as such. */
+const fmAvailable = () => { const x = _X[state.cohort], m = meta(state.cohort); return !!(m.intl && x && !x._missing && x.fm); };
+const filtersOn = () => !!(state.since || (state.fm && fmAvailable()));
+const filterKey = () => `${state.since || 0}|${state.fm && fmAvailable() ? 1 : 0}`;
+function _index(rows, x) { const by = {}; rows.forEach(r => { const id = x.p[r[0]][0]; (by[id] = by[id] || []).push(r); }); return by; }
+/* The rows to use under the current filters: full-member subset when state.fm. */
+function scopeRows(x) {
+  if (!x) return null;
+  if (state.fm && x.fm) {
+    const f = x.fm;
+    if (!f._byB) { f._byB = _index(f.yb, x); f._byW = _index(f.yw, x); f._bp = _index(f.bp, x); f._wp = _index(f.wp, x); }
+    return { byB: f._byB, byW: f._byW, bp: f._bp, wp: f._wp, fm: true };
+  }
+  if (!x._bp) { x._bp = _index(x.bp || [], x); x._wp = _index(x.wp || [], x); }
+  return { byB: x._byB, byW: x._byW, bp: x._bp, wp: x._wp, fm: false };
+}
+function _pctMap(entries, invert) {
+  const xs = entries.filter(e => e[1] != null && isFinite(e[1])).sort((a, b) => a[1] - b[1]), n = xs.length, out = {};
+  if (n < 3) { xs.forEach(e => out[e[0]] = 50); return out; }
+  xs.forEach((e, i) => { const p = (i + 1) / n * 100; out[e[0]] = +(invert ? 100 - p + 100 / n : p).toFixed(1); });
+  return out;
+}
+const PH = ['powerplay', 'middle', 'death'], RPO_F = { t20: 8, odi: 5.5, test: 3.3 };
+function filteredCohort(c, x, since, fm) {
+  const m = c.meta, S = scopeRows(x), players = {}, bowlers = {}, nm = id => (x.p.find(p => p[0] === id) || [])[1] || id;
+  for (const id in S.byB) {
+    const a = _agg(S.byB[id], since); if (!a[2]) continue;
+    const base = c.players[id] || { name: nm(id), phases: {}, context: {} };
     const [balls, runs, outs, inns, f50, h100, fours, sixes, dots] = [a[2], a[3] || 0, a[4] || 0, a[5] || 0, a[6] || 0, a[7] || 0, a[8] || 0, a[9] || 0, a[10] || 0];
     players[id] = Object.assign({}, base, { balls, runs, outs, innings: inns, fifties: f50, hundreds: h100, sixes,
       avg: outs ? +(runs / outs).toFixed(1) : runs, sr: +(100 * runs / balls).toFixed(1),
       boundary_pct: +(100 * (fours + sixes) / balls).toFixed(1), dot_pct: +(100 * dots / balls).toFixed(1),
       highest: '-', strike_rot: null, era_index: null, consistency: null, conversion: null,
-      qualified: balls >= m.rate_min_bat, _since: true });
+      qualified: balls >= m.rate_min_bat, pct: null, archetype: null, _filtered: true });
+    if (fm) { // phase splits for the full-member scope (all seasons)
+      const ph = {}; (S.bp[id] || []).forEach(r => { if (r[2] >= 12) ph[PH[r[1]]] = { balls: r[2], runs: r[3], outs: r[4],
+        sr: +(100 * r[3] / r[2]).toFixed(1), avg: r[4] ? +(r[3] / r[4]).toFixed(1) : r[3] }; });
+      players[id]._ph = ph;
+    }
   }
-  for (const id in x._byW) {
-    const a = _agg(x._byW[id], since); if (!a[2]) continue;
-    const base = c.bowlers[id] || { name: (x.p.find(p => p[0] === id) || [])[1] || id, phases: {} };
+  for (const id in S.byW) {
+    const a = _agg(S.byW[id], since); if (!a[2]) continue;
+    const base = c.bowlers[id] || { name: nm(id), phases: {} };
     const [balls, runs, w, dots, bnd] = [a[2], a[3] || 0, a[4] || 0, a[5] || 0, a[6] || 0];
-    bowlers[id] = Object.assign({}, base, { balls, runs, wickets: w, economy: +(6 * runs / balls).toFixed(2),
+    const b = bowlers[id] = Object.assign({}, base, { balls, runs, wickets: w, economy: +(6 * runs / balls).toFixed(2),
       bowl_avg: w ? +(runs / w).toFixed(1) : null, bowl_sr: w ? +(balls / w).toFixed(1) : null,
       dot_pct: +(100 * dots / balls).toFixed(1), bnd_pct: +(100 * bnd / balls).toFixed(1), era_index: null,
-      qualified: balls >= m.rate_min_bowl, _since: true });
+      qualified: balls >= m.rate_min_bowl, pct: null, archetype: null, _filtered: true });
+    if (fm) { // phase economy for the full-member scope drives Bowl-to and the archetype
+      const ph = {}; (S.wp[id] || []).forEach(r => { if (r[2] >= 18) ph[PH[r[1]]] = { balls: r[2], economy: +(6 * r[3] / r[2]).toFixed(2),
+        wickets: r[4], dot_pct: +(100 * r[5] / r[2]).toFixed(1) }; });
+      b.phases = ph;
+      const tot = (S.wp[id] || []).reduce((s, r) => s + r[2], 0) || 1, share = {};
+      (S.wp[id] || []).forEach(r => { share[PH[r[1]]] = +(100 * r[2] / tot).toFixed(1); });
+      b.phase_share = share;
+    }
   }
+  // percentiles + archetypes over the filtered, rate-qualified pool (same rules as pipeline.py)
+  const qb = Object.entries(players).filter(([, p]) => p.qualified), qw = Object.entries(bowlers).filter(([, b]) => b.qualified);
+  const bm = [['avg', 0], ['sr', 0], ['boundary_pct', 0], ['dot_pct', 1]], wm = [['economy', 1], ['bowl_sr', 1], ['dot_pct', 0]];
+  bm.forEach(([k, inv]) => { const pc = _pctMap(qb.map(([id, p]) => [id, p[k]]), inv); qb.forEach(([id, p]) => { (p.pct = p.pct || {})[k] = pc[id]; }); });
+  wm.forEach(([k, inv]) => { const pc = _pctMap(qw.map(([id, b]) => [id, b[k]]), inv); qw.forEach(([id, b]) => { if (pc[id] != null) (b.pct = b.pct || {})[k] = pc[id]; }); });
+  const rpo = RPO_F[m.format] || 6, arch = {};
+  qb.forEach(([id, p]) => { const pc = p.pct, dsr = ((p._ph || p.phases || {}).death || {}).sr || 0;
+    p.archetype = pc.sr >= 70 && pc.boundary_pct >= 65 ? 'Aggressor' : pc.avg >= 70 && pc.sr < 50 ? 'Anchor'
+      : pc.sr >= 75 && dsr >= rpo * 18 ? 'Finisher' : pc.avg >= 60 && pc.sr >= 55 ? 'Accumulator' : 'Rotator';
+    arch[p.archetype] = (arch[p.archetype] || 0) + 1; });
+  qw.forEach(([id, b]) => { const pc = b.pct || {}, sh = b.phase_share || {}, lim = m.format !== 'test';
+    b.archetype = lim && (sh.death || 0) >= 30 && (pc.economy || 0) >= 45 ? 'Death specialist'
+      : lim && (sh.powerplay || 0) >= 45 && (pc.economy || 0) >= 45 ? 'Powerplay specialist'
+      : (pc.bowl_sr || 0) >= 70 ? 'Strike bowler' : (pc.economy || 0) >= 70 ? 'Holder' : 'Workhorse'; });
   const top = (src, k, asc, qual) => Object.entries(src).filter(([, p]) => p[k] != null && (!qual || p.qualified))
     .sort((a, b) => asc ? a[1][k] - b[1][k] : b[1][k] - a[1][k]).slice(0, 500).map(([pid, p]) => ({ pid, name: p.name, value: p[k] }));
   const records = { most_runs: top(players, 'runs'), most_sixes: top(players, 'sixes'), most_hundreds: top(players, 'hundreds'),
@@ -151,37 +201,65 @@ function sinceCohort(c, x, since) {
     best_economy: top(bowlers, 'economy', 1, 1), best_bowl_sr: top(bowlers, 'bowl_sr', 1, 1), best_dot_pct_bowl: top(bowlers, 'dot_pct', 0, 1) };
   return Object.assign({}, c, { players, bowlers, records, partnerships: null, spells: null, outliers: null, bowl_outliers: null,
     meta: Object.assign({}, m, { n_batters: Object.keys(players).length, n_bowlers: Object.keys(bowlers).length,
-      n_qual_bat: Object.values(players).filter(p => p.qualified).length, n_qual_bowl: Object.values(bowlers).filter(p => p.qualified).length }) });
+      n_qual_bat: qb.length, n_qual_bowl: qw.length, archetypes: arch }) });
 }
-function sinceBanner() {
-  const m = meta(state.cohort);
-  return `<div class="cov sinceban"><b>Showing ${state.since}–${String(m.coverage_to || '').slice(0, 4)} only.</b> Runs, wickets, averages and rates are recomputed for this window; percentiles, archetypes and advanced metrics are all-time. <a href="#" class="clrsince">Show all time</a></div>`;
+/* The filtered cohort for the current filters (memoised per filter combination). */
+function getFiltered() {
+  const key = state.cohort, x = _X[key], fk = filterKey();
+  if (!x._flt || x._flt.k !== fk) x._flt = { k: fk, c: filteredCohort(COH[key], x, state.since || 0, state.fm && fmAvailable()) };
+  return x._flt.c;
 }
-/* Run a view against the time-filtered cohort (swapped in only for the synchronous render). */
+function filterBanner() {
+  const m = meta(state.cohort), bits = [];
+  if (state.fm && fmAvailable()) bits.push('matches between ICC full members only');
+  if (state.since) bits.push(`${state.since}–${String(m.coverage_to || '').slice(0, 4)}`);
+  return `<div class="cov sinceban"><b>Showing ${bits.join(', ')}.</b> Totals, rates, percentiles and archetypes are recomputed for this selection; advanced metrics, similar players and matchup lists on profiles stay unfiltered. <a href="#" class="clrsince">Clear filters</a></div>`;
+}
+function _wireClear(b) { b.querySelector('.clrsince').onclick = e => { e.preventDefault(); state.since = 0; state.fm = false; render(); }; }
+/* Run a view against the filtered cohort (swapped in only for the synchronous render). */
 function withSince(fn, app) {
-  if (!state.since) return fn(app);
+  if (!state.since && !state.fm) return fn(app);
   const key = state.cohort, x = _X[key];
   if (!x) { app.appendChild($('<div class="loadbox"><div class="spinner"></div><div>Loading season-by-season data…</div></div>'));
     ensureExtras(key, () => render()); return; }
-  if (x._missing) { app.appendChild($('<div class="cov">Season filtering arrives with the next weekly data rebuild. Showing all time.</div>')); return fn(app); }
-  const orig = COH[key]; COH[key] = x._since && x._since.y === state.since ? x._since.c : (x._since = { y: state.since, c: sinceCohort(orig, x, state.since) }).c;
+  if (x._missing) { app.appendChild($('<div class="cov">Filtering arrives with the next weekly data rebuild. Showing everything.</div>')); return fn(app); }
+  if (!filtersOn()) return fn(app); // e.g. full-members toggle on a league cohort
+  const orig = COH[key];
+  COH[key] = getFiltered();
   try { fn(app); } finally { COH[key] = orig; }
-  const b = $(sinceBanner()); app.insertBefore(b, app.children[1] || null);
-  b.querySelector('.clrsince').onclick = e => { e.preventDefault(); state.since = 0; render(); };
+  if (app.children.length) { const b = $(filterBanner()); app.insertBefore(b, app.children[1] || null); _wireClear(b); }
 }
+const FILTER_VIEWS = ['players', 'bowlers', 'records', 'bowlto', 'matchups'];
 function mountSinceControl() {
   const host = document.getElementById('scopeHost'); if (!host || document.getElementById('sinceHost')) return;
   const wrap = document.createElement('span'); wrap.id = 'sinceHost'; wrap.className = 'scope';
-  wrap.innerHTML = `<label class="sr-only" for="sincesel">Time window</label><select id="sincesel" title="Time window for leaderboards, records and profiles"></select>`;
+  wrap.innerHTML = `<label class="sr-only" for="sincesel">Time window</label><select id="sincesel" title="Time window for leaderboards, records and profiles"></select>
+    <button type="button" id="fmbtn" class="fmbtn" aria-pressed="false" title="Only count matches where both teams are ICC full members">Full members only</button>`;
   host.after(wrap);
-  const sel = wrap.querySelector('select');
+  const sel = wrap.querySelector('select'), fmb = wrap.querySelector('#fmbtn');
   sel.onchange = () => { state.since = +sel.value || 0; render(); };
+  fmb.onclick = () => { state.fm = !state.fm; render(); };
   window._syncSince = () => {
     const opts = sinceOptions(); if (state.since && !opts.some(o => o[0] === state.since)) state.since = 0;
     sel.innerHTML = opts.map(([y, l]) => `<option value="${y}"${y === state.since ? ' selected' : ''}>${l}</option>`).join('');
-    const applies = ['players', 'bowlers', 'records'].includes(state.view) || state.player || state.bowler;
-    wrap.style.opacity = applies ? 1 : .55; wrap.title = applies ? '' : 'The time window applies to Batters, Bowlers, Records and player profiles';
+    const intl = !!meta(state.cohort).intl;
+    fmb.style.display = intl ? '' : 'none';
+    fmb.classList.toggle('on', !!state.fm && intl); fmb.setAttribute('aria-pressed', String(!!state.fm && intl));
+    const applies = FILTER_VIEWS.includes(state.view) || state.player || state.bowler;
+    wrap.style.opacity = applies ? 1 : .55; wrap.title = applies ? '' : 'Filters apply to Batters, Bowlers, Records, Matchups, Bowl to… and player profiles';
   };
+}
+/* Matchup rows for the current filters: the full-member set comes from the extras file. */
+function getMatchups(c, cb) {
+  if (state.fm && meta(c.meta.key).intl) {
+    ensureExtras(c.meta.key, x => {
+      if (x && x.fm) {
+        if (!x.fm._mu) x.fm._mu = x.fm.mu.map(r => ({ batter: x.p[r[0]][0], batter_name: x.p[r[0]][1], bowler: x.p[r[1]][0], bowler_name: x.p[r[1]][1],
+          balls: r[2], runs: r[3], outs: r[4], sr: r[2] ? Math.round(1000 * r[3] / r[2]) / 10 : null, avg: r[4] ? Math.round(10 * r[3] / r[4]) / 10 : null, dominance: r[5] }));
+        cb({ rows: x.fm._mu, min: c.meta.format === 'test' ? 18 : 12, fm: true });
+      } else ensureMatchups(c.meta.key, cb);
+    });
+  } else ensureMatchups(c.meta.key, cb);
 }
 
 /* ===================== profile helpers ===================== */
@@ -211,13 +289,15 @@ const _playerView = playerView;
 playerView = function (pid) {
   let w;
   const run = () => { w = _playerView(pid); };
-  if (state.since && _X[state.cohort] && !_X[state.cohort]._missing) withSince(() => run(), document.createElement('div')); else run();
-  if (state.since && !_X[state.cohort]) ensureExtras(state.cohort, () => render());
-  const c = cur(), p = c.players[pid]; if (!p || !w || !w.firstElementChild) return w;
+  let useF = (state.since || state.fm) && _X[state.cohort] && !_X[state.cohort]._missing && filtersOn();
+  const outside = useF && !getFiltered().players[pid]; // no balls in this selection: show everything instead
+  if (outside) useF = false;
+  if (useF) withSince(() => run(), document.createElement('div')); else run();
+  if ((state.since || state.fm) && !_X[state.cohort]) ensureExtras(state.cohort, () => render());
+  const xf = _X[state.cohort], c = useF && xf && xf._flt ? xf._flt.c : cur(), p = c.players[pid]; if (!p || !w || !w.firstElementChild) return w;
   stickyHeader(w);
-  if (state.since && _X[state.cohort] && !_X[state.cohort]._missing) {
-    const b = $(sinceBanner()); w.insertBefore(b, w.children[1] || null); b.querySelector('.clrsince').onclick = e => { e.preventDefault(); state.since = 0; render(); };
-  }
+  if (useF) { const b = $(filterBanner()); w.insertBefore(b, w.children[1] || null); _wireClear(b); }
+  if (outside) w.insertBefore($('<div class="cov">No balls faced in the current filter selection, so this profile shows all their matches.</div>'), w.children[1] || null);
   w.insertBefore(alsoPlayedStrip(pid, false), w.children[1] || null);
   if (p.qualified) {
     const P = c.players, dp = $('<div class="grid bento" style="margin-top:13px"></div>');
@@ -240,7 +320,7 @@ mountCareer = function (app, pid) {
   let scope = state.formScope || 'comp', metric = state.careerMetric || 'runs';
   const draw = () => {
     const x = xNow();
-    const fromComp = () => (x && x._byB[pid] || []).map(r => ({ year: r[1], balls: r[2], runs: r[3], inns: r[5],
+    const fromComp = () => (x && (scopeRows(x).byB[pid]) || []).map(r => ({ year: r[1], balls: r[2], runs: r[3], inns: r[5],
       avg: r[4] ? +(r[3] / r[4]).toFixed(1) : r[3], sr: +(100 * r[3] / r[2]).toFixed(1) })).sort((a, b) => a.year - b.year);
     let years = scope === 'comp' ? fromComp() : ((window.CIL_CAREER || {})[pid] || []);
     if (scope === 'comp' && !years.length) { scope = 'all'; years = (window.CIL_CAREER || {})[pid] || []; }
@@ -261,14 +341,17 @@ const BOWL_DEFS = { wkts: { lab: 'Wickets', unit: 'wkts', bar: true }, econ: { l
 const _bowlerProfile = bowlerProfile;
 bowlerProfile = function (id) {
   let w;
-  const useSince = state.since && _X[state.cohort] && !_X[state.cohort]._missing;
+  let useSince = (state.since || state.fm) && _X[state.cohort] && !_X[state.cohort]._missing && filtersOn();
+  const outsideB = useSince && !getFiltered().bowlers[id];
+  if (outsideB) useSince = false;
   if (useSince) withSince(() => { w = _bowlerProfile(id); }, document.createElement('div')); else w = _bowlerProfile(id);
-  if (state.since && !_X[state.cohort]) ensureExtras(state.cohort, () => render());
-  const c = cur(), b = (c.bowlers || {})[id]; if (!b || !w || !w.firstElementChild) return w;
+  if ((state.since || state.fm) && !_X[state.cohort]) ensureExtras(state.cohort, () => render());
+  const xf = _X[state.cohort], c = useSince && xf && xf._flt ? xf._flt.c : cur(), b = (c.bowlers || {})[id]; if (!b || !w || !w.firstElementChild) return w;
   stickyHeader(w);
   const hdr = w.querySelector('.phead h1');
   if (hdr && b.archetype) hdr.after($(`<span class="arch" style="background:${BOWL_ARCH_COLOR[b.archetype] || '#888'}22;color:${BOWL_ARCH_COLOR[b.archetype] || '#aaa'}" title="${esc(GLOSSARY[b.archetype.toLowerCase()] || '')}">${esc(b.archetype)}</span>`));
-  if (useSince) { const bn = $(sinceBanner()); w.insertBefore(bn, w.children[1] || null); bn.querySelector('.clrsince').onclick = e => { e.preventDefault(); state.since = 0; render(); }; }
+  if (useSince) { const bn = $(filterBanner()); w.insertBefore(bn, w.children[1] || null); _wireClear(bn); }
+  if (outsideB) w.insertBefore($('<div class="cov">No balls bowled in the current filter selection, so this profile shows all their matches.</div>'), w.children[1] || null);
   w.insertBefore(alsoPlayedStrip(id, true), w.children[1] || null);
 
   // form by year (this competition)
@@ -276,7 +359,7 @@ bowlerProfile = function (id) {
   w.insertBefore(form, w.children[2] || null);
   let metric = state.bowlMetric || 'wkts';
   ensureExtras(state.cohort, x => {
-    const rows = x && x._byW[id] || [];
+    const rows = x && scopeRows(x).byW[id] || [];
     if (!rows.length) { form.remove(); return; }
     const years = rows.map(r => ({ year: r[1], balls: r[2], runs: r[3], wkts: r[4], econ: +(6 * r[3] / r[2]).toFixed(2), sr: r[4] ? +(r[2] / r[4]).toFixed(1) : null }))
       .sort((a, b) => a.year - b.year);
@@ -306,7 +389,7 @@ bowlerProfile = function (id) {
   }
   // matchups from the bowler's side (full pair list)
   const mu = $('<div class="grid bento" style="margin-top:13px"></div>'); w.appendChild(mu);
-  ensureMatchups(c.meta.key, st => {
+  getMatchups(c, st => {
     const rows = (st.rows || c.matchups_top || []).filter(m => m.bowler === id);
     if (!rows.length) return;
     const tbl = (arr, t) => `<div class="panel s6"><h2>${t}</h2><div class="tscroll"><table><thead><tr><th>Batter</th><th class="n">B</th><th class="n">R</th><th class="n">W</th><th class="n">SR</th><th class="n">Dom</th></tr></thead><tbody>${arr.map(m => `<tr><td>${pidLink(m.batter, m.batter_name)}</td><td class="n">${m.balls}</td><td class="n">${m.runs}</td><td class="n">${m.outs}</td><td class="n">${fmtN(m.sr)}</td><td class="n"><b>${m.dominance}</b></td></tr>`).join('')}</tbody></table></div></div>`;
@@ -341,9 +424,9 @@ function bowlToView(app) {
     if (!pid) return;
     const p = c.players[pid];
     res.innerHTML = '<div class="loadbox"><div class="spinner"></div><div>Loading every matchup…</div></div>';
-    ensureMatchups(m.key, st => {
+    getMatchups(c, st => {
       const all = (st.rows || c.matchups_top || []).filter(x => x.batter === pid);
-      const B = c.bowlers || {}, ph = phase, bp = ph && p.phases && p.phases[ph];
+      const B = c.bowlers || {}, ph = phase, bp = ph && ((p._ph && p._ph[ph]) || (p.phases && p.phases[ph]));
       const proven = all.slice().sort((a, b) => a.dominance - b.dominance || b.balls - a.balls).slice(0, 10);
       const hist = {}; all.forEach(x => { hist[x.bowler] = x; });
       const minB = isTest ? 300 : 60;
@@ -495,7 +578,18 @@ window.detailView = function (app) {
   else { const l = $('<div class="loadbox"><div class="spinner"></div><div>Loading…</div></div>'); app.appendChild(l); ensureExtras(key, x => { if (state.cohort !== key) return; l.remove(); draw(x); }); }
   return true;
 };
-window.EXTRA_VIEWS = { bowlto: bowlToView, matches: matchesView };
+window.EXTRA_VIEWS = { bowlto: app => withSince(bowlToView, app), matches: matchesView };
+/* Matchups view: under "full members only" swap in the full-member pair list. */
+const _matchupsView = matchupsView;
+matchupsView = function (app) {
+  const c = cur();
+  if (!(state.fm && meta(c.meta.key).intl)) return _matchupsView(app);
+  const intro = $(`<div><h1>Matchup Intelligence</h1><p class="sub">Any batter vs any bowler, <b>matches between full members only</b>. <span id="mucount" class="dim">Loading…</span></p></div>`);
+  app.appendChild(intro);
+  getMatchups(c, st => { if (state.view !== 'matchups' || cur() !== c || !intro.parentNode) return;
+    const all = st.rows || c.matchups_top; intro.querySelector('#mucount').textContent = `${all.length.toLocaleString()} pairs with ${st.min}+ balls.`;
+    const b = $(filterBanner()); intro.after(b); _wireClear(b); _matchupsBody(intro.parentNode, c, all, st.min || 12); });
+};
 
 /* ===================== home: last 30 days + milestones ===================== */
 const _homeView = homeView;
