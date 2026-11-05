@@ -211,8 +211,12 @@ footer a{color:var(--muted)}
   .ul path{stroke-dashoffset:0;animation:none!important}
   *{scroll-behavior:auto!important}
 }
-.covline{max-width:860px;margin:22px auto 0;text-align:center;color:var(--muted);font-size:14px;line-height:1.65}
-.covline a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--line2)}
+.statgrid{padding-bottom:40px!important}
+.covrow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:30px;border-top:1px solid var(--line);padding:22px 0 30px}
+.covrow .ck{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ember);margin-bottom:6px}
+.covrow .cv{font-size:13.5px;line-height:1.55;color:var(--muted)}
+.covrow a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--line2);white-space:nowrap}
+@media(max-width:860px){.covrow{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}}
 </style>
 </head>
 <body>
@@ -231,7 +235,7 @@ footer a{color:var(--muted)}
 <header class="hero" id="top">
   <p class="eyebrow rise" id="dataline" style="--d:.05s"></p>
   <h1 class="rise" style="--d:.12s"><span class="l">Cricket stats built from</span><span class="l disp-i"><span class="u">ball-by-ball data.<svg class="ul" viewBox="0 0 300 14" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M3 9 C 50 3, 90 12, 140 6 S 230 4, 297 8"/></svg></span></span></h1>
-  <p class="lede rise" style="--d:.22s">Search any player and see where they rank within their competition. Put up to four side by side, or plot one stat against another and look for the outliers.</p>
+  <p class="lede rise" style="--d:.22s">Search any player and see where they rank within their competition. Compare up to four, find who should bowl to whom, and follow any match's win probability.</p>
   <div class="cta rise" style="--d:.32s">
     <a class="btn btn-primary" href="dashboard/index.html">Open the dashboard</a>
     <a class="btn btn-ghost" href="#run">Run it yourself</a>
@@ -248,7 +252,7 @@ footer a{color:var(--muted)}
 
 <section id="features" class="pad">
   <div class="wrap">
-    <div class="shead reveal"><h2>What's in the dashboard</h2><p>Pick a competition first. Every page after that is about the players in it.</p></div>
+    <div class="shead reveal"><h2>What's in the dashboard</h2><p>Pick a competition first. Every page after that is about the players and matches in it.</p></div>
     <div class="bento">
       <div class="card span3 reveal">
         <div class="thumb"><img src="shots/outlier-d.webp" width="745" height="535" loading="lazy" alt="Scatter plot of every rated batter by average and strike rate, with outliers in red."></div>
@@ -259,60 +263,73 @@ footer a{color:var(--muted)}
         <div class="cb"><h3>Research lab</h3><p>Put any stat on either axis. Players far from the trend line are listed with how many standard deviations out they are.</p></div>
       </div>
       <div class="card span2 reveal">
-        <div class="cb"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20.5c0-3.9 3.4-6.2 7.5-6.2s7.5 2.3 7.5 6.2"/></svg><h3>Player profiles</h3><p>Percentile ranks, powerplay, middle and death splits, opposition and venue breakdowns, and a career timeline.</p></div>
+        <div class="cb"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20.5c0-3.9 3.4-6.2 7.5-6.2s7.5 2.3 7.5 6.2"/></svg><h3>Player profiles</h3><p>Batters and bowlers: percentile ranks, form by year, phase and situation splits, venues, the bowlers or batters they beat and struggle against, and every competition they've played in.</p></div>
       </div>
       <div class="card span2 reveal" style="--d:.06s">
-        <div class="cb"><svg class="ic" viewBox="0 0 24 24"><path d="M5 21V11"/><path d="M12 21V4"/><path d="M19 21v-7"/></svg><h3>Records</h3><p>Most runs, most wickets, best averages and strike rates, with era-adjusted versions beside the raw ones.</p></div>
+        <div class="cb"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.2 5.2c2.4 2.2 3.6 4.4 3.6 6.8s-1.2 4.6-3.6 6.8M15.8 5.2c-2.4 2.2-3.6 4.4-3.6 6.8s1.2 4.6 3.6 6.8"/></svg><h3>Who should bowl to…</h3><p>Pick a batter and a phase. Get the bowlers with the best record against them, and the best options for the powerplay, middle or death.</p></div>
       </div>
       <div class="card span2 reveal" style="--d:.12s">
-        <div class="cb"><svg class="ic" viewBox="0 0 24 24"><circle cx="6" cy="6.5" r="2.1"/><circle cx="18" cy="7.5" r="2.1"/><circle cx="12" cy="17.5" r="2.1"/><path d="M7.7 7.7 10.6 15.6M16.3 9.1 13.4 15.6M8.1 6.7h7.8"/></svg><h3>Similar batters</h3><p>Pick a batter and see the eight closest to them across twelve percentile metrics.</p></div>
+        <div class="cb"><svg class="ic" viewBox="0 0 24 24"><path d="M3 19 9 12l4 3 8-10"/><path d="M3 5v14h18"/></svg><h3>Matches and win probability</h3><p>The latest matches with run progression, runs per over and a win-probability line, plus a live win chance on T20 and ODI scorecards.</p></div>
       </div>
-      <div class="card span3 reveal">
-        <div class="cb"><svg class="ic" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9.2" ry="6"/><ellipse cx="12" cy="12" rx="3" ry="5.2"/></svg><h3>Grounds and teams</h3><p>How each venue scores, how often the chase wins, and team records by format.</p></div>
+      <div class="card span2 reveal">
+        <div class="cb"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg><h3>Filters</h3><p>Re-rank everything for the last two seasons, since 2015, or only matches between the 12 full members, so associate-nation figures don't top the boards.</p></div>
       </div>
-      <div class="card span3 reveal" style="--d:.06s">
-        <div class="cb"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.9"/><path d="M8 8a5.7 5.7 0 0 0 0 8M16 16a5.7 5.7 0 0 0 0-8M5.2 5.2a9.6 9.6 0 0 0 0 13.6M18.8 18.8a9.6 9.6 0 0 0 0-13.6"/></svg><h3>Live scores</h3><p>Scores, fixtures and commentary from Cricbuzz. These need the Python server running.</p></div>
+      <div class="card span2 reveal" style="--d:.06s">
+        <div class="cb"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14M9 8l-4 4 4 4M15 8l4 4-4 4"/></svg><h3>Matchups</h3><p>Any batter against any bowler with 12 or more balls between them: runs, dismissals, strike rate and who came out on top.</p></div>
+      </div>
+      <div class="card span2 reveal" style="--d:.12s">
+        <div class="cb"><svg class="ic" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9.2" ry="6"/><ellipse cx="12" cy="12" rx="3" ry="5.2"/></svg><h3>Teams and grounds</h3><p>Win rate by year and head-to-heads for every team; first-innings scores, toss effect and top performers for every ground.</p></div>
+      </div>
+      <div class="card span2 reveal">
+        <div class="cb"><svg class="ic" viewBox="0 0 24 24"><path d="M5 21V11"/><path d="M12 21V4"/><path d="M19 21v-7"/></svg><h3>Records</h3><p>Batting, bowling and advanced boards: most runs and wickets, best averages and strike rates, era-adjusted, clutch and more.</p></div>
+      </div>
+      <div class="card span2 reveal" style="--d:.06s">
+        <div class="cb"><svg class="ic" viewBox="0 0 24 24"><circle cx="6" cy="6.5" r="2.1"/><circle cx="18" cy="7.5" r="2.1"/><circle cx="12" cy="17.5" r="2.1"/><path d="M7.7 7.7 10.6 15.6M16.3 9.1 13.4 15.6M8.1 6.7h7.8"/></svg><h3>Similar players</h3><p>For every rated batter and bowler, the six most similar in the same competition, by how they score or bowl.</p></div>
+      </div>
+      <div class="card span2 reveal" style="--d:.12s">
+        <div class="cb"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.9"/><path d="M8 8a5.7 5.7 0 0 0 0 8M16 16a5.7 5.7 0 0 0 0-8M5.2 5.2a9.6 9.6 0 0 0 0 13.6M18.8 18.8a9.6 9.6 0 0 0 0-13.6"/></svg><h3>Live scores</h3><p>Live scores, fixtures and ball-by-ball commentary from Cricbuzz, right on the site.</p></div>
       </div>
     </div>
   </div>
 </section>
 
-<section class="band" id="coverage"><div class="wrap"><div class="statgrid" id="statgrid"></div><p class="covline">What isn't in the data: ball-by-ball records start in 2001 for men's internationals and 2003 for women's, Cricsheet withholds every match involving Afghanistan (<a href="https://cricsheet.org/article/explanation-for-withholding-of-afghanistani-matches/">a protest over Afghan women's cricket</a>), and some games are <a href="https://cricsheet.org/missing/">missing from their archive</a>. So a player's totals here can be lower than their official career figures.</p></div></section>
+<section class="band" id="coverage"><div class="wrap"><div class="statgrid" id="statgrid"></div><div class="covrow" aria-label="About the data"><div class="ci"><div class="ck">About the data</div><div class="cv">Totals can sit below official career figures.</div></div><div class="ci"><div class="ck">Coverage</div><div class="cv">Men's internationals from 2001, women's from 2003</div></div><div class="ci"><div class="ck">Afghanistan</div><div class="cv">Every match is withheld by Cricsheet. <a href="https://cricsheet.org/article/explanation-for-withholding-of-afghanistani-matches/">Why</a></div></div><div class="ci"><div class="ck">Gaps</div><div class="cv">Some games are missing from the archive. <a href="https://cricsheet.org/missing/">See the list</a></div></div></div></div></section>
 
 <section id="how" class="pad">
   <div class="wrap"><div class="steps">
     <div class="sticky reveal">
-      <h2>Worked out ahead of time</h2>
-      <p>Nothing is calculated in your browser. A build step reads Cricsheet's files, computes everything once, and writes one data file per competition. The dashboard only loads the file.</p>
+      <h2>Mostly worked out ahead of time</h2>
+      <p>A weekly build reads Cricsheet's files, computes the heavy statistics once and writes data files per competition. Your browser only does the light work: re-ranking for a time window or full members, and the win-probability maths.</p>
     </div>
     <div class="steplist">
       <div class="step reveal"><div class="no">1</div><div><h4>Ingest</h4><p>Every Cricsheet match goes into SQLite, one delivery at a time.</p></div></div>
-      <div class="step reveal" style="--d:.06s"><div class="no">2</div><div><h4>Compute</h4><p>Percentiles, splits, similarity and era indices, once per competition.</p></div></div>
+      <div class="step reveal" style="--d:.06s"><div class="no">2</div><div><h4>Compute</h4><p>Percentiles, splits, matchups, similarity, era indices and win-probability models.</p></div></div>
       <div class="step reveal" style="--d:.12s"><div class="no">3</div><div><h4>Check</h4><p>Over 400,000 cross-checks between the data files run before anything is published.</p></div></div>
-      <div class="step reveal" style="--d:.18s"><div class="no">4</div><div><h4>Open</h4><p>The browser loads the file. No backend, no database.</p></div></div>
+      <div class="step reveal" style="--d:.18s"><div class="no">4</div><div><h4>Open</h4><p>The site is static files on a CDN. Live scores come from one small serverless function.</p></div></div>
     </div>
   </div></div>
 </section>
 
 <section class="pad" style="padding-top:0">
   <div class="wrap">
-    <div class="shead center big reveal"><h2>Batters get one of five tags</h2><p>Assigned from how a batter scores, within their own competition.</p></div>
+    <div class="shead center big reveal"><h2>Every rated player gets a tag</h2><p>Assigned from how they score or bowl, within their own competition.</p></div>
     <div class="chips center big reveal">
       <span class="chip"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><path d="M12 7v13M5.5 13a6.5 6.5 0 0 0 13 0M5.5 13H3.2l1.4 2M18.5 13h2.3l-1.4 2"/></svg>Anchor</span><span class="chip"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7M20 3.5V8h-4.5"/></svg>Rotator</span><span class="chip"><svg viewBox="0 0 24 24"><path d="M5 20V13M10 20V8M15 20V11M20 20V4"/></svg>Accumulator</span><span class="chip"><svg viewBox="0 0 24 24"><path d="M13 2.5 5 13h6l-2 8.5L19 10.5h-6z"/></svg>Aggressor</span><span class="chip"><svg viewBox="0 0 24 24"><path d="M5.5 21V3.5M5.5 5h11l-2.2 4 2.2 4h-11"/></svg>Finisher</span>
     </div>
+    <div class="chips center big reveal" style="margin-top:12px"><span class="chip"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/><path d="M8.7 6c2 1.8 3 3.8 3 6s-1 4.2-3 6M15.3 6c-2 1.8-3 3.8-3 6s1 4.2 3 6"/></svg>Strike bowler</span><span class="chip"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/><path d="M8.7 6c2 1.8 3 3.8 3 6s-1 4.2-3 6M15.3 6c-2 1.8-3 3.8-3 6s1 4.2 3 6"/></svg>Holder</span><span class="chip"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/><path d="M8.7 6c2 1.8 3 3.8 3 6s-1 4.2-3 6M15.3 6c-2 1.8-3 3.8-3 6s1 4.2 3 6"/></svg>Powerplay specialist</span><span class="chip"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/><path d="M8.7 6c2 1.8 3 3.8 3 6s-1 4.2-3 6M15.3 6c-2 1.8-3 3.8-3 6s1 4.2 3 6"/></svg>Death specialist</span><span class="chip"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/><path d="M8.7 6c2 1.8 3 3.8 3 6s-1 4.2-3 6M15.3 6c-2 1.8-3 3.8-3 6s1 4.2 3 6"/></svg>Workhorse</span></div>
   </div>
 </section>
 
 <section id="run" class="pad" style="padding-top:0">
   <div class="wrap">
     <div class="shead tight center big reveal"><h2>Run it yourself</h2></div>
-    <p class="runcopy center reveal">The dashboard is plain HTML plus pre-built data files, so a clone is enough for everything except live scores. A scheduled job rebuilds those data files from Cricsheet's latest release.</p>
-<pre class="codeblock big reveal"><span class="c"># history works offline</span>
-<span class="p">$</span> git clone https://github.com/HalcyonVector/Cricket-Intelligence-Lab
+    <p class="runcopy center reveal">The dashboard is plain HTML plus data files that a weekly job rebuilds from Cricsheet and publishes as a release. Fetch them once and everything except live scores works offline.</p>
+<pre class="codeblock big reveal"><span class="p">$</span> git clone https://github.com/HalcyonVector/Cricket-Intelligence-Lab
 <span class="p">$</span> cd Cricket-Intelligence-Lab
+<span class="p">$</span> python scripts/fetch_data.py   <span class="c"># latest built data, about 25 MB</span>
 <span class="c"># then open web/dashboard/index.html in any browser</span>
 
-<span class="c"># optional: live scores, and this page served at /</span>
+<span class="c"># optional: live scores locally, and this page served at /</span>
 <span class="p">$</span> pip install requests
 <span class="p">$</span> python serve.py</pre>
   </div>
