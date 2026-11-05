@@ -14,5 +14,5 @@
       "destination": "/api/index?__p=:path*"
     }
   ],
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- api serve.py vercel.json requirements.txt vercel"
+  "ignoreCommand": "[ -n \"$VERCEL_GIT_PREVIOUS_SHA\" ] && git diff --quiet \"$VERCEL_GIT_PREVIOUS_SHA\" HEAD -- api serve.py vercel.json requirements.txt vercel"
 }
