@@ -51,3 +51,5 @@ web/dashboard/careers/
 # Pages deploy writes these
 web/index.html
 web/.nojekyll
+
+.vercel

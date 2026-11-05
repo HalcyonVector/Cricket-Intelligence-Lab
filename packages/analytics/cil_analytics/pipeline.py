@@ -740,6 +740,25 @@ def _awrite(path, data):
     os.replace(tmp, path)
 
 
+# Profile-only fields: moved out of the first-load bundle into cohorts/d/<key>.js, which
+# the dashboard fetches in the background (Overview paints from the core file alone).
+DETAIL_FIELDS = {"players": ("phases", "matchups", "similar", "context"), "bowlers": ("similar", "context")}
+
+
+def split_bundle(b):
+    """Return (core, detail): core is the bundle minus DETAIL_FIELDS, detail holds them by player id."""
+    core, detail = dict(b), {}
+    for group, fields in DETAIL_FIELDS.items():
+        slim, extra = {}, {}
+        for pid, rec in (b.get(group) or {}).items():
+            slim[pid] = {k: v for k, v in rec.items() if k not in fields}
+            d = {k: rec[k] for k in fields if k in rec}
+            if d:
+                extra[pid] = d
+        core[group], detail[group] = slim, extra
+    return core, detail
+
+
 def write_matchups(jsdir, key, matchups, meta):
     """cohorts/matchups/<key>.js: every batter-vs-bowler pair above the ball floor, compact.
 
@@ -830,8 +849,12 @@ def build(db="cil.db", outdir="web/data", jsdir="web/dashboard/cohorts"):
             players_ix.setdefault(pid, {}).setdefault(spec["key"], [0, 0])[1] = bw.get("wickets", 0)
         payload = json.dumps(b, separators=(",", ":"))
         _awrite(jpath, payload)
+        core, detail = split_bundle(b)
         _awrite(os.path.join(jsdir, f"{spec['key']}.js"),
-                f"window.__cohortLoaded({json.dumps(spec['key'])},{payload});")
+                f"window.__cohortLoaded({json.dumps(spec['key'])},{json.dumps(core, separators=(',', ':'))});")
+        os.makedirs(os.path.join(jsdir, "d"), exist_ok=True)
+        _awrite(os.path.join(jsdir, "d", f"{spec['key']}.js"),
+                f"window.__detailLoaded({json.dumps(spec['key'])},{json.dumps(detail, separators=(',', ':'))});")
         _awrite(os.path.join(outdir, f"{spec['key']}.meta.json"),
                 json.dumps({**b["meta"], "bytes": len(payload)}))
         print(f"  {spec['key']}: {b['meta']['n_batters']}bat/{b['meta']['n_bowlers']}bowl "

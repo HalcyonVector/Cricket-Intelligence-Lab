@@ -596,6 +596,7 @@
  .drop-menu{background:#1D2026!important;border:1px solid var(--hair2)!important;box-shadow:0 18px 40px -12px rgba(0,0,0,.6)!important;padding:6px!important}
  .drop-o{color:var(--muted)}.drop-o:hover{background:rgba(255,255,255,.05)}
  .drop-o.on{color:var(--accent2)!important;background:rgba(242,178,76,.12)!important}.drop-o.on::before{box-shadow:none!important}
+ .pcredit{color:var(--dim);font-size:11.5px;text-decoration:underline;text-decoration-color:var(--hair2)}
  .drop-g{font-family:inherit!important;letter-spacing:0!important;text-transform:none!important;font-size:11.5px!important}
 </style>
 </head>
@@ -723,8 +724,24 @@ function gLabel(m){return m.gender==='female'?"Women's":m.gender==='male'?"Men's
 function loadCohort(key,cb){
   if(COH[key])return cb(COH[key]);
   const s=document.createElement('script');s.src='cohorts/'+encodeURIComponent(key)+'.js';
-  s.onload=()=>cb(COH[key]||null);s.onerror=()=>cb(null);document.head.appendChild(s);
+  s.onload=()=>{cb(COH[key]||null);if(COH[key])ensureDetail(key,()=>{});};s.onerror=()=>cb(null);document.head.appendChild(s);
 }
+/* Profile-only fields (phase/context splits, matchups, similar players) live in cohorts/d/<key>.js.
+   The Overview paints from the core bundle; this loads in the background and is merged in place.
+   Older single-file bundles already carry these fields, so a missing detail file is fine. */
+const DETAIL={};
+window.__detailLoaded=(key,d)=>{const c=COH[key];if(!c)return;
+  ['players','bowlers'].forEach(g=>{const src=d[g]||{},dst=c[g]||{};for(const id in src)if(dst[id])Object.assign(dst[id],src[id]);});
+  const x=typeof _X!=='undefined'&&_X[key];if(x)x._flt=null;};
+function ensureDetail(key,cb){
+  const st=DETAIL[key];
+  if(st===true)return cb();
+  if(st){st.push(cb);return;}
+  const q=DETAIL[key]=[cb];
+  const s=document.createElement('script');s.src='cohorts/d/'+encodeURIComponent(key)+'.js';
+  const done=()=>{DETAIL[key]=true;q.forEach(f=>f());};s.onload=done;s.onerror=done;document.head.appendChild(s);
+}
+const _needsDetail=()=>!!(state.player||state.bowler)||['compare','network','research','bowlto'].includes(state.view);
 
 function dropdown(items,value,onpick){
   const el=document.createElement('div');el.className='drop';
@@ -838,7 +855,13 @@ function render(){
   const app=document.getElementById('app');
   if(!COH[state.cohort]){
     app.innerHTML='<div class="loadbox"><div class="spinner"></div><div>Loading '+esc(meta(state.cohort).label||'')+'…</div></div>';
-    loadCohort(state.cohort,(d)=>{ if(!d){app.innerHTML='<div class="cov">Could not load this cohort bundle.</div>';return;} paint(app); });
+    loadCohort(state.cohort,(d)=>{ if(!d){app.innerHTML='<div class="cov">Could not load this cohort bundle.</div>';return;} render(); });
+    return;
+  }
+  if(_needsDetail()&&DETAIL[state.cohort]!==true){
+    const key=state.cohort;
+    app.innerHTML='<div class="loadbox"><div class="spinner"></div><div>Loading player details…</div></div>';
+    ensureDetail(key,()=>{if(state.cohort===key)render();});
     return;
   }
   paint(app);
@@ -1102,8 +1125,10 @@ function bowlerProfile(id){
   const w=$(`<div></div>`);
   const meta=(window.CIL_PLAYERMETA||{})[id]||{};
   const isHttp=location.protocol.indexOf('http')===0;
-  const photo=meta.photo||playerImg(b.name,meta.unique_name||meta.name,id)||(HAS_API?API_BASE+'/api/photo?name='+encodeURIComponent(meta.unique_name||meta.name||b.name):'');
-  w.appendChild($(`<div class="row" style="margin-top:20px;align-items:center"><button class="pill" id="bback">← back</button>${avatarHTML(b.name,photo)}<div><div class="row" style="gap:9px"><h1 style="margin:0">${esc(b.name)}</h1><span class="badge">Bowler</span>${b.qualified?'':'<span class="badge">below rate qualifier</span>'}</div><div class="dim" style="margin-top:2px">${esc(c.meta.label)}</div></div></div>`));
+  /* Cricbuzz headshots first; Wikimedia Commons (via Wikidata, credited) fills the gaps. */
+  const photo=playerImg(b.name,meta.unique_name||meta.name,id)||meta.photo||'';
+  const credit=photo&&photo===meta.photo&&meta.photo_page?`<a class="pcredit" href="${meta.photo_page}" target="_blank" rel="noopener">Photo: Wikimedia Commons</a>`:'';
+  w.appendChild($(`<div class="row" style="margin-top:20px;align-items:center"><button class="pill" id="bback">← back</button>${avatarHTML(b.name,photo)}<div><div class="row" style="gap:9px"><h1 style="margin:0">${esc(b.name)}</h1><span class="badge">Bowler</span>${b.qualified?'':'<span class="badge">below rate qualifier</span>'}</div><div class="dim" style="margin-top:2px">${esc(c.meta.label)}${credit?` · ${credit}`:''}</div></div></div>`));
   const tiles=[["Wickets",b.wickets],["Economy",b.economy],["Average",b.bowl_avg],["Strike Rate",b.bowl_sr],["Balls",b.balls],["Runs",b.runs],["Dot %",b.dot_pct],["Boundary %",b.bnd_pct]];
   const g=$(`<div class="grid bento" style="margin-top:14px"></div>`);
   g.innerHTML=tiles.map(t=>`<div class="s3"><div class="panel kpi"><div class="l">${t[0]}</div><div class="n"${typeof t[1]==='number'?' data-count':''}>${fmtN(t[1])}</div></div></div>`).join('');
@@ -1128,9 +1153,11 @@ function playerView(pid){
   const w=$(`<div></div>`);
   const meta=(window.CIL_PLAYERMETA||{})[pid]||{};
   const isHttp=location.protocol.indexOf('http')===0;
-  const photo=meta.photo||playerImg(p.name,meta.unique_name||meta.name,pid)||(HAS_API?API_BASE+'/api/photo?name='+encodeURIComponent(meta.unique_name||meta.name||p.name):'');
+  /* Cricbuzz headshots first; Wikimedia Commons (via Wikidata, credited) fills the gaps. */
+  const photo=playerImg(p.name,meta.unique_name||meta.name,pid)||meta.photo||'';
+  const credit=photo&&photo===meta.photo&&meta.photo_page?`<a class="pcredit" href="${meta.photo_page}" target="_blank" rel="noopener">Photo: Wikimedia Commons</a>`:'';
   const ciLink=meta.cricinfo_id?`<a class="pill" href="https://www.espncricinfo.com/ci/content/player/${meta.cricinfo_id}.html" target="_blank" rel="noopener">ESPNcricinfo ↗</a>`:'';
-  w.appendChild($(`<div class="row" style="margin-top:20px;align-items:center"><button class="pill" id="back">← back</button>${avatarHTML(p.name,photo)}<div><div class="row" style="gap:9px"><h1 style="margin:0">${esc(p.name)}</h1>${archPill(p.archetype)}${p.qualified?'':'<span class="badge">below rate qualifier</span>'}${meta.country?`<span class="badge">${esc(meta.country)}</span>`:''}${ciLink}</div><div class="dim" style="margin-top:2px">${esc(c.meta.label)}</div></div></div>`));
+  w.appendChild($(`<div class="row" style="margin-top:20px;align-items:center"><button class="pill" id="back">← back</button>${avatarHTML(p.name,photo)}<div><div class="row" style="gap:9px"><h1 style="margin:0">${esc(p.name)}</h1>${archPill(p.archetype)}${p.qualified?'':'<span class="badge">below rate qualifier</span>'}${meta.country?`<span class="badge">${esc(meta.country)}</span>`:''}${ciLink}</div><div class="dim" style="margin-top:2px">${esc(c.meta.label)}${credit?` · ${credit}`:''}</div></div></div>`));
   const tiles=[["Runs",p.runs],["Average",p.avg],["Strike Rate",p.sr],["Innings",p.innings],["50/100",`${p.fifties}/${p.hundreds}`],["Highest",p.highest],["Boundary %",p.boundary_pct],["Sixes",p.sixes]];
   const g=$(`<div class="grid bento" style="margin-top:14px"></div>`);
   g.innerHTML=tiles.map(t=>`<div class="s3"><div class="panel kpi"><div class="l">${t[0]}</div><div class="n"${typeof t[1]==='number'?' data-count':''}>${fmtN(t[1])}</div></div></div>`).join('');

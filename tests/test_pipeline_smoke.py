@@ -82,7 +82,10 @@ def test_full_build():
         assert b["players"] and b["bowlers"]
         assert "_matchups_all" not in b
         assert any(v.get("archetype") for v in b["bowlers"].values()), "bowler archetypes missing"
-        assert any("context" in v for v in b["bowlers"].values()), "bowler context splits missing"
+        assert not any("context" in v for v in b["bowlers"].values()), "detail fields should not be in the core bundle"
+        det = load(os.path.join(cohorts, "d", "t20i_men.js"))
+        assert any("context" in v for v in det["bowlers"].values()), "bowler context splits missing"
+        assert any("phases" in v for v in det["players"].values()), "player phases missing from detail"
         x = load(os.path.join(cohorts, "x", "t20i_men.js"))
         for k in ("yb", "yw", "venues", "teams", "recent", "week", "p"):
             assert k in x, k
