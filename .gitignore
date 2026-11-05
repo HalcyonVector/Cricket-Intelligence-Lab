@@ -46,6 +46,7 @@ Thumbs.db
 web/dashboard/index.js
 web/dashboard/rankings.js
 web/dashboard/players.js
+web/dashboard/winprob.js
 web/dashboard/cohorts/
 web/dashboard/careers/
 # Pages deploy writes these

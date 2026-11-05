@@ -503,6 +503,21 @@ function matchDetail(app, x, id) {
   app.appendChild($(`<div style="margin-top:10px"><h1 style="margin:0">${esc(mt.teams[0])} <span class="dim">vs</span> ${esc(mt.teams[1])}</h1><p class="sub">${esc(mt.date)} · <a ${goAttr('venue', (mt.venue || '').split(',')[0].trim())}>${esc(mt.venue || '')}</a>${mt.stage ? ' · ' + esc(mt.stage) : ''} · toss: ${esc(mt.toss[0] || '-')} chose to ${esc(mt.toss[1] || '-')}</p></div>`));
   const g = $('<div class="grid bento"></div>');
   g.appendChild($(`<div class="panel s12" style="background:linear-gradient(120deg,rgba(229,154,47,.13),transparent)"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:10px"><h2 style="margin:0;font-size:17px">${esc(resultText(mt))}</h2><div class="row" style="gap:16px;flex-wrap:wrap">${mt.inns.map((i, k) => `<span class="num"><span class="sw" style="background:${INN_COL[k % 4]};display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px"></span>${esc(i.team || '')} <b>${i.runs}/${i.wkts}</b> <span class="dim">(${i.overs.length} ov)</span></span>`).join('')}</div></div></div>`));
+  const wpSlot = $('<div class="panel s12" style="display:none"></div>'); g.appendChild(wpSlot);
+  ensureWinProb(wp => {
+    const c = cur(), model = wpModel(wp, c.meta.format, c.meta.gender);
+    if (!model || c.meta.format === 'test' || mt.inns.length < 2) return;
+    const i1 = mt.inns[0], i2 = mt.inns[1], target = i1.runs + 1, series = [winProbFirst(model, 1, 0, 0, 0)];
+    let r = 0, w = 0, b = 0;
+    i1.overs.forEach(o => { r += o[0]; w += o[1]; b = Math.min(b + 6, model.T); series.push(winProbFirst(model, 1, r, b, w)); });
+    const split = series.length - 1; r = 0; w = 0; b = 0;
+    i2.overs.forEach(o => { r += o[0]; w += o[1]; b = Math.min(b + 6, model.T); series.push(winProbFirst(model, 2, r, b, w, target)); });
+    const swing = series.slice(1).map((v, k) => ({ k, d: Math.abs(v - series[k]) })).sort((x, z) => z.d - x.d)[0];
+    const at = swing ? (swing.k < split ? `${esc(i1.team)} over ${swing.k + 1}` : `${esc(i2.team)} over ${swing.k - split + 1}`) : '';
+    wpSlot.innerHTML = `<h2>Win probability <span class="r">biggest swing: ${at}</span></h2>${winProbSVG(series, i1.team || 'Batting first', i2.team || 'Chasing', split)}
+      <div class="note" style="margin-top:6px">From runs, balls and wickets after each over, using a model trained on every ${c.meta.format.toUpperCase()} in the data. It doesn't know the teams, the pitch or rain rules.</div>`;
+    wpSlot.style.display = '';
+  });
   g.appendChild($(`<div class="panel s12"><h2>Run progression <span class="r">dots = wickets</span></h2>${wormSVG(mt.inns)}</div>`));
   g.appendChild($(`<div class="panel s12"><h2>Runs per over <span class="r">solid = wicket in the over</span></h2>${manhattanSVG(mt.inns)}</div>`));
   mt.inns.forEach((inn, k) => {
@@ -512,6 +527,66 @@ function matchDetail(app, x, id) {
   g.appendChild($('<div class="panel s12"><span class="note">Top 11 batters and top 8 bowlers per innings, from Cricsheet ball-by-ball.</span></div>'));
   app.appendChild(g); wireLinks(app);
 }
+
+/* ===================== win probability (models trained in packages/analytics/cil_analytics/winprob.py) ===================== */
+function ensureWinProb(cb) { lazyScript('winprob.js', () => !!window.CIL_WINPROB, () => cb(window.CIL_WINPROB || null)); }
+/* Must mirror features() in winprob.py exactly. */
+function winFeatures(inn, runs, balls, wkts, T, target) {
+  const frac = Math.min(balls, T) / T, wl = Math.min(wkts, 10) / 10;
+  if (inn === 1) { const s = runs / (T * 1.25); return [1, s, frac, wl, s * (1 - frac), wl * (1 - frac), frac * frac]; }
+  const need = Math.max(target - runs, 0), left = Math.max(T - balls, 1), rrr = Math.min(need * 6 / left, 36) / 10;
+  return [1, rrr, wl, left / T, Math.log1p(need) / 5, (1 - wl) * left / T, rrr * wl];
+}
+/* P(the side batting first wins) at a given state; null when no model fits. */
+function winProbFirst(model, inn, runs, balls, wkts, target) {
+  if (!model) return null;
+  const T = model.T;
+  if (inn === 2) {
+    if (runs >= target) return 0;
+    if (wkts >= 10 || balls >= T) return 1;
+  }
+  const z = winFeatures(inn, runs, balls, wkts, T, target).reduce((a, x, i) => a + x * model['inn' + inn][i], 0);
+  const p = 1 / (1 + Math.exp(-Math.max(-30, Math.min(30, z))));
+  return inn === 1 ? p : 1 - p;
+}
+const wpModel = (wp, fmt, gender) => wp && wp.models && wp.models[`${fmt === 'odi' ? 'odi' : 't20'}_${gender === 'female' ? 'female' : 'male'}`];
+function winProbSVG(series, teamA, teamB, split) {
+  const W = 720, H = 210, pad = 38, n = series.length;
+  const X = i => pad + i / Math.max(n - 1, 1) * (W - 2 * pad), Y = v => H - pad - v * (H - 2 * pad);
+  const pts = series.map((v, i) => `${X(i).toFixed(1)},${Y(v).toFixed(1)}`);
+  const area = `M${X(0)},${Y(.5)} L${pts.join(' L')} L${X(n - 1)},${Y(.5)} Z`;
+  const ticks = [0, .25, .5, .75, 1].map(v => `<text x="${pad - 6}" y="${(Y(v) + 3).toFixed(1)}" text-anchor="end" fill="#8B8E96" font-size="9">${Math.round(v * 100)}%</text>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Win probability through the match">${ticks}
+    <line x1="${pad}" y1="${Y(.5)}" x2="${W - pad}" y2="${Y(.5)}" stroke="#33363E" stroke-dasharray="4 4"/>
+    ${split ? `<line x1="${X(split)}" y1="${pad}" x2="${X(split)}" y2="${H - pad}" stroke="#33363E"/><text x="${X(split) + 4}" y="${pad + 10}" fill="#8B8E96" font-size="9.5">innings break</text>` : ''}
+    <path d="${area}" fill="${INN_COL[0]}" fill-opacity=".12"/>
+    <polyline points="${pts.join(' ')}" fill="none" stroke="${INN_COL[0]}" stroke-width="2.2"/>
+    <text x="${pad + 4}" y="${pad - 8}" fill="${INN_COL[0]}" font-size="10.5">${esc(teamA)} winning ↑</text>
+    <text x="${pad + 4}" y="${H - pad + 24}" fill="${INN_COL[1]}" font-size="10.5">${esc(teamB)} winning ↓</text></svg>`;
+}
+/* Live cards: one-line estimate for T20/ODI scores like "155/6 (18.2)". */
+function parseScore(sc) {
+  const m = /(\d+)(?:\/(\d+))?\s*\((\d+)(?:\.(\d))?\)/.exec(sc || ''); if (!m) return null;
+  return { runs: +m[1], wkts: m[2] == null ? 10 : +m[2], balls: +m[3] * 6 + (+m[4] || 0) };
+}
+function liveWinLine(m, wp) {
+  const f = String(m.format || '').toLowerCase(), fmt = f.includes('odi') ? 'odi' : f.includes('t20') ? 't20' : null;
+  if (!fmt || !(m.teams || []).length) return '';
+  const model = wpModel(wp, fmt, /women/i.test((m.title || '') + ' ' + (m.series || '')) ? 'female' : 'male');
+  const a = m.teams[0], b = m.teams[1], sa = parseScore(a && a.score), sb = parseScore(b && b.score);
+  let pA = null;
+  if (sa && !sb) pA = winProbFirst(model, 1, sa.runs, sa.balls, sa.wkts);
+  else if (sa && sb) pA = winProbFirst(model, 2, sb.runs, sb.balls, sb.wkts, sa.runs + 1);
+  if (pA == null || /won|tied|abandon|no result/i.test(m.status || '')) return '';
+  const fav = pA >= .5 ? a.name : b.name, pct = Math.round(100 * Math.max(pA, 1 - pA));
+  return `<div class="wpline" title="Estimated from runs, balls and wickets with a model trained on every ${fmt.toUpperCase()} in Cricsheet. It doesn't know the teams or conditions."><span>Win chance</span><div class="wpbar"><span style="width:${(100 * pA).toFixed(0)}%"></span></div><b>${esc(fav)} ${pct}%</b></div>`;
+}
+const _matchCardHTML = matchCardHTML;
+matchCardHTML = function (m, clickable) {
+  const html = _matchCardHTML(m, clickable), line = window.CIL_WINPROB ? liveWinLine(m, window.CIL_WINPROB) : '';
+  return line ? html.replace(/<\/div>\s*$/, line + '</div>') : html;
+};
+ensureWinProb(() => {}); // tiny file: load early so live cards can use it
 
 /* ===================== venue & team pages ===================== */
 function rowsClickable(panel, attr) {

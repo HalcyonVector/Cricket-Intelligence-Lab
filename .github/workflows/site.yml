@@ -96,7 +96,7 @@ jobs:
 
       - name: Publish data as the data-latest release asset
         run: |
-          tar -czf site-data.tar.gz -C web/dashboard index.js rankings.js players.js cohorts careers
+          tar -czf site-data.tar.gz -C web/dashboard index.js rankings.js players.js winprob.js cohorts careers
           ls -lh site-data.tar.gz
           gh release view data-latest >/dev/null 2>&1 || gh release create data-latest \
             --title "Site data (latest build)" --latest=false \

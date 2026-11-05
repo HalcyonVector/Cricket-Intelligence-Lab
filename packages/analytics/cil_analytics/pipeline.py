@@ -22,8 +22,10 @@ from collections import defaultdict
 import numpy as np
 try:
     from .extras import build_extras, write_extras
+    from .winprob import train as train_winprob, write as write_winprob
 except ImportError:  # run as a plain script
     from extras import build_extras, write_extras
+    from winprob import train as train_winprob, write as write_winprob
 
 LEGAL = "(extra_type IS NULL OR extra_type IN ('byes','legbyes'))"
 RPO = {"t20": 8.0, "odi": 5.5, "test": 3.3}
@@ -870,6 +872,7 @@ def build(db="cil.db", outdir="web/data", jsdir="web/dashboard/cohorts"):
     _awrite(os.path.join(os.path.dirname(jsdir), "index.js"),
             "window.CIL_INDEX=" + json.dumps(index, separators=(",", ":")) + ";")
     write_players_index(os.path.dirname(jsdir), players_ix, names, [c["key"] for c in index["cohorts"]])
+    write_winprob(os.path.join(os.path.dirname(jsdir), "winprob.js"), train_winprob(conn), _awrite)
     career, venues = global_profiles(conn)
     write_career_shards(os.path.dirname(jsdir), career, venues)
     print(f"  careers/: {len(career)} batters with career, {len(venues)} with venues")

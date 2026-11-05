@@ -99,6 +99,7 @@ def test_full_build():
         assert len(os.listdir(os.path.join(dash, "careers"))) == 16
         players = json.loads(open(os.path.join(dash, "players.js"), encoding="utf-8").read()[len("window.__playersLoaded("):-2])
         assert players["k"] == keys and players["p"]
+        assert os.path.exists(os.path.join(dash, "winprob.js"))  # too few matches to train here, but always written
 
 
 if __name__ == "__main__":

@@ -14,7 +14,7 @@ REPO = os.environ.get("CIL_REPO", "HalcyonVector/Cricket-Intelligence-Lab")
 URL = f"https://github.com/{REPO}/releases/download/data-latest/site-data.tar.gz"
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEST = os.path.join(ROOT, "web", "dashboard")
-ALLOWED = ("index.js", "rankings.js", "players.js", "cohorts/", "careers/")
+ALLOWED = ("index.js", "rankings.js", "players.js", "winprob.js", "cohorts/", "careers/")
 
 
 def main():
