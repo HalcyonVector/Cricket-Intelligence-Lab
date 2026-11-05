@@ -33,3 +33,23 @@ jobs:
             }
             JSON.parse(fs.readFileSync("web/dashboard/manifest.webmanifest","utf8"));
             console.log("html scripts + manifest OK");'
+
+  browser:
+    # Opens every main view of the real dashboard (latest published data) in headless
+    # Chromium and fails on any JavaScript error or missing content.
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Playwright
+        run: |
+          pip install playwright requests
+          python -m playwright install --with-deps chromium
+      - name: Get the latest built data
+        run: python scripts/fetch_data.py
+      - name: Smoke-test every view
+        run: python tests/browser/smoke.py
