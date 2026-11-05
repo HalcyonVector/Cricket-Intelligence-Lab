@@ -196,7 +196,7 @@ def recent_matches(conn, P, n=RECENT_MATCHES):
     return out
 
 
-def this_week(conn, P, days=30, n=8):
+def this_week(conn, P, days=30, n=30):
     """Standout innings and spells from the last `days` days of data in this cohort."""
     last = conn.execute("SELECT MAX(m.match_date) FROM dim_match m JOIN sm ON sm.match_id=m.match_id").fetchone()[0]
     if not last:
@@ -209,16 +209,19 @@ def this_week(conn, P, days=30, n=8):
     ph = ",".join("?" * len(rm))
     inn = _rows(conn, f"""SELECT s.batter_id pid, s.match_id id, SUM(s.runs_batter) r,
             SUM(CASE WHEN {LEGAL.replace('extra_type', 's.extra_type')} THEN 1 ELSE 0 END) b,
-            MAX(m.match_date) d, MAX(s.bowling_team) vs
+            MAX(m.match_date) d, MAX(s.bowling_team) vs, MAX(s.batting_team) t
             FROM sd s JOIN dim_match m ON m.match_id=s.match_id WHERE s.match_id IN ({ph})
             GROUP BY s.batter_id, s.match_id, s.innings_no ORDER BY r DESC LIMIT ?""", rm + [n])
     spl = _rows(conn, f"""SELECT s.bowler_id pid, s.match_id id, SUM(CASE WHEN {BOWLER_WKT.replace('wicket_kind', 's.wicket_kind')} THEN 1 ELSE 0 END) w,
-            SUM(s.runs_batter+s.runs_extras) r, MAX(m.match_date) d, MAX(s.batting_team) vs
+            SUM(s.runs_batter+s.runs_extras) r, MAX(m.match_date) d, MAX(s.batting_team) vs, MAX(s.bowling_team) t,
+            SUM(CASE WHEN {LEGAL.replace('extra_type', 's.extra_type')} THEN 1 ELSE 0 END) b
             FROM sd s JOIN dim_match m ON m.match_id=s.match_id WHERE s.match_id IN ({ph})
             GROUP BY s.bowler_id, s.match_id, s.innings_no ORDER BY w DESC, r ASC LIMIT ?""", rm + [n])
     return {"from": lo, "to": last, "matches": len(rm),
-            "innings": [[P(r["pid"]), r["r"], r["b"], r["d"], r["vs"], r["id"]] for r in inn if r["pid"]],
-            "spells": [[P(r["pid"]), r["w"], r["r"], r["d"], r["vs"], r["id"]] for r in spl if r["pid"] and r["w"]]}
+            # [player, runs, balls, date, opponent, match id, own team]
+            "innings": [[P(r["pid"]), r["r"], r["b"], r["d"], r["vs"], r["id"], r["t"]] for r in inn if r["pid"]],
+            # [player, wickets, runs, date, opponent, match id, own team, balls]
+            "spells": [[P(r["pid"]), r["w"], r["r"], r["d"], r["vs"], r["id"], r["t"], r["b"]] for r in spl if r["pid"] and r["w"]]}
 
 
 def full_member_scope(conn):

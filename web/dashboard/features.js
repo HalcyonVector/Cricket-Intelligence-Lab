@@ -73,18 +73,18 @@ function yearChartSVG(years, defs, metric, minBalls) {
   const pool = elig.length ? elig : years.filter(y => val(y) != null);
   const peak = pool.reduce((a, b) => (M.lowerBetter ? val(b) < val(a) : val(b) > val(a)) ? b : a, pool[0] || years[0]);
   const cy = v => H - pad - (v / mx) * (H - 2 * pad - 14), cx = i => pad + i * gap + gap / 2;
-  const lab = (y, i) => n <= 24 ? `<text x="${cx(i).toFixed(1)}" y="${H - pad + 13}" text-anchor="middle" fill="#A6816E" font-size="8.5">'${String(y.year).slice(2)}</text>` : '';
+  const lab = (y, i) => n <= 24 ? `<text x="${cx(i).toFixed(1)}" y="${H - pad + 13}" text-anchor="middle" fill="#8B8E96" font-size="8.5">'${String(y.year).slice(2)}</text>` : '';
   let marks;
   if (M.bar) {
     marks = years.map((y, i) => { const v = val(y) || 0, x = cx(i) - bw / 2, h = (v / mx) * (H - 2 * pad - 14), pk = y === peak;
-      return `<g><rect x="${x.toFixed(1)}" y="${(H - pad - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(1, h).toFixed(1)}" rx="2" fill="${pk ? '#FFB454' : '#D2682E'}" fill-opacity="${pk ? .95 : .62}"><title>${esc(y.tip || '')}</title></rect>${lab(y, i)}</g>`; }).join('');
+      return `<g><rect x="${x.toFixed(1)}" y="${(H - pad - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(1, h).toFixed(1)}" rx="2" fill="${pk ? '#F7C873' : '#E59A2F'}" fill-opacity="${pk ? 1 : .8}"><title>${esc(y.tip || '')}</title></rect>${lab(y, i)}</g>`; }).join('');
   } else {
     const pts = years.map((y, i) => val(y) == null ? null : `${cx(i).toFixed(1)},${cy(val(y)).toFixed(1)}`).filter(Boolean).join(' ');
-    marks = `<polyline points="${pts}" fill="none" stroke="#D2682E" stroke-width="2" stroke-opacity=".8"/>` +
+    marks = `<polyline points="${pts}" fill="none" stroke="#E59A2F" stroke-width="2" stroke-opacity=".8"/>` +
       years.map((y, i) => { if (val(y) == null) return lab(y, i); const pk = y === peak, small = (y.balls || 0) < (minBalls || 60);
-        return `<g><circle cx="${cx(i).toFixed(1)}" cy="${cy(val(y)).toFixed(1)}" r="${pk ? 5 : 3.6}" fill="${pk ? '#FFB454' : small ? '#2A1A15' : '#D2682E'}" stroke="#D2682E" stroke-width="${small ? 1.2 : 0}"><title>${esc(y.tip || '')}${small ? ' (small sample)' : ''}</title></circle>${lab(y, i)}</g>`; }).join('');
+        return `<g><circle cx="${cx(i).toFixed(1)}" cy="${cy(val(y)).toFixed(1)}" r="${pk ? 5 : 3.6}" fill="${pk ? '#F7C873' : small ? '#22252B' : '#E59A2F'}" stroke="#E59A2F" stroke-width="${small ? 1.2 : 0}"><title>${esc(y.tip || '')}${small ? ' (small sample)' : ''}</title></circle>${lab(y, i)}</g>`; }).join('');
   }
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block" role="img" aria-label="${esc(M.lab)} per year">${axisTicksSVG(null, cy, null, [0, mx], [pad, pad, W - pad, H - pad], { ny: 3 })}<line x1="${pad}" y1="${H - pad}" x2="${W - pad}" y2="${H - pad}" stroke="#4A2E22"/>${marks}${peak ? `<text x="${pad}" y="18" fill="#C7A99B" font-size="10">${M.lowerBetter ? 'Best' : 'Peak'} ${peak.year}: ${fmtN(val(peak))} ${M.unit}</text>` : ''}</svg>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block" role="img" aria-label="${esc(M.lab)} per year">${axisTicksSVG(null, cy, null, [0, mx], [pad, pad, W - pad, H - pad], { ny: 3 })}<line x1="${pad}" y1="${H - pad}" x2="${W - pad}" y2="${H - pad}" stroke="#33363E"/>${marks}${peak ? `<text x="${pad}" y="18" fill="#B4B7BE" font-size="10">${M.lowerBetter ? 'Best' : 'Peak'} ${peak.year}: ${fmtN(val(peak))} ${M.unit}</text>` : ''}</svg>`;
 }
 function metricSeg(defs, metric) {
   return `<div class="seg" role="group" aria-label="Metric">${Object.entries(defs).map(([k, m]) => `<button data-m="${k}" class="${k === metric ? 'on' : ''}" aria-pressed="${k === metric}">${m.lab}</button>`).join('')}</div>`;
@@ -96,12 +96,12 @@ function distStrip(values, v, label, lowerBetter, fmt) {
   const lo = vs[Math.floor(vs.length * 0.01)], hi = vs[Math.ceil(vs.length * 0.99) - 1];
   const W = 520, H = 30, pad = 6, X = t => pad + (Math.min(hi, Math.max(lo, t)) - lo) / ((hi - lo) || 1) * (W - 2 * pad);
   const below = vs.filter(x => x < v).length, pct = Math.round(100 * (lowerBetter ? vs.length - below - 1 : below) / Math.max(1, vs.length - 1));
-  const ticks = vs.map(t => `<line x1="${X(t).toFixed(1)}" x2="${X(t).toFixed(1)}" y1="9" y2="23" stroke="#D2682E" stroke-opacity=".16"/>`).join('');
+  const ticks = vs.map(t => `<line x1="${X(t).toFixed(1)}" x2="${X(t).toFixed(1)}" y1="9" y2="23" stroke="#E59A2F" stroke-opacity=".16"/>`).join('');
   const med = vs[Math.floor(vs.length / 2)];
   return `<div class="dist"><div class="dist-h"><span>${label}</span><span class="num">${fmt ? fmt(v) : fmtN(v)} <span class="dim">· better than ${Math.max(0, Math.min(100, pct))}%</span></span></div>
     <svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="none" role="img" aria-label="${esc(label)}: ${fmtN(v)}, better than ${pct}% of rated players">${ticks}
-    <line x1="${X(med).toFixed(1)}" x2="${X(med).toFixed(1)}" y1="5" y2="27" stroke="#C7A99B" stroke-dasharray="2 2" stroke-opacity=".6"><title>median ${fmtN(med)}</title></line>
-    <rect x="${(X(v) - 2.5).toFixed(1)}" y="3" width="5" height="24" rx="2" fill="#FFB454"/></svg>
+    <line x1="${X(med).toFixed(1)}" x2="${X(med).toFixed(1)}" y1="5" y2="27" stroke="#B4B7BE" stroke-dasharray="2 2" stroke-opacity=".6"><title>median ${fmtN(med)}</title></line>
+    <rect x="${(X(v) - 2.5).toFixed(1)}" y="3" width="5" height="24" rx="2" fill="#F7C873"/></svg>
     <div class="dist-f"><span>${fmtN(lowerBetter ? hi : lo)}</span><span>${lowerBetter ? 'better →' : '← lower · higher →'}</span><span>${fmtN(lowerBetter ? lo : hi)}</span></div></div>`;
 }
 
@@ -229,7 +229,7 @@ function withSince(fn, app) {
   try { fn(app); } finally { COH[key] = orig; }
   if (app.children.length) { const b = $(filterBanner()); app.insertBefore(b, app.children[1] || null); _wireClear(b); }
 }
-const FILTER_VIEWS = ['players', 'bowlers', 'records', 'bowlto', 'matchups'];
+const FILTER_VIEWS = ['players', 'bowlers', 'records', 'bowlto', 'matchups', 'home'];
 function mountSinceControl() {
   const host = document.getElementById('scopeHost'); if (!host || document.getElementById('sinceHost')) return;
   const wrap = document.createElement('span'); wrap.id = 'sinceHost'; wrap.className = 'scope';
@@ -336,7 +336,7 @@ mountCareer = function (app, pid) {
 };
 
 /* ===================== bowler profile ===================== */
-const BOWL_ARCH_COLOR = { 'Strike bowler': '#FF6B7E', 'Holder': '#33D17A', 'Powerplay specialist': '#6FA8FF', 'Death specialist': '#FFB454', 'Workhorse': '#B49A8C' };
+const BOWL_ARCH_COLOR = { 'Strike bowler': '#FF6B7E', 'Holder': '#33D17A', 'Powerplay specialist': '#6FA8FF', 'Death specialist': '#F7C873', 'Workhorse': '#9AA0A8' };
 const BOWL_DEFS = { wkts: { lab: 'Wickets', unit: 'wkts', bar: true }, econ: { lab: 'Economy', unit: 'econ', lowerBetter: true }, sr: { lab: 'Strike rate', unit: 'balls/wkt', lowerBetter: true } };
 const _bowlerProfile = bowlerProfile;
 bowlerProfile = function (id) {
@@ -467,16 +467,16 @@ function matchesView(app) {
     draw(''); q.querySelector('#mq').oninput = e => draw(e.target.value.toLowerCase().trim());
   });
 }
-const INN_COL = ['#EBA24C', '#6FA8FF', '#FF6B7E', '#33D17A'];
+const INN_COL = ['#F2B24C', '#6FA8FF', '#FF6B7E', '#33D17A'];
 function wormSVG(inns) {
   const W = 720, H = 240, pad = 38, maxO = Math.max(...inns.map(i => i.overs.length), 1);
   const cum = inns.map(i => { let s = 0; return i.overs.map(o => (s += o[0])); });
   const mx = Math.max(...cum.map(cs => cs[cs.length - 1] || 0), 1);
   const X = o => pad + o / maxO * (W - 2 * pad), Y = v => H - pad - v / mx * (H - 2 * pad);
   const lines = inns.map((inn, k) => { const cs = cum[k]; const pts = [`${X(0)},${Y(0)}`].concat(cs.map((v, o) => `${X(o + 1).toFixed(1)},${Y(v).toFixed(1)}`)).join(' ');
-    const wk = inn.overs.map((o, j) => o[1] ? `<circle cx="${X(j + 1).toFixed(1)}" cy="${Y(cs[j]).toFixed(1)}" r="${2.5 + o[1]}" fill="${INN_COL[k % 4]}" fill-opacity=".9" stroke="#130C0A"><title>Over ${j + 1}: ${o[1]} wicket${o[1] > 1 ? 's' : ''}, ${cs[j]} runs</title></circle>` : '').join('');
+    const wk = inn.overs.map((o, j) => o[1] ? `<circle cx="${X(j + 1).toFixed(1)}" cy="${Y(cs[j]).toFixed(1)}" r="${2.5 + o[1]}" fill="${INN_COL[k % 4]}" fill-opacity=".9" stroke="#121317"><title>Over ${j + 1}: ${o[1]} wicket${o[1] > 1 ? 's' : ''}, ${cs[j]} runs</title></circle>` : '').join('');
     return `<polyline points="${pts}" fill="none" stroke="${INN_COL[k % 4]}" stroke-width="2.2"/>${wk}`; }).join('');
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Run progression by over">${axisTicksSVG(X, Y, [0, maxO], [0, mx], [pad, pad, W - pad, H - pad])}<line x1="${pad}" y1="${H - pad}" x2="${W - pad}" y2="${H - pad}" stroke="#4A2E22"/>${lines}<text x="${W / 2}" y="${H - 4}" text-anchor="middle" fill="#A6816E" font-size="10">Overs →</text></svg>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Run progression by over">${axisTicksSVG(X, Y, [0, maxO], [0, mx], [pad, pad, W - pad, H - pad])}<line x1="${pad}" y1="${H - pad}" x2="${W - pad}" y2="${H - pad}" stroke="#33363E"/>${lines}<text x="${W / 2}" y="${H - 4}" text-anchor="middle" fill="#8B8E96" font-size="10">Overs →</text></svg>`;
 }
 function manhattanSVG(inns) {
   const W = 720, H = 200, pad = 38, maxO = Math.max(...inns.map(i => i.overs.length), 1), n = inns.length;
@@ -484,7 +484,7 @@ function manhattanSVG(inns) {
   const Y = v => H - pad - v / mx * (H - 2 * pad);
   const bars = inns.map((inn, k) => inn.overs.map((o, j) => { const x = pad + j * gw + gw * 0.1 + k * bw, y = Y(o[0]);
     return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${(H - pad - y).toFixed(1)}" fill="${INN_COL[k % 4]}" fill-opacity="${o[1] ? 1 : .6}"><title>${esc(inn.team || '')} over ${j + 1}: ${o[0]} runs${o[1] ? ', ' + o[1] + ' wkt' : ''}</title></rect>`; }).join('')).join('');
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Runs per over">${axisTicksSVG(o => pad + o * gw, Y, maxO <= 50 ? [0, maxO] : null, [0, mx], [pad, pad, W - pad, H - pad], { nx: 5 })}<line x1="${pad}" y1="${H - pad}" x2="${W - pad}" y2="${H - pad}" stroke="#4A2E22"/>${bars}</svg>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Runs per over">${axisTicksSVG(o => pad + o * gw, Y, maxO <= 50 ? [0, maxO] : null, [0, mx], [pad, pad, W - pad, H - pad], { nx: 5 })}<line x1="${pad}" y1="${H - pad}" x2="${W - pad}" y2="${H - pad}" stroke="#33363E"/>${bars}</svg>`;
 }
 function matchDetail(app, x, id) {
   const mt = x.recent.find(r => r.id === id);
@@ -493,7 +493,7 @@ function matchDetail(app, x, id) {
   back.querySelector('#mback').onclick = () => { state.match = null; render(); };
   app.appendChild($(`<div style="margin-top:10px"><h1 style="margin:0">${esc(mt.teams[0])} <span class="dim">vs</span> ${esc(mt.teams[1])}</h1><p class="sub">${esc(mt.date)} · <a ${goAttr('venue', (mt.venue || '').split(',')[0].trim())}>${esc(mt.venue || '')}</a>${mt.stage ? ' · ' + esc(mt.stage) : ''} · toss: ${esc(mt.toss[0] || '-')} chose to ${esc(mt.toss[1] || '-')}</p></div>`));
   const g = $('<div class="grid bento"></div>');
-  g.appendChild($(`<div class="panel s12" style="background:linear-gradient(120deg,rgba(210,104,46,.13),transparent)"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:10px"><h2 style="margin:0;font-size:17px">${esc(resultText(mt))}</h2><div class="row" style="gap:16px;flex-wrap:wrap">${mt.inns.map((i, k) => `<span class="num"><span class="sw" style="background:${INN_COL[k % 4]};display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px"></span>${esc(i.team || '')} <b>${i.runs}/${i.wkts}</b> <span class="dim">(${i.overs.length} ov)</span></span>`).join('')}</div></div></div>`));
+  g.appendChild($(`<div class="panel s12" style="background:linear-gradient(120deg,rgba(229,154,47,.13),transparent)"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:10px"><h2 style="margin:0;font-size:17px">${esc(resultText(mt))}</h2><div class="row" style="gap:16px;flex-wrap:wrap">${mt.inns.map((i, k) => `<span class="num"><span class="sw" style="background:${INN_COL[k % 4]};display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px"></span>${esc(i.team || '')} <b>${i.runs}/${i.wkts}</b> <span class="dim">(${i.overs.length} ov)</span></span>`).join('')}</div></div></div>`));
   g.appendChild($(`<div class="panel s12"><h2>Run progression <span class="r">dots = wickets</span></h2>${wormSVG(mt.inns)}</div>`));
   g.appendChild($(`<div class="panel s12"><h2>Runs per over <span class="r">solid = wicket in the over</span></h2>${manhattanSVG(mt.inns)}</div>`));
   mt.inns.forEach((inn, k) => {
@@ -592,6 +592,8 @@ matchupsView = function (app) {
 };
 
 /* ===================== home: last 30 days + milestones ===================== */
+const plural = (n, one, many) => `${n.toLocaleString()} ${n === 1 ? one : (many || one + 's')}`;
+const oversOf = balls => balls == null ? '' : `${Math.floor(balls / 6)}${balls % 6 ? '.' + balls % 6 : ''} ov`;
 const _homeView = homeView;
 homeView = function (app) {
   _homeView(app);
@@ -599,22 +601,39 @@ homeView = function (app) {
   const first = app.firstElementChild; if (first && first.nextSibling) app.insertBefore(slot, first.nextSibling); else app.appendChild(slot);
   ensureExtras(key, x => {
     if (!x || state.cohort !== key) { slot.remove(); return; }
+    // "Full members only" also applies here: keep performances where both sides are full members
+    const fmOn = !!(state.fm && x.fm), FM = new Set(fmOn ? x.fm.teams : []);
+    const keep = r => !fmOn || (FM.has(r[4]) && FM.has(r[6]));
     const wk = x.week;
-    if (wk && (wk.innings.length || wk.spells.length)) {
-      slot.appendChild($(`<div class="panel s6"><h2>Latest: ${esc(wk.from)} → ${esc(wk.to)} <span class="r">${wk.matches} match${wk.matches > 1 ? 'es' : ''} in the newest data</span></h2>
-        <div class="dim" style="font-size:11px;margin:2px 0 4px">TOP INNINGS</div>${wk.innings.slice(0, 5).map(r => `<a class="ledrow" ${goAttr('match', r[5])}><span>${esc(pName(x, r[0]))} <span class="dim">vs ${esc(r[4] || '')}</span></span><b class="num">${r[1]} <span class="dim">(${r[2]})</span></b></a>`).join('')}
-        <div class="dim" style="font-size:11px;margin:10px 0 4px">BEST SPELLS</div>${wk.spells.slice(0, 5).map(r => `<a class="ledrow" ${goAttr('match', r[5])}><span>${esc(pName(x, r[0]))} <span class="dim">vs ${esc(r[4] || '')}</span></span><b class="num">${r[1]}/${r[2]}</b></a>`).join('')}</div>`));
+    const inns = wk ? wk.innings.filter(keep) : [], spells = wk ? wk.spells.filter(keep) : [];
+    if (inns.length || spells.length) {
+      const bi = inns[0], bs = spells[0];
+      const tile = (k, big, small, who, sub, mid, wkCol) => `<a class="hx-tile" ${goAttr('match', mid)}><div class="hx-k">${k}</div>
+        <div class="hx-big" style="color:${wkCol ? 'var(--wk)' : 'var(--accent2)'}">${big}${small ? ` <small>${small}</small>` : ''}</div>
+        <div class="hx-who">${esc(who)}</div><div class="hx-sub">${sub}</div></a>`;
+      const rows = [...inns.slice(1, 4).map(r => ({ r, bat: 1 })), ...spells.slice(1, 3).map(r => ({ r, bat: 0 }))];
+      slot.appendChild($(`<div class="panel s6"><h2>Last 30 days <span class="r">${esc(wk.from)} to ${esc(wk.to)} · ${plural(wk.matches, 'match', 'matches')}${fmOn ? ' · full members' : ''}</span></h2>
+        <div class="hx-feat">
+          ${bi ? tile('Top innings', bi[1], `(${bi[2]})`, pName(x, bi[0]), `vs ${esc(bi[4] || '')} · SR ${bi[2] ? (100 * bi[1] / bi[2]).toFixed(0) : '-'}`, bi[5]) : ''}
+          ${bs ? tile('Best spell', `${bs[1]}/${bs[2]}`, '', pName(x, bs[0]), `vs ${esc(bs[4] || '')}${bs[7] != null ? ' · ' + oversOf(bs[7]) : ''}`, bs[5], true) : ''}
+        </div>
+        ${rows.map(({ r, bat }) => `<a class="hx-row" ${goAttr('match', r[5])}><span><span class="hx-tag${bat ? '' : ' wk'}">${bat ? 'bat' : 'bowl'}</span>${esc(pName(x, r[0]))} <span class="dim">vs ${esc(r[4] || '')}</span></span>
+          <b>${bat ? `${r[1]} <span class="dim">(${r[2]})</span>` : `${r[1]}/${r[2]}`}</b></a>`).join('')}</div>`));
     }
     // milestone watch: active players (played in the last two seasons) close to a round number
-    const lastY = +String(c.meta.coverage_to || '').slice(0, 4), RUN = 1000, WK = c.meta.format === 'test' ? 100 : 50;
-    const active = (rows) => rows && rows.some(r => r[1] >= lastY - 1);
+    const lastY = +String(c.meta.coverage_to || '').slice(0, 4), RUN = 1000, WKS = c.meta.format === 'test' ? 100 : 50;
+    const active = rows => rows && rows.some(r => r[1] >= lastY - 1);
     const near = [];
     for (const id in c.players) { const p = c.players[id]; if (p.runs < RUN * 0.75 || !active(x._byB[id])) continue;
-      const next = (Math.floor(p.runs / RUN) + 1) * RUN, need = next - p.runs; if (need <= RUN * 0.2) near.push({ id, name: p.name, need, next, kind: 'runs', r: need / RUN }); }
-    for (const id in (c.bowlers || {})) { const b = c.bowlers[id]; if (b.wickets < WK * 0.75 || !active(x._byW[id])) continue;
-      const next = (Math.floor(b.wickets / WK) + 1) * WK, need = next - b.wickets; if (need <= WK * 0.2) near.push({ id, name: b.name, need, next, kind: 'wickets', r: need / WK, bowler: 1 }); }
+      const next = (Math.floor(p.runs / RUN) + 1) * RUN, need = next - p.runs; if (need <= RUN * 0.2) near.push({ id, name: p.name, have: p.runs, need, next, unit: 'run', r: need / RUN }); }
+    for (const id in (c.bowlers || {})) { const b = c.bowlers[id]; if (b.wickets < WKS * 0.75 || !active(x._byW[id])) continue;
+      const next = (Math.floor(b.wickets / WKS) + 1) * WKS, need = next - b.wickets; if (need <= WKS * 0.2) near.push({ id, name: b.name, have: b.wickets, need, next, unit: 'wicket', r: need / WKS, bowler: 1 }); }
     near.sort((a, b) => a.r - b.r);
-    if (near.length) slot.appendChild($(`<div class="panel s6"><h2>Milestone watch <span class="r">active players, ${esc(c.meta.label)}</span></h2>${near.slice(0, 9).map(n => `<div class="ledrow">${pidLink(n.id, n.name, n.bowler)}<span class="num"><b>${n.need}</b> <span class="dim">${n.kind} to ${n.next.toLocaleString()}</span></span></div>`).join('')}<div class="note" style="margin-top:6px">Active = played in ${lastY - 1} or ${lastY}. Counts are within this competition.</div></div>`));
+    if (near.length) slot.appendChild($(`<div class="panel s6"><h2>Milestone watch <span class="r">active in ${lastY - 1} or ${lastY}</span></h2>
+      ${near.slice(0, 5).map(n => `<div class="hx-ms"><div class="top">${pidLink(n.id, n.name, n.bowler)}<span class="dim"><b style="color:var(--ink)">${n.have.toLocaleString()}</b> / ${n.next.toLocaleString()} ${n.unit}s</span></div>
+        <div class="hx-bar${n.bowler ? ' wk' : ''}"><span style="width:${(100 * n.have / n.next).toFixed(1)}%"></span></div>
+        <div class="hx-go">${plural(n.need, n.unit)} to go</div></div>`).join('')}
+      <div class="note" style="margin-top:8px">Counts are within ${esc(c.meta.label)}.</div></div>`));
     if (!slot.children.length) slot.remove(); else wireLinks(slot);
   });
 };
