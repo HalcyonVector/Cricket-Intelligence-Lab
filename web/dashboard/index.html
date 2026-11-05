@@ -532,6 +532,24 @@
  .hx-bar span{display:block;height:100%;background:var(--accent2);border-radius:3px}
  .hx-bar.wk span{background:var(--wk)}
  .hx-go{color:var(--dim);font-size:12px;margin-top:4px}
+ /* ---- theme pass 2: home hero, section heads, competition cards, records filter, compare winners ---- */
+ .hero{background:var(--panel)!important;box-shadow:inset 3px 0 0 var(--accent2);border-radius:14px}
+ .sechead{text-transform:none;letter-spacing:0;font-size:15px;font-weight:600;color:var(--ink)}
+ .sechead .dim{font-weight:400;font-size:13px}
+ .trh{text-transform:none;letter-spacing:0;font-size:13.5px;color:var(--ink);font-weight:600;margin-bottom:2px}
+ .tru{color:var(--dim);font-size:11.5px;margin:0 0 8px}
+ .fstat .fsl{text-transform:none;letter-spacing:0;font-size:11.5px}
+ .ccard .t{padding-right:46px}
+ .conf{font-family:inherit;letter-spacing:0;text-transform:none;font-weight:600;font-size:11px}
+ .recchips{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 14px}
+ .recchips button{background:transparent;border:1px solid var(--hair2);border-radius:999px;color:var(--muted);padding:6px 13px;font-size:12.5px;cursor:pointer}
+ .recchips button.on{background:rgba(242,178,76,.14);border-color:var(--accent2);color:var(--accent2)}
+ td.best{color:var(--accent2)!important;font-weight:700}
+ .dhero{background:var(--panel)!important;border:1px solid var(--hair)!important;box-shadow:inset 3px 0 0 var(--accent2);border-radius:14px}
+ .dhero::before,.dhero::after{display:none!important}
+ .dh-kic{display:none}
+ .dh-lbl{text-transform:none;letter-spacing:0;font-size:12.5px;color:var(--accent2);margin-top:0}
+ .dh-head{background:none;-webkit-background-clip:initial;background-clip:initial;color:var(--ink);font-weight:700}
 </style>
 </head>
 <body>
@@ -939,7 +957,7 @@ function homeView(app){
   const avail=DISCOVER.filter(d=>_board(c,d.kind,d.f,d.dir,d.need).length);
   const dwrap=$(`<div><div class="sechead">Discover</div><div class="disc"></div><div id="ddpanel"></div></div>`);
   dwrap.querySelector('.disc').innerHTML=avail.map((d,i)=>{const top=_board(c,d.kind,d.f,d.dir,d.need)[0]||{};
-    return `<div class="dcard" data-i="${i}"><div class="dic">${d.ic}</div><div class="dt">${d.t}</div><div class="dd">${d.d}</div><div class="dtop">${esc(top.name||'')} <b class="num">${top.value??''}</b></div></div>`;}).join('');
+    return `<div class="dcard" data-i="${i}" title="${esc(x.d||'')}"><div class="dic">${d.ic}</div><div class="dt">${d.t}</div><div class="dd">${d.d}</div><div class="dtop">${esc(top.name||'')} <b class="num">${top.value??''}</b></div></div>`;}).join('');
   app.appendChild(dwrap);
   const dd=dwrap.querySelector('#ddpanel');
   dwrap.querySelectorAll('.dcard').forEach(card=>card.onclick=()=>{
@@ -1038,11 +1056,7 @@ function bowlerProfile(id){
   const meta=(window.CIL_PLAYERMETA||{})[id]||{};
   const isHttp=location.protocol.indexOf('http')===0;
   const photo=meta.photo||playerImg(b.name,meta.unique_name||meta.name,id)||(HAS_API?API_BASE+'/api/photo?name='+encodeURIComponent(meta.unique_name||meta.name||b.name):'');
-  w.appendChild($(`<div class="row" style="margin-top:20px;align-items:center"><button class="pill" id="bback">← back</button>${avatarHTML(b.name,photo)}<div><div class="row" style="gap:9px"><h1 style="margin:0">${esc(b.name)}</h1><span class="badge">Bowler</span>${b.qualified?'':'<span class="badge">below rate qualifier</span>'}<button class="pill" id="bcard" title="Download a shareable stat card (PNG)">Share card ↓</button></div><div class="dim" style="margin-top:2px">${esc(c.meta.label)}</div></div></div>`));
-  w.querySelector('#bcard').onclick=()=>playerCard({name:b.name,sub:c.meta.label+(meta.country?' · '+meta.country:''),badge:'Bowler',
-    tiles:[["Wickets",b.wickets],["Economy",b.economy],["Average",b.bowl_avg],["Strike rate",b.bowl_sr],["Dot %",b.dot_pct],["Balls",b.balls]],
-    pct:b.pct?[["Economy",b.pct.economy],["Strike rate",b.pct.bowl_sr],["Dot %",b.pct.dot_pct],["Era index",b.pct.era_index]]:[],
-    pctOf:c.meta.n_qual_bowl+' rated bowlers'});
+  w.appendChild($(`<div class="row" style="margin-top:20px;align-items:center"><button class="pill" id="bback">← back</button>${avatarHTML(b.name,photo)}<div><div class="row" style="gap:9px"><h1 style="margin:0">${esc(b.name)}</h1><span class="badge">Bowler</span>${b.qualified?'':'<span class="badge">below rate qualifier</span>'}</div><div class="dim" style="margin-top:2px">${esc(c.meta.label)}</div></div></div>`));
   const tiles=[["Wickets",b.wickets],["Economy",b.economy],["Average",b.bowl_avg],["Strike Rate",b.bowl_sr],["Balls",b.balls],["Runs",b.runs],["Dot %",b.dot_pct],["Boundary %",b.bnd_pct]];
   const g=$(`<div class="grid bento" style="margin-top:14px"></div>`);
   g.innerHTML=tiles.map(t=>`<div class="s3"><div class="panel kpi"><div class="l">${t[0]}</div><div class="n"${typeof t[1]==='number'?' data-count':''}>${fmtN(t[1])}</div></div></div>`).join('');
@@ -1069,11 +1083,7 @@ function playerView(pid){
   const isHttp=location.protocol.indexOf('http')===0;
   const photo=meta.photo||playerImg(p.name,meta.unique_name||meta.name,pid)||(HAS_API?API_BASE+'/api/photo?name='+encodeURIComponent(meta.unique_name||meta.name||p.name):'');
   const ciLink=meta.cricinfo_id?`<a class="pill" href="https://www.espncricinfo.com/ci/content/player/${meta.cricinfo_id}.html" target="_blank" rel="noopener">ESPNcricinfo ↗</a>`:'';
-  w.appendChild($(`<div class="row" style="margin-top:20px;align-items:center"><button class="pill" id="back">← back</button>${avatarHTML(p.name,photo)}<div><div class="row" style="gap:9px"><h1 style="margin:0">${esc(p.name)}</h1>${archPill(p.archetype)}${p.qualified?'':'<span class="badge">below rate qualifier</span>'}${meta.country?`<span class="badge">${esc(meta.country)}</span>`:''}${ciLink}<button class="pill" id="pcard" title="Download a shareable stat card (PNG)">Share card ↓</button></div><div class="dim" style="margin-top:2px">${esc(c.meta.label)}</div></div></div>`));
-  w.querySelector('#pcard').onclick=()=>playerCard({name:p.name,sub:c.meta.label+(meta.country?' · '+meta.country:''),badge:p.archetype||'Batter',
-    tiles:[["Runs",p.runs],["Average",p.avg],["Strike rate",p.sr],["Innings",p.innings],["50s / 100s",`${p.fifties}/${p.hundreds}`],["Highest",p.highest]],
-    pct:p.pct?[["Average",p.pct.avg],["Strike rate",p.pct.sr],["Boundary %",p.pct.boundary_pct],["Consistency",p.pct.consistency],["Era index",p.pct.era_index]]:[],
-    pctOf:c.meta.n_qual_bat+' rated batters',color:ARCH_COLOR[p.archetype]});
+  w.appendChild($(`<div class="row" style="margin-top:20px;align-items:center"><button class="pill" id="back">← back</button>${avatarHTML(p.name,photo)}<div><div class="row" style="gap:9px"><h1 style="margin:0">${esc(p.name)}</h1>${archPill(p.archetype)}${p.qualified?'':'<span class="badge">below rate qualifier</span>'}${meta.country?`<span class="badge">${esc(meta.country)}</span>`:''}${ciLink}</div><div class="dim" style="margin-top:2px">${esc(c.meta.label)}</div></div></div>`));
   const tiles=[["Runs",p.runs],["Average",p.avg],["Strike Rate",p.sr],["Innings",p.innings],["50/100",`${p.fifties}/${p.hundreds}`],["Highest",p.highest],["Boundary %",p.boundary_pct],["Sixes",p.sixes]];
   const g=$(`<div class="grid bento" style="margin-top:14px"></div>`);
   g.innerHTML=tiles.map(t=>`<div class="s3"><div class="panel kpi"><div class="l">${t[0]}</div><div class="n"${typeof t[1]==='number'?' data-count':''}>${fmtN(t[1])}</div></div></div>`).join('');
@@ -1712,10 +1722,10 @@ function homeView(app){
       :`<div class="dh-head">Select a competition to surface a discovery.</div>`}</div>`);
   if(d&&d.pid)hero.onclick=()=>{state.player=d.pid;render();};
   app.appendChild(hero);
-  const cols=[{ic:icn('bolt'),t:'Most Clutch',b:['bat','clutch_index','desc']},{ic:icn('shield'),t:'Collapse-Proof',b:['bat','collapse_resist','desc','collapse_balls']},{ic:icn('target'),t:'Strike Bowlers',b:['bowl','bowl_sr','asc']}];
+  const cols=[{ic:icn('bolt'),t:'Most clutch',u:'knockout SR vs overall, ×100',b:['bat','clutch_index','desc']},{ic:icn('shield'),t:'Collapse-proof',u:'SR after a collapse vs overall, ×100',b:['bat','collapse_resist','desc','collapse_balls']},{ic:icn('target'),t:'Strike bowlers',u:'balls per wicket',b:['bowl','bowl_sr','asc']}];
   const trend=$(`<div class="panel" style="margin-top:14px"><div class="sechead" style="margin:0 0 12px">Trending research ${infoIcon(SHRINK_TIP)}</div><div class="trend"></div></div>`);
   trend.querySelector('.trend').innerHTML=cols.map(col=>{const rows=_board(c,col.b[0],col.b[1],col.b[2],col.b[3]).slice(0,5);
-    return `<div class="trcol"><div class="trh">${col.ic} ${col.t}</div>${rows.map((x,i)=>`<div class="trrow"><span class="rank ${i<3?'r'+(i+1):''}">${i+1}</span><a class="plink" data-pid="${x.pid}">${esc(x.name)}</a><b class="num">${x.value}</b></div>`).join('')}</div>`;}).join('');
+    return `<div class="trcol"><div class="trh">${col.ic} ${col.t}</div>${col.u?`<div class="tru">${col.u}</div>`:''}${rows.map((x,i)=>`<div class="trrow"><span class="rank ${i<3?'r'+(i+1):''}">${i+1}</span><a class="plink" data-pid="${x.pid}">${esc(x.name)}</a><b class="num">${x.value}</b></div>`).join('')}</div>`;}).join('');
   app.appendChild(trend);
   const viz=$(`<div class="grid bento" style="margin-top:14px"></div>`);
   viz.appendChild($(`<div class="panel s6"><h2>Outlier map <span class="r">average ↔ strike rate · red = outlier</span></h2>${scatterSVG(c)}</div>`));
@@ -1724,7 +1734,7 @@ function homeView(app){
   app.appendChild($(`<div class="methnote">${HOME_NOTE}</div>`));
   const avail=DISCOVER.filter(x=>_board(c,x.kind,x.f,x.dir,x.need).length);
   const dwrap=$(`<div><div class="sechead">Explore by trait ${infoIcon(SHRINK_TIP)}</div><div class="disc"></div><div id="ddpanel"></div></div>`);
-  dwrap.querySelector('.disc').innerHTML=avail.map((x,i)=>{const top=_board(c,x.kind,x.f,x.dir,x.need)[0]||{};return `<div class="dcard" data-i="${i}"><div class="dic">${x.ic}</div><div class="dt">${x.t}</div><div class="dtop">${esc(top.name||'')} <b class="num">${top.value??''}</b></div></div>`;}).join('');
+  dwrap.querySelector('.disc').innerHTML=avail.map((x,i)=>{const top=_board(c,x.kind,x.f,x.dir,x.need)[0]||{};return `<div class="dcard" data-i="${i}" title="${esc(x.d||'')}"><div class="dic">${x.ic}</div><div class="dt">${x.t}</div><div class="dtop">${esc(top.name||'')} <b class="num">${top.value??''}</b></div></div>`;}).join('');
   app.appendChild(dwrap);
   const dd=dwrap.querySelector('#ddpanel');
   dwrap.querySelectorAll('.dcard').forEach(card=>card.onclick=()=>{const x=avail[+card.dataset.i],rows=_board(c,x.kind,x.f,x.dir,x.need).slice(0,20),mx=Math.max(...rows.map(v=>Math.abs(v.value)||0),1);
@@ -1806,41 +1816,6 @@ function networkView(app){
   panel.querySelectorAll('.netn').forEach(g=>g.onclick=()=>{state.netPlayer=g.getAttribute('data-pid');render();});
 }
 /* ===================== CAREER TIMELINE + VENUES (static, lazy-loaded careers/<shard>.js) ===================== */
-/* ===================== SHAREABLE PLAYER CARD (canvas -> PNG, no libraries) ===================== */
-function playerCard(o){
-  const W=1200,H=630,cv=document.createElement('canvas');cv.width=W;cv.height=H;
-  const x=cv.getContext('2d'),F='system-ui,-apple-system,"Segoe UI",Roboto,sans-serif',acc=o.color||'#F2B24C';
-  const bg=x.createLinearGradient(0,0,W,H);bg.addColorStop(0,'#1C100C');bg.addColorStop(1,'#0C0706');x.fillStyle=bg;x.fillRect(0,0,W,H);
-  const glow=x.createRadialGradient(W*0.85,-40,10,W*0.85,-40,520);glow.addColorStop(0,'rgba(229,154,47,.35)');glow.addColorStop(1,'rgba(229,154,47,0)');x.fillStyle=glow;x.fillRect(0,0,W,H);
-  x.fillStyle=acc;x.fillRect(0,0,10,H);
-  x.fillStyle='#8B8E96';x.font=`600 20px ${F}`;x.fillText('CRICKET INTELLIGENCE LAB',64,74);
-  x.fillStyle='#ECEDEE';x.font=`700 64px ${F}`;let nm=o.name;while(x.measureText(nm).width>W-128&&nm.length>4)nm=nm.slice(0,-2);x.fillText(nm===o.name?nm:nm+'…',64,152);
-  x.font=`500 24px ${F}`;x.fillStyle='#B4B7BE';x.fillText(o.sub||'',64,192);
-  if(o.badge){x.font=`700 20px ${F}`;const bw=x.measureText(o.badge).width+28;x.fillStyle=acc+'33';x.beginPath();x.roundRect(W-64-bw,50,bw,38,19);x.fill();x.fillStyle=acc;x.fillText(o.badge,W-64-bw+14,76);}
-  const tw=(W-128-5*20)/6;
-  o.tiles.forEach((t,i)=>{const tx=64+i*(tw+20),ty=232;x.fillStyle='rgba(255,255,255,.04)';x.beginPath();x.roundRect(tx,ty,tw,120,14);x.fill();
-    x.fillStyle='#8B8E96';x.font=`600 17px ${F}`;x.fillText(String(t[0]).toUpperCase(),tx+18,ty+36);
-    x.fillStyle='#ECEDEE';x.font=`700 40px ${F}`;x.fillText(t[1]==null?'–':String(t[1]),tx+18,ty+92);});
-  if(o.pct&&o.pct.length){
-    x.fillStyle='#8B8E96';x.font=`600 18px ${F}`;x.fillText(`PERCENTILE vs ${o.pctOf||''}`.toUpperCase(),64,404);
-    const rows=o.pct.filter(r=>r[1]!=null),cols=Math.ceil(rows.length/2)>2?3:2,cw=(W-128-(cols-1)*40)/cols;
-    rows.forEach((r,i)=>{const col=i%cols,row=Math.floor(i/cols),px=64+col*(cw+40),py=436+row*74;
-      x.fillStyle='#B4B7BE';x.font=`500 19px ${F}`;x.fillText(r[0],px,py+18);
-      x.fillStyle='#ECEDEE';x.font=`700 19px ${F}`;const v=Math.round(r[1]);x.textAlign='right';x.fillText(String(v),px+cw,py+18);x.textAlign='left';
-      x.fillStyle='rgba(255,255,255,.08)';x.beginPath();x.roundRect(px,py+30,cw,10,5);x.fill();
-      x.fillStyle=v>=75?'#33D17A':v>=40?'#F2B24C':'#FF6B7E';x.beginPath();x.roundRect(px,py+30,Math.max(6,cw*v/100),10,5);x.fill();});
-  }
-  x.fillStyle='#6E5246';x.font=`500 16px ${F}`;x.fillText('Ball-by-ball data: cricsheet.org',64,H-30);
-  x.textAlign='right';x.fillText(location.host||'',W-64,H-30);x.textAlign='left';
-  const file=(o.name||'player').replace(/[^a-z0-9]+/gi,'-').toLowerCase()+'-card.png';
-  cv.toBlob(async blob=>{
-    if(!blob)return;
-    const f=new File([blob],file,{type:'image/png'});
-    if(navigator.canShare&&navigator.canShare({files:[f]})&&matchMedia('(pointer:coarse)').matches){try{await navigator.share({files:[f],title:o.name});return;}catch(e){}}
-    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=file;document.body.appendChild(a);a.click();
-    setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);
-  },'image/png');
-}
 /* careers/<0-f>.js: 16 shards keyed by the first hex char of the player id, so a
    profile pulls ~700 KB (~130 KB gzipped) instead of the whole 11 MB set. */
 window.CIL_CAREER=window.CIL_CAREER||{};window.CIL_VENUES=window.CIL_VENUES||{};

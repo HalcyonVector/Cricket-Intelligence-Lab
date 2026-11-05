@@ -672,6 +672,47 @@ buildPaletteIndex = function () {
   return items;
 };
 
+/* ===================== records: category filter ===================== */
+const REC_CAT = {
+  batting: ['Most Runs', 'Most Hundreds', 'Most Fifties', 'Most Sixes', 'Most Innings', 'Highest Average', 'Highest Strike Rate',
+    'Most Consistent', 'Best Conversion %', 'Best Chase Average', 'Best Death-overs SR', 'Top Partnerships'],
+  bowling: ['Most Wickets', 'Best Economy', 'Best Bowling SR', 'Highest Dot % (bowl)', 'Best Era-Adjusted (bowl)', 'Best Bowling Spells', 'Bowling outliers'],
+  advanced: ['Best Era-Adjusted Index', 'Best Strike Rotation %', 'Best Acceleration Index', 'Best Pressure SR (chase)', 'Best Clutch Index',
+    'Best Collapse Resistance', 'Most Self-Reliant (partners)', 'Batting outliers'],
+};
+const _recordsView = recordsView;
+recordsView = function (app) {
+  _recordsView(app);
+  const grid = [...app.querySelectorAll('.grid.bento')].find(g => g.querySelector('.panel h2')); if (!grid) return;
+  const cards = [...grid.children].map(el => { const h = el.querySelector('h2'); const t = h ? [...h.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join('').trim() : '';
+    const cat = Object.keys(REC_CAT).find(k => REC_CAT[k].includes(t)) || 'advanced'; return { el, cat }; });
+  const count = k => k === 'all' ? cards.length : cards.filter(c => c.cat === k).length;
+  const chips = $(`<div class="recchips" role="group" aria-label="Record type">${[['batting', 'Batting'], ['bowling', 'Bowling'], ['advanced', 'Advanced'], ['all', 'All']]
+    .filter(([k]) => count(k)).map(([k, l]) => `<button data-k="${k}">${l} <span class="dim">${count(k)}</span></button>`).join('')}</div>`);
+  grid.before(chips);
+  const apply = k => { state.recCat = k; chips.querySelectorAll('button').forEach(b => { b.classList.toggle('on', b.dataset.k === k); b.setAttribute('aria-pressed', b.dataset.k === k); });
+    cards.forEach(c => { c.el.style.display = k === 'all' || c.cat === k ? '' : 'none'; }); };
+  apply(count(state.recCat || 'batting') ? (state.recCat || 'batting') : 'all');
+  chips.querySelectorAll('button').forEach(b => b.onclick = () => apply(b.dataset.k));
+};
+
+/* ===================== compare: mark the better value in each row ===================== */
+const LOWER_BETTER = new Set(['dot %', 'economy', 'bowl sr']);
+function decorateCompare(root) {
+  root.querySelectorAll('table').forEach(t => {
+    const th = t.querySelector('thead th'); if (!th || th.textContent.trim().toLowerCase().indexOf('metric') !== 0 || t.dataset.cmp === String(t.rows.length)) return;
+    t.dataset.cmp = String(t.rows.length);
+    t.querySelectorAll('tbody tr').forEach(tr => {
+      const cells = [...tr.cells].slice(1), vals = cells.map(td => parseFloat(td.textContent.replace(/,/g, '')));
+      cells.forEach(td => td.classList.remove('best'));
+      if (cells.length < 2 || vals.some(v => !isFinite(v))) return;
+      const low = LOWER_BETTER.has(tr.cells[0].textContent.trim().toLowerCase()), best = low ? Math.min(...vals) : Math.max(...vals);
+      if (vals.filter(v => v === best).length === vals.length) return;
+      cells.forEach((td, i) => { if (vals[i] === best) td.classList.add('best'); });
+    });
+  });
+}
+
 /* ===================== metric explanations ===================== */
 const GLOSSARY = {
   'era index': "Runs compared with what an average batter would score on the same balls in the same seasons. 100 = par for their era; 120 = 20% better.",
@@ -740,12 +781,12 @@ const _paint = paint;
 paint = function (app) {
   _paint(app);
   window._syncSince && window._syncSince();
-  decorateGlossary(app);
+  decorateGlossary(app); decorateCompare(app);
 };
 {
   // late-arriving panels (career, matchups, extras) get explanations too
   let t = 0;
-  new MutationObserver(() => { clearTimeout(t); t = setTimeout(() => { const a = document.getElementById('app'); a && decorateGlossary(a); }, 120); })
+  new MutationObserver(() => { clearTimeout(t); t = setTimeout(() => { const a = document.getElementById('app'); if (a) { decorateGlossary(a); decorateCompare(a); } }, 120); })
     .observe(document.getElementById('app'), { childList: true, subtree: true });
 }
 const _init = init;

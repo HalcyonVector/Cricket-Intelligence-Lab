@@ -12,7 +12,6 @@ Ball-by-ball cricket analytics across **48 competitions, 22,000+ matches and 11 
 - **Form by year:** runs, average or strike rate (wickets, economy or strike rate for bowlers) per season, for the selected competition or all formats
 - **Where they stand:** each key stat drawn against every rated player in the competition, so "96th percentile" shows how far ahead that really is
 - **Also played in:** every other competition a player appears in, one click away
-- **Shareable player cards:** a 1200×630 PNG stat card (opens the share sheet on phones)
 
 **Analysis**
 - **Time window:** "All time", "Last 2 seasons", "Since 2015"… recomputes leaderboards, records, percentiles, archetypes and profile numbers for that window
