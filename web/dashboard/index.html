@@ -773,7 +773,8 @@ function loadCohort(key,cb){
 const DETAIL={};
 window.__detailLoaded=(key,d)=>{const c=COH[key];if(!c)return;
   ['players','bowlers'].forEach(g=>{const src=d[g]||{},dst=c[g]||{};for(const id in src)if(dst[id])Object.assign(dst[id],src[id]);});
-  const x=typeof _X!=='undefined'&&_X[key];if(x)x._flt=null;};
+  const x=typeof _X!=='undefined'&&_X[key];if(x)x._flt=null;
+  if(_muStore[key]){_muStore[key]._attached=null;_attachMatchups(key);}};
 function ensureDetail(key,cb){
   const st=DETAIL[key];
   if(st===true)return cb();
@@ -897,6 +898,12 @@ function render(){
   if(!COH[state.cohort]){
     app.innerHTML='<div class="loadbox"><div class="spinner"></div><div>Loading '+esc(meta(state.cohort).label||'')+'…</div></div>';
     loadCohort(state.cohort,(d)=>{ if(!d){app.innerHTML='<div class="cov">Could not load this cohort bundle.</div>';return;} render(); });
+    return;
+  }
+  if((state.player||state.view==='compare')&&!_MU_TRIED[state.cohort]){
+    const key=state.cohort;_MU_TRIED[key]=1;
+    app.innerHTML='<div class="loadbox"><div class="spinner"></div><div>Loading matchups…</div></div>';
+    ensureMatchups(key,()=>{if(state.cohort===key)render();});
     return;
   }
   if(_needsDetail()&&DETAIL[state.cohort]!==true){
@@ -1136,9 +1143,9 @@ function bowlerProfile(id){
   } else {
     g2.appendChild($(`<div class="panel s6"><h2>Percentile ranks</h2><span class="note">Below the rate qualifier (${c.meta.rate_min_bowl}+ balls), so percentiles aren't computed. Raw totals above are complete.</span></div>`));
   }
-  const phs=["powerplay","middle","death"].filter(x=>b.phases&&b.phases[x]);
+  const phs=c.meta.format==='test'?[]:["powerplay","middle","death"].filter(x=>b.phases&&b.phases[x]);
   const phLab={powerplay:'Powerplay',middle:'Middle',death:'Death'};
-  g2.appendChild($(`<div class="panel s6 pcol"><h2>Phase economy</h2><div class="pmid">${phs.length?`<table class="sc"><thead><tr><th>Phase</th><th class="n">Balls</th><th class="n">Wkts</th><th class="n">Econ</th><th class="n">Dot%</th></tr></thead><tbody>${phs.map(x=>{const v=b.phases[x];return `<tr><td>${phLab[x]}</td><td class="n dim">${v.balls}</td><td class="n">${v.wickets}</td><td class="n"><b>${fmtN(v.economy)}</b></td><td class="n">${fmtN(v.dot_pct)}</td></tr>`;}).join('')}</tbody></table>`:'<span class="note">n/a</span>'}</div></div>`));
+  g2.appendChild($(`<div class="panel s6 pcol"><h2>Phase economy</h2><div class="pmid">${phs.length?`<table class="sc"><thead><tr><th>Phase</th><th class="n">Balls</th><th class="n">Wkts</th><th class="n">Econ</th><th class="n">Dot%</th></tr></thead><tbody>${phs.map(x=>{const v=b.phases[x];return `<tr><td>${phLab[x]}</td><td class="n dim">${v.balls}</td><td class="n">${v.wickets}</td><td class="n"><b>${fmtN(v.economy)}</b></td><td class="n">${fmtN(v.dot_pct)}</td></tr>`;}).join('')}</tbody></table>`:`<span class="note">${c.meta.format==='test'?'Tests aren\'t split into powerplay, middle and death overs.':'n/a'}</span>`}</div></div>`));
   w.appendChild(g2);
   w.querySelector('#bback').onclick=()=>{state.bowler=null;render();};
   return w;
@@ -1169,10 +1176,10 @@ function playerView(pid){
   }
   w.appendChild(g2);
   const g3=$(`<div class="grid bento" style="margin-top:13px"></div>`);
-  const phs=["powerplay","middle","death"].filter(x=>p.phases&&p.phases[x]);
+  const phs=c.meta.format==='test'?[]:["powerplay","middle","death"].filter(x=>p.phases&&p.phases[x]);
   const maxSR=Math.max(...phs.map(x=>p.phases[x].sr),1);
   const phLab={powerplay:'Powerplay',middle:'Middle',death:'Death'};
-  g3.appendChild($(`<div class="panel s4"><h2>Phase profile</h2>${phs.length?`<table class="sc"><thead><tr><th>Phase</th><th class="n">Runs</th><th class="n">Balls</th><th class="n">Avg</th><th class="n">SR</th><th class="n">Bnd%</th></tr></thead><tbody>${phs.map(x=>{const v=p.phases[x];return `<tr><td>${phLab[x]||x}</td><td class="n">${v.runs}</td><td class="n dim">${v.balls}</td><td class="n">${v.avg}</td><td class="n"><b>${v.sr}</b></td><td class="n">${v.boundary_pct}</td></tr>`;}).join('')}</tbody></table><div style="margin-top:9px">${phs.map(x=>{const v=p.phases[x];return `<div style="margin:7px 0"><div class="row" style="justify-content:space-between;font-size:11px"><span class="muted">${phLab[x]||x}</span><span class="num">${v.sr} SR</span></div><div class="bar"><span style="width:${v.sr/maxSR*100}%"></span></div></div>`;}).join('')}</div>`:'<span class="note">n/a (needs rate qualifier)</span>'}</div>`));
+  g3.appendChild($(`<div class="panel s4"><h2>Phase profile</h2>${phs.length?`<table class="sc"><thead><tr><th>Phase</th><th class="n">Runs</th><th class="n">Balls</th><th class="n">Avg</th><th class="n">SR</th><th class="n">Bnd%</th></tr></thead><tbody>${phs.map(x=>{const v=p.phases[x];return `<tr><td>${phLab[x]||x}</td><td class="n">${v.runs}</td><td class="n dim">${v.balls}</td><td class="n">${v.avg}</td><td class="n"><b>${v.sr}</b></td><td class="n">${v.boundary_pct}</td></tr>`;}).join('')}</tbody></table><div style="margin-top:9px">${phs.map(x=>{const v=p.phases[x];return `<div style="margin:7px 0"><div class="row" style="justify-content:space-between;font-size:11px"><span class="muted">${phLab[x]||x}</span><span class="num">${v.sr} SR</span></div><div class="bar"><span style="width:${v.sr/maxSR*100}%"></span></div></div>`;}).join('')}</div>`:`<span class="note">${c.meta.format==='test'?'Tests aren\'t split into powerplay, middle and death overs.':'n/a'}</span>`}</div>`));
   const ctx=p.context||{};
   g3.appendChild($(`<div class="panel s4"><h2>Context splits</h2><div class="tscroll"><table><thead><tr><th>Split</th><th class="n">Avg</th><th class="n">SR</th><th class="n">Balls</th></tr></thead><tbody>${Object.entries(ctx).map(([k,v])=>`<tr><td style="text-transform:capitalize">${k}</td><td class="n">${v.avg}</td><td class="n">${v.sr}</td><td class="n dim">${v.balls}</td></tr>`).join('')||'<tr><td class="note">n/a</td></tr>'}</tbody></table></div></div>`));
   const sims=(p.similar||[]).map(s=>`<div class="ledrow"><a class="plink" data-pid="${s.pid}">${esc(s.name)}</a><span class="num muted">${(s.score*100).toFixed(0)}%</span></div>`).join('');
@@ -1199,7 +1206,7 @@ function playerView(pid){
   const worst=mus.slice().sort((a,b)=>a.dominance-b.dominance).slice(0,6);
   const muTbl=(arr,t)=>`<div class="panel s6"><h2>${t}</h2><div class="tscroll"><table><thead><tr><th>Bowler</th><th class="n">B</th><th class="n">R</th><th class="n">W</th><th class="n">SR</th><th class="n">Dom</th></tr></thead><tbody>${arr.map(mu=>`<tr><td>${esc(mu.bowler_name)}</td><td class="n">${mu.balls}</td><td class="n">${mu.runs}</td><td class="n">${mu.outs}</td><td class="n">${mu.sr}</td><td class="n"><b style="color:${mu.dominance>=.55?'var(--pos)':mu.dominance<=.45?'var(--neg)':'var(--ink)'}">${mu.dominance}</b></td></tr>`).join('')||'<tr><td class="note">n/a</td></tr>'}</tbody></table></div></div>`;
   const g4=$(`<div class="grid bento" style="margin-top:13px"></div>`);
-  g4.appendChild($(muTbl(best,"Dominates (top matchups)")));g4.appendChild($(muTbl(worst,"Struggles against")));
+  g4.appendChild($(muTbl(best,"Dominates")));g4.appendChild($(muTbl(worst,"Struggles against")));
   w.appendChild(g4);
   w.querySelector('#back').onclick=()=>{state.player=null;state.bowler=null;state.venue=state.team=state.match=null;render();};
   wirePlinks(w);return w;
@@ -1225,7 +1232,7 @@ function compareView(app){
     const axes=[["avg","Avg"],["sr","SR"],["boundary_pct","Bnd%"],["dot_pct","Dot%"],["consistency","Cons"],["conversion","Conv"]];
     const sbs=[["runs","Runs"],["avg","Average"],["sr","Strike Rate"],["boundary_pct","Boundary %"],["dot_pct","Dot %"],["consistency","Consistency"],["conversion","Conversion %"],["hundreds","100s"]].map(mm=>`<tr><td>${mm[1]}</td>${ids.map(i=>`<td class="n">${fmtN(c.players[i][mm[0]])}</td>`).join('')}</tr>`).join('');
     const phaseOrder=[["powerplay","Powerplay"],["middle","Middle"],["death","Death"]];
-    const phRows=phaseOrder.filter(([k])=>ids.some(i=>c.players[i].phases&&c.players[i].phases[k])).map(([k,lab])=>`<tr><td>${lab}</td>${ids.map(i=>{const v=c.players[i].phases&&c.players[i].phases[k];return `<td class="n">${v?`<b>${v.sr}</b> <span class="dim">${v.avg}</span>`:'-'}</td>`;}).join('')}</tr>`).join('');
+    const phRows=c.meta.format==='test'?'':phaseOrder.filter(([k])=>ids.some(i=>c.players[i].phases&&c.players[i].phases[k])).map(([k,lab])=>`<tr><td>${lab}</td>${ids.map(i=>{const v=c.players[i].phases&&c.players[i].phases[k];return `<td class="n">${v?`<b>${v.sr}</b> <span class="dim">${v.avg}</span>`:'-'}</td>`;}).join('')}</tr>`).join('');
     const ctxOrder=[["chase","Chasing"],["defend","Defending"],["win","In wins"],["loss","In losses"]];
     const ctxRows=ctxOrder.filter(([k])=>ids.some(i=>c.players[i].context&&c.players[i].context[k])).map(([k,lab])=>`<tr><td>${lab}</td>${ids.map(i=>{const v=c.players[i].context&&c.players[i].context[k];return `<td class="n">${v?`<b>${v.sr}</b> <span class="dim">${v.avg}</span>`:'-'}</td>`;}).join('')}</tr>`).join('');
     let muPanel='';
@@ -1260,10 +1267,21 @@ function radar(players,axes,cols){
    (the main bundle only has the top 400). Loaded lazily the first time Matchups opens. */
 const _muStore={};
 window.__matchupsLoaded=(key,d)=>{
+  _MU_TRIED[key]=1;
   _muStore[key]={min:d.min_balls,rows:d.rows.map(r=>{const b=d.bat[r[0]],w=d.bowl[r[1]];
     return {batter:b[0],batter_name:b[1],bowler:w[0],bowler_name:w[1],balls:r[2],runs:r[3],outs:r[4],
       sr:r[2]?Math.round(1000*r[3]/r[2])/10:null,avg:r[4]?Math.round(10*r[3]/r[4])/10:null,dominance:r[5]};})};
+  _attachMatchups(key);
 };
+/* Give each batter their complete matchup list (the bundle only carries their 8 most-faced
+   bowlers), so profile "Dominates / Struggles against" and Compare "Shared matchups" are complete. */
+function _attachMatchups(key){
+  const st=_muStore[key],c=COH[key];if(!st||!st.rows||!c||st._attached===c.players)return;
+  const by={};st.rows.forEach(r=>{(by[r.batter]=by[r.batter]||[]).push(r);});
+  for(const id in by){const p=c.players[id];if(p)p.matchups=by[id].sort((a,b)=>b.balls-a.balls);}
+  st._attached=c.players;
+}
+const _MU_TRIED={};
 function ensureMatchups(key,cb){
   const st=_muStore[key];
   if(st&&st.rows){cb(st);return;}

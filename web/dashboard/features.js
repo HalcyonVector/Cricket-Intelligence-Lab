@@ -336,7 +336,7 @@ mountCareer = function (app, pid) {
     if (!years.length) { panel.remove(); return; }
     years.forEach(y => y.tip = `${y.year}: ${y.runs} runs in ${y.inns} inns · avg ${y.avg} · SR ${y.sr} · ${y.balls} balls`);
     panel.innerHTML = `<div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:8px"><h2 style="margin:0">Form by year <span class="r">gold = peak</span></h2>
-      <div class="row" style="gap:8px;flex-wrap:wrap">${x ? `<div class="seg" role="group" aria-label="Scope"><button data-s="comp" class="${scope === 'comp' ? 'on' : ''}">${esc(cur().meta.label)}</button><button data-s="all" class="${scope === 'all' ? 'on' : ''}">All formats</button></div>` : ''}${metricSeg(BAT_DEFS, metric)}</div></div>` + yearChartSVG(years, BAT_DEFS, metric, 60);
+      <div class="row" style="gap:8px;flex-wrap:wrap">${x ? `<div class="seg" role="group" aria-label="Scope"><button data-s="comp" class="${scope === 'comp' ? 'on' : ''}">${esc(cur().meta.label)}</button><button data-s="all" class="${scope === 'all' ? 'on' : ''}">All competitions</button></div>` : ''}${metricSeg(BAT_DEFS, metric)}</div></div>` + yearChartSVG(years, BAT_DEFS, metric, 60);
     panel.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { metric = state.careerMetric = b.dataset.m; draw(); });
     panel.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { scope = state.formScope = b.dataset.s; draw(); });
   };
