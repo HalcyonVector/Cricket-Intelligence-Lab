@@ -51,5 +51,7 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Get the latest built data
         run: python scripts/fetch_data.py
+      - name: Cross-check all published data files
+        run: python tests/data_consistency.py
       - name: Smoke-test every view
         run: python tests/browser/smoke.py
