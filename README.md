@@ -67,14 +67,14 @@ This streams every match into SQLite (`cil.db`), recomputes all analytics, write
 ### One-time setup
 1. **Settings → Pages → Source: GitHub Actions.**
 2. **Actions → Build data & deploy site → Run workflow** (with "Rebuild data" ticked) to publish the first data release and deploy.
-3. **Live scores:** on [vercel.com](https://vercel.com) → Add New → Project → import this repo → Deploy (`vercel.json` sets everything; it only rebuilds when the API files change). Then add a repository variable **`LIVE_API_URL`** = your Vercel URL (Settings → Secrets and variables → Actions → Variables) and re-run the workflow. Without it the site works fully except the Live tabs, which say the live server isn't connected. (`render.yaml` is still there if you'd rather host the API on Render, which sleeps when idle.)
+3. **Live scores:** on [vercel.com](https://vercel.com) → Add New → Project → import this repo → Deploy (`vercel.json` sets everything; it only rebuilds when the API files change). Then add a repository variable **`LIVE_API_URL`** = your Vercel URL (Settings → Secrets and variables → Actions → Variables) and re-run the workflow. Without it the site works fully except the Live tabs, which say the live server isn't connected.
 
 ---
 ## Project structure
 ```
 Cricket-Intelligence-Lab/
 ├── serve.py                       # Stdlib server: static site + live/photo API (gzip + ETags)
-├── requirements.txt, render.yaml  # Render live-server deploy
+├── requirements.txt, vercel.json, api/  # Live-scores API on Vercel
 ├── packages/
 │   ├── etl/cil_etl/               # Cricsheet zip -> SQLite (ingest_zip.py, parse.py, store.py)
 │   └── analytics/cil_analytics/
