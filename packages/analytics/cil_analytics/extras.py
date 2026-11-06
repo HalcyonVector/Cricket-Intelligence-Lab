@@ -303,12 +303,6 @@ def build_extras(conn, names, intl=False, fmt="t20", rpo=8.0):
     bp, wp = phase_tables(conn, P, "sd")
     data = {"yb": yb, "yw": yw, "bp": bp, "wp": wp, "venues": venue_detail(conn, P), "teams": team_detail(conn, P),
             "recent": recent_matches(conn, P), "week": this_week(conn, P)}
-    if intl and full_member_scope(conn):
-        fyb, fyw = per_year(conn, P, "sdfm")
-        fbp, fwp = phase_tables(conn, P, "sdfm")
-        data["fm"] = {"teams": list(FULL_MEMBERS), "yb": fyb, "yw": fyw, "bp": fbp, "wp": fwp,
-                      "mu": matchups_scope(conn, P, "sdfm", rpo, 18 if fmt == "test" else 12),
-                      "adv": clutch_collapse(conn, P, "sdfm", fmt)}
     data["p"] = P.p
     return data
 

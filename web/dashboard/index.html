@@ -750,7 +750,11 @@ function hashToState(){
   state.fm=q.get('fm')==='1';
 }
 const meta=(k)=>IDX.cohorts.find(c=>c.key===k)||{};
-const cur=()=>COH[state.cohort];
+/* "Full members only" swaps in <key>__fm: the same competition built from matches between full
+   members only, so every board, chart and page changes together. Missing file -> normal data. */
+const FM_MISSING={};
+function dataKey(){const k=state.cohort;return state.fm&&meta(k).intl&&!FM_MISSING[k]?k+'__fm':k;}
+const cur=()=>COH[dataKey()];
 const $=(h)=>{const t=document.createElement('template');t.innerHTML=h.trim();return t.content.firstChild;};
 const esc=(s)=>String(s==null?'':s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const fmtN=(v)=>v==null?'-':(typeof v==='number'?(Number.isInteger(v)?v.toLocaleString():v.toFixed(1)):v);
@@ -820,7 +824,7 @@ function buildPaletteIndex(){
   (window.MODES||[]).forEach(([mode,subs])=>subs.forEach(([v,lab])=>items.push({t:'view',k:v,label:lab,sub:mode})));
   items.push({t:'view',k:'home',label:'Home',sub:'Discover'});
   IDX.cohorts.forEach(c=>items.push({t:'cohort',k:c.key,label:c.label,sub:'Dataset'}));
-  const C=COH[state.cohort];
+  const C=COH[dataKey()];
   if(C&&C.players)for(const id in C.players){const pl=C.players[id];if(pl.name&&!_isId(pl.name))items.push({t:'player',k:id,label:pl.name,sub:pl.archetype||'Player'});}
   if(C&&C.bowlers)for(const id in C.bowlers){const bl=C.bowlers[id];if(bl.name&&!_isId(bl.name))items.push({t:'bowler',k:id,label:bl.name,sub:'Bowler'});}
   return items;
@@ -899,28 +903,31 @@ function render(){
     ds.innerHTML=`<span>${(((dm.deliveries||0))/1e6).toFixed(1)}M balls</span><span class="dot">•</span><span>${(dm.matches||0).toLocaleString()} matches</span>${(y0&&y1)?`<span class="dot">•</span><span>Coverage ${y0}–${y1}</span>`:''}`;}
   if(window._scopeDrop)window._scopeDrop.setValue(state.cohort);
   const app=document.getElementById('app');
-  if(!COH[state.cohort]){
-    app.innerHTML='<div class="loadbox"><div class="spinner"></div><div>Loading '+esc(meta(state.cohort).label||'')+'…</div></div>';
-    loadCohort(state.cohort,(d)=>{ if(!d){app.innerHTML='<div class="cov">Could not load this cohort bundle.</div>';return;} render(); });
+  const dk=dataKey();
+  if(!COH[dk]){
+    app.innerHTML='<div class="loadbox"><div class="spinner"></div><div>Loading '+esc(meta(state.cohort).label||'')+(dk!==state.cohort?' (full members)':'')+'…</div></div>';
+    loadCohort(dk,(d)=>{
+      if(!d&&dk!==state.cohort){FM_MISSING[state.cohort]=1;render();return;}   // not built yet: fall back
+      if(!d){app.innerHTML='<div class="cov">Could not load this cohort bundle.</div>';return;} render(); });
     return;
   }
-  if((state.player||state.view==='compare')&&!_MU_TRIED[state.cohort]){
-    const key=state.cohort;_MU_TRIED[key]=1;
+  if((state.player||state.view==='compare')&&!_MU_TRIED[dk]){
+    const key=dk;_MU_TRIED[key]=1;
     app.innerHTML='<div class="loadbox"><div class="spinner"></div><div>Loading matchups…</div></div>';
-    ensureMatchups(key,()=>{if(state.cohort===key)render();});
+    ensureMatchups(key,()=>{if(dataKey()===key)render();});
     return;
   }
-  if(_needsDetail()&&DETAIL[state.cohort]!==true){
-    const key=state.cohort;
+  if(_needsDetail()&&DETAIL[dk]!==true){
+    const key=dk;
     app.innerHTML='<div class="loadbox"><div class="spinner"></div><div>Loading player details…</div></div>';
-    ensureDetail(key,()=>{if(state.cohort===key)render();});
+    ensureDetail(key,()=>{if(dataKey()===key)render();});
     return;
   }
   paint(app);
 }
 let _lastViewKey='';
 function paint(app){
-  const vk=state.cohort+'|'+state.view+'|'+state.player+'|'+state.bowler;
+  const vk=dataKey()+'|'+state.view+'|'+state.player+'|'+state.bowler;
   if(_lastViewKey&&vk!==_lastViewKey&&document.activeElement&&document.activeElement!==document.body&&!document.activeElement.closest('header'))requestAnimationFrame(()=>app.focus({preventScroll:true}));
   _lastViewKey=vk;
   clearLiveTimers();
@@ -1007,7 +1014,7 @@ function _credRef(fmt,kind){fmt=(fmt||'').toLowerCase();
 function cred(p,fmt,kind){const b=(p&&p.balls)||0,ref=_credRef(fmt,kind);return b/(b+ref);}
 function _board(c,kind,field,dir,need){
   const fmt=c.meta.format;
-  const ck=`${state.cohort}|${kind}|${field}|${dir}`;
+  const ck=`${dataKey()}|${kind}|${field}|${dir}`;
   if(_boardCache[ck])return _boardCache[ck];
   const src=kind==='bowl'?(c.bowlers||{}):(c.players||{});
   const volKey=kind==='bowl'?'wickets':'runs';

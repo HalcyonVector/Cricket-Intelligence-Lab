@@ -39,7 +39,7 @@ function ensureExtras(key, cb) {
     cb(_X[key]._missing ? null : _X[key]);
   });
 }
-const xNow = () => { const x = _X[state.cohort]; return x && !x._missing ? x : null; };
+const xNow = () => { const x = _X[dataKey()]; return x && !x._missing ? x : null; };
 const pName = (x, i) => (x.p[i] || [])[1] || '?';
 const pId = (x, i) => (x.p[i] || [])[0];
 let PIX = null;
@@ -123,7 +123,7 @@ function _agg(rows, since) {
  * Both rebuild the cohort's player/bowler tables in the browser from per-season rows, then
  * recompute percentiles and archetypes over the filtered, rate-qualified set. Advanced
  * metrics (era index, clutch, ...) and similarity stay all-time and are labelled as such. */
-const fmAvailable = () => { const x = _X[state.cohort], m = meta(state.cohort); return !!(m.intl && x && !x._missing && x.fm); };
+const fmAvailable = () => false; // full-members data is a whole bundle now (<key>__fm), not recomputed here
 const filtersOn = () => !!(state.since || (state.fm && fmAvailable()));
 const filterKey = () => `${state.since || 0}|${state.fm && fmAvailable() ? 1 : 0}`;
 function _index(rows, x) { const by = {}; rows.forEach(r => { const id = x.p[r[0]][0]; (by[id] = by[id] || []).push(r); }); return by; }
@@ -205,7 +205,7 @@ function filteredCohort(c, x, since, fm) {
 }
 /* The filtered cohort for the current filters (memoised per filter combination). */
 function getFiltered() {
-  const key = state.cohort, x = _X[key], fk = filterKey();
+  const key = dataKey(), x = _X[key], fk = filterKey();
   if (!x._flt || x._flt.k !== fk) x._flt = { k: fk, c: filteredCohort(COH[key], x, state.since || 0, state.fm && fmAvailable()) };
   return x._flt.c;
 }
@@ -219,7 +219,7 @@ function _wireClear(b) { b.querySelector('.clrsince').onclick = e => { e.prevent
 /* Run a view against the filtered cohort (swapped in only for the synchronous render). */
 function withSince(fn, app) {
   if (!state.since && !state.fm) return fn(app);
-  const key = state.cohort, x = _X[key];
+  const key = dataKey(), x = _X[key];
   if (!x) { app.appendChild($('<div class="loadbox"><div class="spinner"></div><div>Loading season-by-season data…</div></div>'));
     ensureExtras(key, () => render()); return; }
   if (x._missing) { app.appendChild($('<div class="cov">Filtering arrives with the next weekly data rebuild. Showing everything.</div>')); return fn(app); }
@@ -298,12 +298,12 @@ const _playerView = playerView;
 playerView = function (pid) {
   let w;
   const run = () => { w = _playerView(pid); };
-  let useF = (state.since || state.fm) && _X[state.cohort] && !_X[state.cohort]._missing && filtersOn();
+  let useF = (state.since || state.fm) && _X[dataKey()] && !_X[dataKey()]._missing && filtersOn();
   const outside = useF && !getFiltered().players[pid]; // no balls in this selection: show everything instead
   if (outside) useF = false;
   if (useF) withSince(() => run(), document.createElement('div')); else run();
-  if ((state.since || state.fm) && !_X[state.cohort]) ensureExtras(state.cohort, () => render());
-  const xf = _X[state.cohort], c = useF && xf && xf._flt ? xf._flt.c : cur(), p = c.players[pid]; if (!p || !w || !w.firstElementChild) return w;
+  if ((state.since || state.fm) && !_X[dataKey()]) ensureExtras(dataKey(), () => render());
+  const xf = _X[dataKey()], c = useF && xf && xf._flt ? xf._flt.c : cur(), p = c.players[pid]; if (!p || !w || !w.firstElementChild) return w;
   stickyHeader(w);
   if (useF) { const b = $(filterBanner()); w.insertBefore(b, w.children[1] || null); _wireClear(b); }
   if (outside) w.insertBefore($('<div class="cov">No balls faced in the current filter selection, so this profile shows all their matches.</div>'), w.children[1] || null);
@@ -343,7 +343,7 @@ mountCareer = function (app, pid) {
     panel.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { scope = state.formScope = b.dataset.s; draw(); });
   };
   let n = 0; const go = () => { if (++n === 2) draw(); };
-  ensureCareers(pid, go); ensureExtras(state.cohort, go);
+  ensureCareers(pid, go); ensureExtras(dataKey(), go);
 };
 
 /* By venue: this competition by default (detail file), all competitions on demand (career shards).
@@ -374,12 +374,12 @@ const BOWL_DEFS = { wkts: { lab: 'Wickets', unit: 'wkts', bar: true }, econ: { l
 const _bowlerProfile = bowlerProfile;
 bowlerProfile = function (id) {
   let w;
-  let useSince = (state.since || state.fm) && _X[state.cohort] && !_X[state.cohort]._missing && filtersOn();
+  let useSince = (state.since || state.fm) && _X[dataKey()] && !_X[dataKey()]._missing && filtersOn();
   const outsideB = useSince && !getFiltered().bowlers[id];
   if (outsideB) useSince = false;
   if (useSince) withSince(() => { w = _bowlerProfile(id); }, document.createElement('div')); else w = _bowlerProfile(id);
-  if ((state.since || state.fm) && !_X[state.cohort]) ensureExtras(state.cohort, () => render());
-  const xf = _X[state.cohort], c = useSince && xf && xf._flt ? xf._flt.c : cur(), b = (c.bowlers || {})[id]; if (!b || !w || !w.firstElementChild) return w;
+  if ((state.since || state.fm) && !_X[dataKey()]) ensureExtras(dataKey(), () => render());
+  const xf = _X[dataKey()], c = useSince && xf && xf._flt ? xf._flt.c : cur(), b = (c.bowlers || {})[id]; if (!b || !w || !w.firstElementChild) return w;
   stickyHeader(w);
   const hdr = w.querySelector('.phead h1');
   if (hdr && b.archetype) hdr.after($(`<span class="arch" style="background:${BOWL_ARCH_COLOR[b.archetype] || '#888'}22;color:${BOWL_ARCH_COLOR[b.archetype] || '#aaa'}" title="${esc(GLOSSARY[b.archetype.toLowerCase()] || '')}">${esc(b.archetype)}</span>`));
@@ -393,7 +393,7 @@ bowlerProfile = function (id) {
   const form = $('<div class="panel" style="margin-top:13px"><h2>Form by year <span class="r">loading…</span></h2></div>');
   w.insertBefore(form, w.children[2] || null);
   let metric = state.bowlMetric || 'wkts';
-  ensureExtras(state.cohort, x => {
+  ensureExtras(dataKey(), x => {
     const rows = x && scopeRows(x).byW[id] || [];
     if (!rows.length) { form.remove(); return; }
     const years = rows.map(r => ({ year: r[1], balls: r[2], runs: r[3], wkts: r[4], econ: +(6 * r[3] / r[2]).toFixed(2), sr: r[4] ? +(r[2] / r[4]).toFixed(1) : null }))
@@ -684,9 +684,9 @@ function teamDetail(app, x, name) {
 window.detailView = function (app) {
   const which = state.view === 'venues' && state.venue ? 'venue' : state.view === 'teams' && state.team ? 'team' : state.view === 'matches' && state.match ? 'match' : null;
   if (!which) return false;
-  const key = state.cohort, draw = x => { if (which === 'venue') venueDetail(app, x, state.venue); else if (which === 'team') teamDetail(app, x, state.team); else if (x) matchDetail(app, x, state.match); else app.appendChild($('<div class="cov">Match pages arrive with the next weekly data rebuild.</div>')); };
+  const key = dataKey(), draw = x => { if (which === 'venue') venueDetail(app, x, state.venue); else if (which === 'team') teamDetail(app, x, state.team); else if (x) matchDetail(app, x, state.match); else app.appendChild($('<div class="cov">Match pages arrive with the next weekly data rebuild.</div>')); };
   if (_X[key]) draw(xNow());
-  else { const l = $('<div class="loadbox"><div class="spinner"></div><div>Loading…</div></div>'); app.appendChild(l); ensureExtras(key, x => { if (state.cohort !== key) return; l.remove(); draw(x); }); }
+  else { const l = $('<div class="loadbox"><div class="spinner"></div><div>Loading…</div></div>'); app.appendChild(l); ensureExtras(key, x => { if (dataKey() !== key) return; l.remove(); draw(x); }); }
   return true;
 };
 window.EXTRA_VIEWS = { bowlto: app => withSince(bowlToView, app), matches: matchesView };
@@ -713,7 +713,7 @@ homeView = function (app) {
   const first = app.firstElementChild; if (first && first.nextSibling) app.insertBefore(slot, first.nextSibling); else app.appendChild(slot);
   slot.before($(`<div style="margin-top:10px">${covNote(c, 'site')}</div>`));
   ensureExtras(key, x => {
-    if (!x || state.cohort !== key) { slot.remove(); return; }
+    if (!x || dataKey() !== key) { slot.remove(); return; }
     // "Full members only" also applies here: keep performances where both sides are full members
     const fmOn = !!(state.fm && x.fm), FM = new Set(fmOn ? x.fm.teams : []);
     const keep = r => !fmOn || (FM.has(r[4]) && FM.has(r[6]));
@@ -957,6 +957,11 @@ function decorateGlossary(root) {
 const _paint = paint;
 paint = function (app) {
   _paint(app);
+  if (state.fm && meta(state.cohort).intl && state.view !== 'live' && state.view !== 'schedule') {
+    const c = cur(), ok = c && c.meta && c.meta.fm;
+    app.insertBefore($(`<div class="covnote fmnote">${COV_ICON}<span>${ok ? `<b>Full members only:</b> every number on this page counts only matches between the 12 ICC full members (${c.meta.matches.toLocaleString()} of ${(meta(state.cohort).matches || 0).toLocaleString()} matches).`
+      : 'Full-members data for this competition arrives with the next weekly data rebuild, so this page shows all matches.'}</span></div>`), app.firstChild);
+  }
   window._syncSince && window._syncSince();
   decorateGlossary(app); decorateCompare(app);
 };

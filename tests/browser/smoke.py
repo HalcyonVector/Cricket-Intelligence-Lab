@@ -33,6 +33,9 @@ PAGES = [
     ("research", "/dashboard/index.html#c=t20i_men&v=research", "#rsc svg"),
     ("network", "/dashboard/index.html#c=t20i_men&v=network", ".netn"),
     ("league", "/dashboard/index.html#c=indian_premier_league", ".homex .hx-tile"),
+    ("overview, full members", "/dashboard/index.html#c=t20i_men&fm=1", ".fmnote"),
+    ("records, full members", "/dashboard/index.html#c=t20i_men&v=records&fm=1", ".recchips"),
+    ("profile, full members", "/dashboard/index.html#c=t20i_men&p=ba607b88&fm=1", "text=Phase profile"),
     ("test cohort", "/dashboard/index.html#c=test_men&v=players", "#pt tbody tr"),
 ]
 

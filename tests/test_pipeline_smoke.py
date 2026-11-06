@@ -92,10 +92,16 @@ def test_full_build():
             assert k in x, k
         assert x["yb"] and x["recent"] and x["teams"]
         assert {r[1] for r in x["yb"]} >= {2019, 2024}
-        fm = x["fm"]
-        assert fm["yb"] and fm["yw"] and fm["wp"] and "mu" in fm
-        assert fm["adv"] and len(fm["adv"][0]) == 7
-        assert len(fm["yb"]) < len(x["yb"]), "full-member scope should drop the associate's matches"
+        # full-members-only bundle: same competition, only matches between full members
+        f = load(os.path.join(cohorts, "t20i_men__fm.js"))
+        assert f["meta"].get("fm") is True and f["meta"]["base_key"] == "t20i_men"
+        assert f["meta"]["matches"] < b["meta"]["matches"], "Nepal's matches should be excluded"
+        assert all(t["team"] != "Nepal" for t in f.get("teams", []))
+        for pid, p in f["players"].items():
+            assert p["runs"] <= b["players"][pid]["runs"]
+        assert "t20i_men__fm" not in keys, "full-member bundles stay out of the competition index"
+        for sub in ("d", "matchups", "x"):
+            assert os.path.exists(os.path.join(cohorts, sub, "t20i_men__fm.js")), sub
         assert x["bp"] and x["wp"]
         assert os.path.exists(os.path.join(cohorts, "matchups", "t20i_men.js"))
         assert len(os.listdir(os.path.join(dash, "careers"))) == 16

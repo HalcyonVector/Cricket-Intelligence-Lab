@@ -40,6 +40,8 @@ def check(name, ok, detail=""):
 def main():
     index = js(os.path.join(DASH, "index.js"))
     keys = [c["key"] for c in index["cohorts"]]
+    # full-members-only bundles (<key>__fm) for international competitions, when built
+    fm_keys = [k + "__fm" for k in keys if os.path.exists(os.path.join(DASH, "cohorts", f"{k}__fm.js"))]
     players_ix = js(os.path.join(DASH, "players.js")) or {"k": [], "p": {}}
     pos = {k: i for i, k in enumerate(players_ix["k"])}
     careers, cvenues = {}, {}
@@ -49,7 +51,7 @@ def main():
     # all-competitions runs per player = sum over the cohorts in the players index
     all_runs = {pid: sum(r[1] for r in e[1]) for pid, e in players_ix["p"].items()}
 
-    for key in keys:
+    for key in keys + fm_keys:
         core = js(os.path.join(DASH, "cohorts", f"{key}.js"))
         det = js(os.path.join(DASH, "cohorts", "d", f"{key}.js")) or {"players": {}, "bowlers": {}}
         x = js(os.path.join(DASH, "cohorts", "x", f"{key}.js"))
@@ -142,8 +144,20 @@ def main():
         if mr and P:
             check("most-runs record = top scorer", mr[0]["value"] == max(p["runs"] for p in P.values()), f"{key}: {mr[0]} vs {max(p['runs'] for p in P.values())}")
 
+    # a full-members bundle is a subset of its competition: never more runs, balls or wickets
+    for fk in fm_keys:
+        base = js(os.path.join(DASH, "cohorts", f"{fk[:-4]}.js")); f = js(os.path.join(DASH, "cohorts", f"{fk}.js"))
+        check("full-members bundle flagged", f["meta"].get("fm") is True, fk)
+        check("full-members matches < all matches", f["meta"]["matches"] < base["meta"]["matches"], fk)
+        for pid, p in f["players"].items():
+            q = base["players"].get(pid)
+            check("full-members batting <= all matches", q is not None and p["runs"] <= q["runs"] and p["balls"] <= q["balls"], f"{fk} {p.get('name')}")
+        for pid, p in f["bowlers"].items():
+            q = base["bowlers"].get(pid)
+            check("full-members bowling <= all matches", q is not None and p["wickets"] <= q["wickets"] and p["balls"] <= q["balls"], f"{fk} {p.get('name')}")
+
     # all-competitions season chart (careers) is never below one competition's season
-    for key in keys:
+    for key in keys + fm_keys:
         x = js(os.path.join(DASH, "cohorts", "x", f"{key}.js"))
         if not x:
             continue
@@ -161,7 +175,7 @@ def main():
     for name, d in fails:
         if d:
             print(f"   - {name}: {d}")
-    print(f"{total:,} checks across {len(keys)} competitions, {len(fails)} failed")
+    print(f"{total:,} checks across {len(keys)} competitions and {len(fm_keys)} full-member versions, {len(fails)} failed")
     sys.exit(1 if fails else 0)
 
 

@@ -24,7 +24,7 @@ Uses Cricsheet's people register (`cricsheet.org/register/people.csv`), keyed on
 pip install requests
 python scripts/build_photo_wikidata.py
 ```
-Adds Wikimedia Commons photos (matched through Wikidata's ESPNcricinfo ID) to players without a Cricbuzz headshot, with a credit link on the profile. Run it after `enrich_players_cricinfo.py`, which provides the ESPNcricinfo IDs. `build_player_images.py` and `build_photo_byid.py` build the Cricbuzz headshot map (`playerimg.js`).
+Adds Wikimedia Commons photos (matched through Wikidata's ESPNcricinfo ID, then the freely licensed lead image of the player's English Wikipedia article) to players without a Cricbuzz headshot, with a credit link on the profile. Run it after `enrich_players_cricinfo.py`, which provides the ESPNcricinfo IDs. `build_player_images.py` and `build_photo_byid.py` build the Cricbuzz headshot map (`playerimg.js`).
 
 ### ICC rankings
 icc-cricket.com renders its tables with JavaScript, so this script uses a headless browser:

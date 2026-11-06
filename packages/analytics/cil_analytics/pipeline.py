@@ -23,9 +23,11 @@ import numpy as np
 try:
     from .extras import build_extras, write_extras
     from .winprob import train as train_winprob, write as write_winprob
+    from .extras import FULL_MEMBERS
 except ImportError:  # run as a plain script
     from extras import build_extras, write_extras
     from winprob import train as train_winprob, write as write_winprob
+    from extras import FULL_MEMBERS
 
 LEGAL = "(extra_type IS NULL OR extra_type IN ('byes','legbyes'))"
 # Batting counts every delivery except wides: a no-ball is a ball faced and its runs off the bat
@@ -93,6 +95,9 @@ def make_scope(conn, spec):
         where.append("m.gender=?"); params.append(spec["gender"])
     if spec.get("intl"):
         where.append("m.team_type='international'")
+    if spec.get("fm"):
+        ph = ",".join("?" * len(FULL_MEMBERS))
+        where.append(f"m.team_a IN ({ph}) AND m.team_b IN ({ph})"); params.extend(FULL_MEMBERS + FULL_MEMBERS)
     if spec.get("league_like"):
         where.append("m.team_type='club'")
         where.append("m.league=?"); params.append(spec["league_like"])
@@ -374,7 +379,9 @@ def build_cohort(conn, spec, names):
                              "AND (runs_required*6.0/balls_remaining) >= ?", (rrr_min,))
     for p in allbat:
         m = bat[p]
-        pp = m["phases"].get("powerplay", {}).get("sr"); de = m["phases"].get("death", {}).get("sr")
+        ph = m["phases"]  # both phases need a real sample, or a few powerplay balls blow the ratio up
+        pp = ph.get("powerplay", {}).get("sr") if ph.get("powerplay", {}).get("balls", 0) >= 30 else None
+        de = ph.get("death", {}).get("sr") if ph.get("death", {}).get("balls", 0) >= 30 else None
         m["accel_index"] = round(de / pp, 2) if (pp and de and pp > 0) else None
         if p in pa and pa[p]["balls"] >= 15:
             m["pressure_sr"] = round(100 * pa[p]["runs"] / pa[p]["balls"], 1); m["pressure_balls"] = pa[p]["balls"]
@@ -851,21 +858,25 @@ def build(db="cil.db", outdir="web/data", jsdir="web/dashboard/cohorts"):
     index = {"generated": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "cohorts": []}
     spec_by_key = {s["key"]: s for s in specs}
     players_ix = {}  # pid -> {cohort key: [runs, wickets]} for global search + "also played in"
-    for spec in specs:
+    def emit(spec, index_players=True):
         jpath = os.path.join(outdir, f"{spec['key']}.json")
         if os.path.exists(jpath):
-            print(f"  {spec['key']}: exists, skip"); continue
+            print(f"  {spec['key']}: exists, skip"); return
         t = time.time()
         b = build_cohort(conn, spec, names)
         if not b or b["meta"]["n_batters"] < 4:
-            print(f"  {spec['key']}: too small, skipped"); continue
+            print(f"  {spec['key']}: too small, skipped"); return
+        if spec.get("fm"):
+            b["meta"].update(fm=True, base_key=spec["base_key"])
         write_matchups(jsdir, spec["key"], b.pop("_matchups_all", []), b["meta"])
         xdir = os.path.join(jsdir, "x"); os.makedirs(xdir, exist_ok=True)
-        write_extras(os.path.join(xdir, f"{spec['key']}.js"), spec["key"], build_extras(conn, names, intl=bool(spec.get("intl")), fmt=spec["format"], rpo=RPO.get(spec["format"], 6.0)), _awrite)
-        for pid, pl in b["players"].items():
-            players_ix.setdefault(pid, {})[spec["key"]] = [pl.get("runs", 0), 0]
-        for pid, bw in b["bowlers"].items():
-            players_ix.setdefault(pid, {}).setdefault(spec["key"], [0, 0])[1] = bw.get("wickets", 0)
+        write_extras(os.path.join(xdir, f"{spec['key']}.js"), spec["key"],
+                     build_extras(conn, names, fmt=spec["format"], rpo=RPO.get(spec["format"], 6.0)), _awrite)
+        if index_players:
+            for pid, pl in b["players"].items():
+                players_ix.setdefault(pid, {})[spec["key"]] = [pl.get("runs", 0), 0]
+            for pid, bw in b["bowlers"].items():
+                players_ix.setdefault(pid, {}).setdefault(spec["key"], [0, 0])[1] = bw.get("wickets", 0)
         payload = json.dumps(b, separators=(",", ":"))
         _awrite(jpath, payload)
         core, detail = split_bundle(b)
@@ -879,6 +890,14 @@ def build(db="cil.db", outdir="web/data", jsdir="web/dashboard/cohorts"):
         print(f"  {spec['key']}: {b['meta']['n_batters']}bat/{b['meta']['n_bowlers']}bowl "
               f"({b['meta']['n_qual_bat']}q) {b['meta']['matches']}m "
               f"{b['meta']['coverage_from']}..{b['meta']['coverage_to']} {len(payload)//1024}KB {time.time()-t:.1f}s")
+
+    for spec in specs:
+        emit(spec)
+        if spec.get("intl"):
+            # "Full members only": the same competition built again from matches where both
+            # sides are ICC full members, so every board, chart and page in the dashboard can
+            # switch to it (<key>__fm files; not listed in the index or the players index).
+            emit({**spec, "key": spec["key"] + "__fm", "base_key": spec["key"], "fm": True}, index_players=False)
     # (re)build the index from whatever cohort metas exist, in spec order
     index["cohorts"] = []
     for spec in specs:
