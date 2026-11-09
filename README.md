@@ -2,7 +2,11 @@
 
 Ball-by-ball cricket analytics across **49 competitions, 23,000+ matches and 11.7 million deliveries**, men's and women's. A static dashboard (plain HTML + JavaScript, no framework, no build step) fed by a weekly Python pipeline over [Cricsheet](https://cricsheet.org)'s open data.
 
-**Live site:** https://halcyonvector.github.io/Cricket-Intelligence-Lab/
+> **What it's for:** look up any player and see where they rank within their competition, compare up to four side by side, find who should bowl to whom, and follow any match's win probability.
+
+**Live site:** [halcyonvector.github.io/Cricket-Intelligence-Lab](https://halcyonvector.github.io/Cricket-Intelligence-Lab/)
+
+![Dashboard: today's discovery, the last 30 days and the milestone watch for Men's T20 Internationals](docs/screenshots/dashboard.png)
 
 ---
 ## Features
@@ -57,7 +61,7 @@ python scripts/build_all.py --zip all_json.zip
 This streams every match into SQLite (`cil.db`), recomputes all analytics, writes the bundles atomically and runs the integrity check.
 
 ---
-## How it's hosted (all free)
+## How it's hosted
 
 | Piece | Where | Notes |
 |-------|-------|-------|
