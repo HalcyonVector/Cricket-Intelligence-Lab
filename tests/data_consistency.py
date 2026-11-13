@@ -148,7 +148,8 @@ def main():
     for fk in fm_keys:
         base = js(os.path.join(DASH, "cohorts", f"{fk[:-4]}.js")); f = js(os.path.join(DASH, "cohorts", f"{fk}.js"))
         check("full-members bundle flagged", f["meta"].get("fm") is True, fk)
-        check("full-members matches < all matches", f["meta"]["matches"] < base["meta"]["matches"], fk)
+        # <= not <: some competitions (e.g. women's Tests) are played only between full members
+        check("full-members matches <= all matches", f["meta"]["matches"] <= base["meta"]["matches"], fk)
         for pid, p in f["players"].items():
             q = base["players"].get(pid)
             check("full-members batting <= all matches", q is not None and p["runs"] <= q["runs"] and p["balls"] <= q["balls"], f"{fk} {p.get('name')}")
