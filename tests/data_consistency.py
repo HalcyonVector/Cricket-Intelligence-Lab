@@ -25,7 +25,7 @@ def js(path, wrapper=None):
         args = t.index("(") + 1
         if t[args] == "{":                      # window.__x({...});
             return json.JSONDecoder().raw_decode(t, args)[0]
-        return json.JSONDecoder().raw_decode(t, t.index(",", args) + 1)[0]   # window.__x("key",{...});
+        return json.JSONDecoder().raw_decode(t, t.index("{", args))[0]   # window.__x("key",{...}); or ("key","shard",{...});
     return json.JSONDecoder().raw_decode(t, t.index("=") + 1)[0]
 
 
