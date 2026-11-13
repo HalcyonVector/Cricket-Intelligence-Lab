@@ -11,6 +11,7 @@ Contents (all compact arrays, keyed by player index into `p`):
   teams   per team: results by year, head-to-head vs every opponent, top batters/bowlers
   recent  the latest matches with over-by-over runs/wickets and top performers
   week    standout innings / spells from the last 30 days of data
+  trend   one row per season for the whole competition (columns in trend_cols)
 """
 from __future__ import annotations
 import json
@@ -79,6 +80,44 @@ def per_year(conn, P, src="sd"):
             continue
         yw.append([P(r["pid"]), int(r["yr"]), r["balls"], r["runs"] or 0, r["w"] or 0, r["d"] or 0, r["b"] or 0])
     return yb, yw
+
+
+TREND_COLS = ["yr", "matches", "balls", "runs", "fours", "sixes", "dots", "wkts", "inn1_runs", "inn1_n",
+              "decided", "bat2_won", "toss_won", "pp_runs", "pp_balls", "mid_runs", "mid_balls", "death_runs", "death_balls"]
+
+
+def season_trend(conn):
+    """One row per season for the whole competition (the Trends page): scoring rate, boundary and
+    dot-ball share, first-innings totals, how often the side batting second won, the toss, and
+    runs per phase. Balls are legal deliveries; runs include extras (the team's total)."""
+    rows = {}
+    for r in _rows(conn, f"""SELECT yr, COUNT(DISTINCT match_id) m, SUM(CASE WHEN {LEGAL} THEN 1 ELSE 0 END) b,
+            SUM(runs_batter+runs_extras) r, SUM(runs_batter=4) f, SUM(runs_batter=6) s,
+            SUM(CASE WHEN {LEGAL} AND runs_batter+runs_extras=0 THEN 1 ELSE 0 END) d,
+            SUM(player_out_id IS NOT NULL) w,
+            SUM(CASE WHEN phase='powerplay' THEN runs_batter+runs_extras ELSE 0 END) ppr,
+            SUM(CASE WHEN phase='powerplay' AND {LEGAL} THEN 1 ELSE 0 END) ppb,
+            SUM(CASE WHEN phase='middle' THEN runs_batter+runs_extras ELSE 0 END) mr,
+            SUM(CASE WHEN phase='middle' AND {LEGAL} THEN 1 ELSE 0 END) mb,
+            SUM(CASE WHEN phase='death' THEN runs_batter+runs_extras ELSE 0 END) dr,
+            SUM(CASE WHEN phase='death' AND {LEGAL} THEN 1 ELSE 0 END) db
+            FROM sd GROUP BY yr"""):
+        if r["yr"] and str(r["yr"]).isdigit():
+            rows[int(r["yr"])] = [int(r["yr"]), r["m"], r["b"] or 0, r["r"] or 0, r["f"] or 0, r["s"] or 0, r["d"] or 0,
+                                  r["w"] or 0, 0, 0, 0, 0, 0, r["ppr"] or 0, r["ppb"] or 0, r["mr"] or 0, r["mb"] or 0,
+                                  r["dr"] or 0, r["db"] or 0]
+    for r in _rows(conn, """SELECT substr(m.match_date,1,4) yr, SUM(i.runs) r, COUNT(*) n
+            FROM fact_innings i JOIN sm ON sm.match_id=i.match_id JOIN dim_match m ON m.match_id=i.match_id
+            WHERE i.innings_no=1 AND m.result_type<>'no result' GROUP BY yr"""):
+        if r["yr"] and int(r["yr"]) in rows:
+            rows[int(r["yr"])][8:10] = [r["r"] or 0, r["n"]]
+    for r in _rows(conn, """SELECT substr(m.match_date,1,4) yr, COUNT(*) n,
+            SUM(m.winner<>bf.batting_team) b2, SUM(m.winner=m.toss_winner) tw
+            FROM dim_match m JOIN sm ON sm.match_id=m.match_id JOIN bf ON bf.match_id=m.match_id
+            WHERE m.result_type='win' AND m.winner IS NOT NULL GROUP BY yr"""):
+        if r["yr"] and int(r["yr"]) in rows:
+            rows[int(r["yr"])][10:13] = [r["n"], r["b2"] or 0, r["tw"] or 0]
+    return [rows[y] for y in sorted(rows)]
 
 
 def venue_detail(conn, P, top_n=6):
@@ -302,9 +341,42 @@ def build_extras(conn, names, intl=False, fmt="t20", rpo=8.0):
     yb, yw = per_year(conn, P)
     bp, wp = phase_tables(conn, P, "sd")
     data = {"yb": yb, "yw": yw, "bp": bp, "wp": wp, "venues": venue_detail(conn, P), "teams": team_detail(conn, P),
-            "recent": recent_matches(conn, P), "week": this_week(conn, P)}
+            "recent": recent_matches(conn, P), "week": this_week(conn, P),
+            "trend": season_trend(conn), "trend_cols": TREND_COLS}
     data["p"] = P.p
     return data
+
+
+INNINGS_MIN = 10  # players with fewer innings in a competition get no rolling-form chart
+
+
+def innings_log(conn, min_inns=INNINGS_MIN):
+    """Every innings in this competition, in match order, for the rolling-form chart on profiles.
+
+    bat:  {pid: [[year, runs, balls, out], ...]}   batting rule as everywhere else (no wides)
+    bowl: {pid: [[year, balls, runs, wkts], ...]}  legal balls, runs conceded, bowler's wickets
+    Only players with at least `min_inns` innings, so the files stay small."""
+    order = """JOIN dim_match m ON m.match_id=s.match_id"""
+    outs = {(r["pid"], r["mid"], r["inn"]) for r in _rows(conn, """SELECT player_out_id pid, match_id mid,
+            innings_no inn FROM sd WHERE player_out_id IS NOT NULL""")}
+    bat = defaultdict(list)
+    for r in _rows(conn, f"""SELECT s.batter_id pid, s.match_id mid, s.innings_no inn, s.yr yr,
+            SUM(s.runs_batter) r, COUNT(*) b FROM sd s {order}
+            WHERE {BAT.replace('extra_type', 's.extra_type')} AND s.batter_id IS NOT NULL
+            GROUP BY s.batter_id, s.match_id, s.innings_no ORDER BY m.match_date, s.match_id, s.innings_no"""):
+        if r["yr"] and str(r["yr"]).isdigit():
+            bat[r["pid"]].append([int(r["yr"]), r["r"] or 0, r["b"], int((r["pid"], r["mid"], r["inn"]) in outs)])
+    bowl = defaultdict(list)
+    for r in _rows(conn, f"""SELECT s.bowler_id pid, s.yr yr,
+            SUM(CASE WHEN {LEGAL.replace('extra_type', 's.extra_type')} THEN 1 ELSE 0 END) b,
+            SUM(s.runs_batter+s.runs_extras) r,
+            SUM(CASE WHEN {BOWLER_WKT.replace('wicket_kind', 's.wicket_kind')} THEN 1 ELSE 0 END) w
+            FROM sd s {order} WHERE s.bowler_id IS NOT NULL
+            GROUP BY s.bowler_id, s.match_id, s.innings_no ORDER BY m.match_date, s.match_id, s.innings_no"""):
+        if r["yr"] and str(r["yr"]).isdigit():
+            bowl[r["pid"]].append([int(r["yr"]), r["b"] or 0, r["r"] or 0, r["w"] or 0])
+    keep = lambda d: {k: v for k, v in d.items() if len(v) >= min_inns}
+    return keep(bat), keep(bowl)
 
 
 def write_extras(path, key, data, write):

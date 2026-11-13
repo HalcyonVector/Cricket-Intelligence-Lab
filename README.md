@@ -37,12 +37,14 @@ From the data, using complete seasons up to 2025:
 
 - **Batter and bowler profiles:** percentiles within the competition, archetypes, phase splits (powerplay, middle, death), situation splits, by-venue records and the most similar players.
 - **Form by season:** runs, average or strike rate (wickets, economy or strike rate for bowlers) per season, for one competition or all of them.
+- **Rolling form:** average, strike rate or runs per innings over the last 10 innings at every point of a career (economy, wickets per innings or average for bowlers), against the career line, so slumps and hot streaks stand out.
 - **Where they stand:** each key stat drawn against every rated player in the competition, so "96th percentile" shows how far ahead that really is.
 - **Archetypes:** batters are tagged as one of five scoring styles; bowlers as Strike bowler, Holder, Powerplay specialist, Death specialist or Workhorse.
 - **Also played in:** every other competition the player appears in, one click away.
 
 ### Analysis
 
+- **Trends:** how a whole competition has changed season by season: run rate overall and by phase, average first-innings total, boundary and dot-ball share, runs per wicket, and how often the side batting second and the toss winner won.
 - **Time window:** all time, the last two seasons or since 2015. Leaderboards, records, percentiles, archetypes and profiles are recomputed for the window.
 - **Full members only** (international competitions): every view switches to a version of the data built only from matches between the 12 ICC full members.
 - **Matchups:** any batter against any bowler with at least 12 balls between them (18 in Tests): runs, dismissals, strike rate and a dominance score.
@@ -53,8 +55,8 @@ From the data, using complete seasons up to 2025:
 
 - **Team pages:** win % by year, head-to-head against every opponent, top run-scorers and wicket-takers.
 - **Venue pages:** first-innings average by year, toss effect, top performers and recent matches.
-- **Match pages:** the latest 40 matches per competition with run progression, runs per over, batting and bowling summaries and a win-probability line.
-- **Live scores:** live scores, fixtures and ball-by-ball commentary from Cricbuzz, with a live win chance on T20 and ODI scorecards.
+- **Match pages:** the latest 40 matches per competition with run progression, runs per over, batting and bowling summaries, a win-probability line and the projected first-innings total after every over.
+- **Live scores:** live scores, fixtures and ball-by-ball commentary from Cricbuzz, with a live win chance and a projected first-innings total on T20 and ODI scorecards.
 
 ### Exploring the data
 
@@ -82,6 +84,7 @@ From the data, using complete seasons up to 2025:
 - **Era-adjusted index:** a batter's runs against what an average batter would have scored on the same balls in the same seasons (100 = par).
 - **Dominance:** a batter-versus-bowler score from 0 to 1 combining scoring rate and dismissal rate, shrunk toward 0.5 for small samples.
 - **Win probability:** two logistic models per format and gender (first innings: runs, balls, wickets; chase: runs needed, balls left, wickets), fitted on every end-of-over state. Held-out Brier scores are about 0.21 (first innings) and 0.12 (chase).
+- **Projected total:** runs so far plus the average runs still to come from the same overs completed and wickets lost, across every completed first innings in that format. On held-out matches it is typically 17 runs out at the halfway mark of a T20 and 32 in an ODI.
 - **Time window:** rebuilt in the browser from per-season totals. Advanced metrics and similarity stay all-time.
 
 ---
@@ -171,7 +174,7 @@ Cricket-Intelligence-Lab/
 │       ├── sw.js, manifest.webmanifest, config.js
 │       ├── playermeta.js, playerimg.js
 │       └── (generated, not in git) index.js, rankings.js, players.js, winprob.js,
-│           cohorts/<key>.js, cohorts/<key>__fm.js (full members), d/, matchups/, x/, careers/
+│           cohorts/<key>.js, cohorts/<key>__fm.js (full members), d/, matchups/, x/, f/ (innings), careers/
 ├── api/, vercel.json, vercel/     # Live-scores API on Vercel (wraps serve.py)
 ├── tests/                         # Unit + pipeline tests, data_consistency.py, browser/smoke.py
 └── docs/                          # Screenshots, ADR and the original design spec
@@ -196,7 +199,9 @@ all_json.zip ─► build_all.py ─► cil.db (SQLite) ─► pipeline.py + ext
 | Code deploys | GitHub Actions (`site.yml`) | A push touching `web/` redeploys with the latest data, without a rebuild |
 | Live scores API | Vercel (`api/index.py`) | Runs `serve.py`'s `/api/*`, CDN-cached (live 30 s, schedule 10 min) |
 
-The heavy work happens once a week in the build. Each competition gets a small core file loaded on first view, plus profile detail, matchups and extras files loaded only when a page needs them. The browser only re-ranks for a time window and does the win-probability maths.
+The heavy work happens once a week in the build. Each competition gets a small core file loaded on first view, plus profile detail, matchups, extras (seasons, venues, teams, matches, trends) and innings files loaded only when a page needs them. The innings files are split into 16 parts by player, so a profile downloads about a sixteenth of them.
+
+If the weekly build fails, the site keeps serving the last good data, the footer's "data updated" date turns red after 10 days, and the workflow opens a GitHub issue (closed again by the next successful build). The browser only re-ranks for a time window and does the win-probability maths.
 
 To host your own copy: set **Settings > Pages > Source** to GitHub Actions, run **Build data & deploy site** with "Rebuild data" ticked, then (optionally) import the repo into Vercel and set the repository variable `LIVE_API_URL` to its URL.
 
@@ -211,8 +216,8 @@ pip install playwright && python -m playwright install chromium && python tests/
 ```
 
 - **Pipeline tests:** run a synthetic Cricsheet zip through ingest and the full build, then check every output file, including the full-members versions.
-- **Data audit (about 513,000 checks across 49 competitions and their full-members versions):** season totals add up to career totals, phase balls never exceed total balls, matchup players exist, record holders match the leaderboards, venue runs never exceed competition runs, and full-members figures never exceed all-match figures. The weekly build won't publish if any check fails.
-- **Browser test:** opens 22 views in headless Chromium against the real data and fails on any JavaScript error or missing content.
+- **Data audit (about 513,000 checks across 49 competitions and their full-members versions):** season totals add up to career totals, phase balls never exceed total balls, matchup players exist, record holders match the leaderboards, venue runs never exceed competition runs, full-members figures never exceed all-match figures, season trends add up to the competition, and every player's innings log adds up to their totals. The weekly build won't publish if any check fails.
+- **Browser test:** opens 23 views in headless Chromium against the real data and fails on any JavaScript error or missing content.
 
 All three run in CI on every push.
 
@@ -223,7 +228,7 @@ All three run in CI on every push.
 - **Coverage has gaps.** Ball-by-ball data starts in 2001 for men's internationals and 2003 for women's, and leagues from their first covered season. Some matches are [missing from Cricsheet's archive](https://cricsheet.org/missing/), and domestic competitions it doesn't cover (such as the Ranji Trophy) aren't here at all.
 - **No Afghanistan matches.** Cricsheet withholds every match involving Afghanistan ([their explanation](https://cricsheet.org/article/explanation-for-withholding-of-afghanistani-matches/)), so Afghanistan's players and results are missing and their opponents' totals are lower.
 - **Correlation, not cause.** The findings above, like the 2023 jump in IPL totals, line up with rule changes but the data can't separate the rule from other changes such as pitches or batting depth.
-- **The win-probability models don't know the teams,** the pitch, the weather or rain rules. They only see the score, balls and wickets.
+- **The win-probability models and projected totals don't know the teams,** the pitch, the weather or rain rules. They only see the score, balls and wickets, and the projection averages over every era, so it runs low for today's higher-scoring T20 leagues.
 - **Small samples.** Matchups need only 12 balls (18 in Tests). Dominance is shrunk toward neutral to help, but short histories are still noisy.
 - **Photos are incomplete.** Players without a Cricbuzz headshot or a freely licensed Wikipedia photo show initials.
 - **Live scores depend on Cricbuzz's pages,** which can change or rate-limit without notice.
@@ -232,10 +237,9 @@ All three run in CI on every push.
 
 ## Suggested Future Features
 
-- **Trends page:** run rate, boundary % and dot-ball % by season for every competition.
-- **Rolling form chart** on player profiles (last 10 innings).
-- **Score projection** next to the win probability on live and match pages.
+- **Era-aware projections:** weight recent seasons more, so projected totals keep up with rising scoring.
 - **Team-aware win probability** that uses team strength, not just the score.
+- **Second-innings projection:** where a chase is likely to end, not just who wins.
 - **Custom stat definitions** built in the browser.
 
 ---

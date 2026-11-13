@@ -169,6 +169,36 @@ def main():
             if yr in cy:
                 check("all-competitions season runs >= competition season runs", cy[yr] >= runs, f"{key} {pid} {yr}: all {cy[yr]} < comp {runs}")
 
+    # Trends page and rolling-form chart (skipped for data built before they existed)
+    for key in keys + fm_keys:
+        core = js(os.path.join(DASH, "cohorts", f"{key}.js"))
+        x = js(os.path.join(DASH, "cohorts", "x", f"{key}.js"))
+        if x and x.get("trend"):
+            C = x["trend_cols"]; T = [dict(zip(C, r)) for r in x["trend"]]
+            check("trend matches add up to the competition", sum(r["matches"] for r in T) == core["meta"]["matches"],
+                  f"{key}: {sum(r['matches'] for r in T)} vs {core['meta']['matches']}")
+            yw_balls = defaultdict(int)
+            for r in x["yw"]:
+                yw_balls[r[1]] += r[2]
+            for r in T:
+                check("trend balls = sum of bowlers' balls that season", r["balls"] == yw_balls.get(r["yr"], 0), f"{key} {r['yr']}")
+                check("trend phase balls <= season balls", r["pp_balls"] + r["mid_balls"] + r["death_balls"] <= r["balls"], f"{key} {r['yr']}")
+                check("trend decided <= matches and wins <= decided", r["decided"] <= r["matches"] and r["bat2_won"] <= r["decided"]
+                      and r["toss_won"] <= r["decided"], f"{key} {r['yr']}")
+        fdir = os.path.join(DASH, "cohorts", "f", key)
+        if not os.path.isdir(fdir):
+            continue
+        for fn in os.listdir(fdir):
+            d = js(os.path.join(fdir, fn))
+            for pid, rows in d["b"].items():
+                p = core["players"].get(pid)
+                check("innings log runs and balls = player totals", p is not None and sum(r[1] for r in rows) == p["runs"]
+                      and sum(r[2] for r in rows) == p["balls"], f"{key} {pid}")
+            for pid, rows in d["w"].items():
+                b = core["bowlers"].get(pid)
+                check("innings log wickets and balls = bowler totals", b is not None and sum(r[3] for r in rows) == b["wickets"]
+                      and sum(r[1] for r in rows) == b["balls"], f"{key} {pid}")
+
     total = sum(checks.values())
     for name, n in sorted(checks.items()):
         bad = sum(1 for f in fails if f[0] == name)

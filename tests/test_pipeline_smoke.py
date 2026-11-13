@@ -92,6 +92,10 @@ def test_full_build():
             assert k in x, k
         assert x["yb"] and x["recent"] and x["teams"]
         assert {r[1] for r in x["yb"]} >= {2019, 2024}
+        assert x["trend"] and x["trend_cols"][0] == "yr"
+        assert sum(r[1] for r in x["trend"]) == b["meta"]["matches"], "trend seasons should cover every match"
+        fdir = os.path.join(cohorts, "f", "t20i_men")
+        assert len(os.listdir(fdir)) == 16, "innings log is sharded like careers/"
         # full-members-only bundle: same competition, only matches between full members
         f = load(os.path.join(cohorts, "t20i_men__fm.js"))
         assert f["meta"].get("fm") is True and f["meta"]["base_key"] == "t20i_men"

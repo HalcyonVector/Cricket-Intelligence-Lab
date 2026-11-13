@@ -3,6 +3,7 @@
 Two small logistic regressions per format and gender:
   inn1  P(batting-first side wins | runs, balls bowled, wickets lost)
   inn2  P(chasing side wins       | runs needed, balls left, wickets lost)
+plus a lookup table of expected runs still to come in a first innings (projected total).
 States are taken at the end of every over. The coefficients go to web/dashboard/winprob.js,
 where the dashboard evaluates the same features (keep features() in sync with features.js).
 """
@@ -70,8 +71,42 @@ def _states(conn, fmt, gender):
                 runs += r; wk += w; balls += b
                 if balls >= T or wk >= 10:
                     break
-                out.append((mid, inn, runs, balls, wk, target if inn == 2 else None, 1 if win == bt else 0))
+                out.append((mid, inn, runs, balls, wk, target if inn == 2 else None, 1 if win == bt else 0, tot1))
     return out
+
+
+def _proj_table(rows, T, min_n=25):
+    """Expected runs still to come in a first innings, by overs completed (0..T/6-1) and wickets
+    lost (0..9): the mean of (final total - score at that point) over completed first innings.
+    Thin cells borrow from the nearest wicket count with enough innings in the same over."""
+    overs = T // 6
+    acc = [[[0.0, 0] for _ in range(10)] for _ in range(overs)]
+    for s in rows:
+        k, w = s[3] // 6, min(s[4], 9)
+        if k < overs:
+            acc[k][w][0] += s[7] - s[2]; acc[k][w][1] += 1
+    starts = {s[0]: s[7] for s in rows}
+    if starts:
+        acc[0][0] = [float(sum(starts.values())), len(starts)]  # before a ball: the whole total is to come
+    tab = []
+    for k in range(overs):
+        row = [acc[k][w][0] / acc[k][w][1] if acc[k][w][1] >= min_n else None for w in range(10)]
+        for w in range(10):
+            if row[w] is None:
+                near = sorted((abs(w - j), j) for j in range(10) if row[j] is not None)
+                row[w] = row[near[0][1]] if near else 0.0
+        tab.append([round(v, 1) for v in row])
+    return tab
+
+
+def project(tab, T, runs, balls, wkts):
+    """Projected first-innings total. Mirrors projectTotal() in web/dashboard/features.js."""
+    overs = T // 6
+    if balls >= T or wkts >= 10:
+        return runs
+    k, w, f = min(balls // 6, overs - 1), min(wkts, 9), (balls % 6) / 6
+    nxt = tab[k + 1][w] if k + 1 < overs else 0.0
+    return runs + tab[k][w] + (nxt - tab[k][w]) * f
 
 
 def train(conn):
@@ -95,8 +130,16 @@ def train(conn):
                 w = _fit(Xa, ya)  # final fit on everything
                 m[f"inn{inn}"] = [round(float(v), 5) for v in w]
                 m[f"brier{inn}"] = round(brier, 4) if brier is not None else None
+            # projected first-innings total: lookup table, checked on the same held-out 20% of matches
+            r1 = [s for s in st if s[1] == 1]
+            held = lambda s: zlib.crc32(str(s[0]).encode()) % 5 == 0
+            tab = _proj_table([s for s in r1 if not held(s)], T)
+            mid = [s for s in r1 if held(s) and s[3] // 6 == T // 12]
+            m["proj"] = _proj_table(r1, T)
+            m["proj_mae_mid"] = round(float(np.mean([abs(project(tab, T, s[2], s[3], s[4]) - s[7]) for s in mid])), 1) if mid else None
             models[f"{fmt}_{gender}"] = m
-            print(f"  winprob {fmt}_{gender}: {n_matches} matches, held-out Brier inn1 {m['brier1']} inn2 {m['brier2']}")
+            print(f"  winprob {fmt}_{gender}: {n_matches} matches, held-out Brier inn1 {m['brier1']} inn2 {m['brier2']}, "
+                  f"projection error at the halfway mark {m['proj_mae_mid']} runs")
     return models
 
 

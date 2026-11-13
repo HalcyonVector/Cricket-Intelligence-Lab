@@ -23,6 +23,7 @@ on:
 
 permissions:
   contents: write   # upload the data release asset
+  issues: write     # open an issue when the weekly build fails
   pages: write
   id-token: write
 
@@ -38,8 +39,8 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
       - name: Install build deps
@@ -90,7 +91,7 @@ jobs:
           python scripts/fetch_icc_rankings.py --debug
       - name: Upload rendered HTML of failed ranking pages
         if: steps.rankings.outcome == 'failure'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: icc-debug-html
           path: scripts/_debug_*.html
@@ -116,7 +117,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Check setup (Pages enabled + data published)
         id: ready
         run: |
@@ -139,19 +140,54 @@ jobs:
           python -c "import json,os; print('window.CIL_API = %s;' % json.dumps(os.environ.get('LIVE_API_URL','').strip()))" > web/dashboard/config.js
           cp web/landing.html web/index.html
           touch web/.nojekyll
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
         if: steps.ready.outputs.ok == 'true'
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         if: steps.ready.outputs.ok == 'true'
         with:
           path: web
+          include-hidden-files: true   # keep .nojekyll
       - id: deployment
         if: steps.ready.outputs.ok == 'true'
         continue-on-error: true   # Pages refuses while the previous deployment is still finishing
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
       - name: Wait for the previous Pages deployment to finish
         if: steps.ready.outputs.ok == 'true' && steps.deployment.outcome == 'failure'
         run: sleep 90
       - id: deployment_retry
         if: steps.ready.outputs.ok == 'true' && steps.deployment.outcome == 'failure'
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
+
+  # A failed weekly build leaves the site on last week's data without anyone noticing, so open
+  # (or add to) one tracking issue. GitHub emails the repo owner about new issues and comments.
+  notify:
+    needs: [data, deploy]
+    if: always() && (needs.data.result == 'failure' || needs.deploy.result == 'failure')
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Open or update the build-failure issue
+        run: |
+          run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          body="The ${{ github.event_name }} run on $(date -u +%Y-%m-%d) failed (data: ${{ needs.data.result }}, deploy: ${{ needs.deploy.result }}). The site keeps serving the last good data until a run succeeds. Log: $run_url"
+          title="Weekly data build failed"
+          num=$(gh issue list --state open --search "\"$title\" in:title" --json number --jq '.[0].number')
+          if [ -n "$num" ]; then gh issue comment "$num" --body "$body"
+          else gh issue create --title "$title" --body "$body"; fi
+
+  # Close the tracking issue once a rebuild goes through again.
+  recovered:
+    needs: [data, deploy]
+    if: needs.data.result == 'success' && needs.deploy.result == 'success'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Close the build-failure issue
+        run: |
+          for num in $(gh issue list --state open --search '"Weekly data build failed" in:title' --json number --jq '.[].number'); do
+            gh issue close "$num" --comment "Fixed: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} rebuilt and deployed the data."
+          done

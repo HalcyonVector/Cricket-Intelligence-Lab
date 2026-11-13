@@ -31,6 +31,7 @@ PAGES = [
     ("venues", "/dashboard/index.html#c=t20i_men&v=venues", ".rowlinks tbody tr"),
     ("records", "/dashboard/index.html#c=t20i_men&v=records", ".recchips"),
     ("research", "/dashboard/index.html#c=t20i_men&v=research", "#rsc svg"),
+    ("trends", "/dashboard/index.html#c=t20i_men&v=trends", "text=Trends"),
     ("network", "/dashboard/index.html#c=t20i_men&v=network", ".netn"),
     ("league", "/dashboard/index.html#c=indian_premier_league", ".homex .hx-tile"),
     ("overview, full members", "/dashboard/index.html#c=t20i_men&fm=1", ".fmnote"),

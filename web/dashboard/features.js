@@ -320,6 +320,68 @@ playerView = function (pid) {
   }
   return w;
 };
+/* ---------- Rolling form: the last N innings at every point of a player's career ---------- */
+const ROLL_N = 10, _INN = {}, _INN_CB = {};
+window.__inningsLoaded = (key, sh, d) => { (_INN[key] = _INN[key] || {})[sh] = d; };
+function ensureInnings(key, pid, cb) {
+  const sh = /^[0-9a-f]/.test((pid || '0')[0].toLowerCase()) ? pid[0].toLowerCase() : '0', id = key + '/' + sh;
+  if (_INN[key] && _INN[key][sh]) return cb(_INN[key][sh]);
+  if (_INN_CB[id]) { _INN_CB[id].push(cb); return; }
+  const q = _INN_CB[id] = [cb], s = document.createElement('script');
+  s.src = 'cohorts/f/' + encodeURIComponent(key) + '/' + sh + '.js';
+  const done = () => { const d = (_INN[key] || {})[sh] || null; delete _INN_CB[id]; q.forEach(f => f(d)); };
+  s.onload = done; s.onerror = done; document.head.appendChild(s);
+}
+const ROLL_BAT = {
+  avg: { lab: 'Average', f: w => { const o = w.reduce((a, r) => a + r[3], 0), r = w.reduce((a, x) => a + x[1], 0); return o ? r / o : r; }, d: 1 },
+  sr: { lab: 'Strike rate', f: w => { const b = w.reduce((a, r) => a + r[2], 0); return b ? 100 * w.reduce((a, r) => a + r[1], 0) / b : null; }, d: 1 },
+  rpi: { lab: 'Runs per innings', f: w => w.reduce((a, r) => a + r[1], 0) / w.length, d: 1 },
+};
+const ROLL_BOWL = {
+  econ: { lab: 'Economy', f: w => { const b = w.reduce((a, r) => a + r[1], 0); return b ? 6 * w.reduce((a, r) => a + r[2], 0) / b : null; }, d: 2, low: true },
+  wpi: { lab: 'Wickets per innings', f: w => w.reduce((a, r) => a + r[3], 0) / w.length, d: 2 },
+  avg: { lab: 'Average', f: w => { const k = w.reduce((a, r) => a + r[3], 0); return k ? w.reduce((a, r) => a + r[2], 0) / k : null; }, d: 1, low: true },
+};
+function rollingSVG(rows, def, n) {
+  const W = 720, H = 210, padL = 40, padR = 12, padT = 12, padB = 26;
+  const pts = [];
+  for (let i = n - 1; i < rows.length; i++) { const v = def.f(rows.slice(i - n + 1, i + 1)); if (v != null && isFinite(v)) pts.push([i + 1, v]); }
+  if (pts.length < 2) return '<span class="note">Not enough innings yet.</span>';
+  const all = def.f(rows), ys = pts.map(p => p[1]).concat(all != null ? [all] : []);
+  const lo = Math.min(...ys), hi = Math.max(...ys), sp = (hi - lo) || 1, y0 = Math.max(0, lo - sp * 0.1), y1 = hi + sp * 0.1;
+  const X = i => padL + (i - 1) / Math.max(1, rows.length - 1) * (W - padL - padR), Y = v => H - padB - (v - y0) / ((y1 - y0) || 1) * (H - padT - padB);
+  let g = axisTicksSVG(null, Y, null, [y0, y1], [padL, padT, W - padR, H - padB]);
+  let lastYr = null, lastX = -99;
+  rows.forEach((r, i) => { if (r[0] !== lastYr) { const x = X(i + 1); g += `<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${padT}" y2="${H - padB}" stroke="#1D2026"/>`; if (x - lastX > 34) { g += `<text x="${x.toFixed(1)}" y="${H - 8}" text-anchor="middle" fill="#8A6A5C" font-size="9">${r[0]}</text>`; lastX = x; } lastYr = r[0]; } });
+  if (all != null) g += `<line x1="${padL}" x2="${W - padR}" y1="${Y(all).toFixed(1)}" y2="${Y(all).toFixed(1)}" stroke="#5a5d66" stroke-dasharray="4 4"><title>Whole career: ${all.toFixed(def.d)}</title></line>`;
+  g += `<polyline points="${pts.map(p => `${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(' ')}" fill="none" stroke="#F2B24C" stroke-width="2"/>`;
+  const best = pts.reduce((a, p) => (def.low ? p[1] < a[1] : p[1] > a[1]) ? p : a, pts[0]), lastP = pts[pts.length - 1];
+  g += `<circle cx="${X(best[0]).toFixed(1)}" cy="${Y(best[1]).toFixed(1)}" r="4" fill="#F2B24C"><title>Best ${n}-innings run: ${best[1].toFixed(def.d)} (innings ${best[0] - n + 1} to ${best[0]})</title></circle>`;
+  g += `<circle cx="${X(lastP[0]).toFixed(1)}" cy="${Y(lastP[1]).toFixed(1)}" r="4" fill="#16181D" stroke="#F2B24C" stroke-width="2"><title>Now: ${lastP[1].toFixed(def.d)}</title></circle>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(def.lab)} over the last ${n} innings, through the career">${g}</svg>`;
+}
+function rollingFormPanel(pid, bowler) {
+  const panel = $(`<div class="panel" style="margin-top:13px"><h2>Rolling form <span class="r">loading…</span></h2></div>`);
+  const key = dataKey(), label = cur().meta.label;
+  ensureInnings(key, pid, d => {
+    const rows = d && (bowler ? d.w : d.b)[pid];
+    if (!rows || rows.length < ROLL_N) { panel.remove(); return; }
+    const defs = bowler ? ROLL_BOWL : ROLL_BAT, n = ROLL_N;
+    let metric = (bowler ? state.rollBowl : state.rollBat) || Object.keys(defs)[0];
+    const last = rows.slice(-n), sum = (w, i) => w.reduce((a, r) => a + r[i], 0);
+    const summary = bowler
+      ? `Last ${n} innings: <b>${sum(last, 3)}</b> wickets at economy <b>${(defs.econ.f(last) || 0).toFixed(2)}</b> (career ${(defs.econ.f(rows) || 0).toFixed(2)} over ${rows.length} innings)`
+      : `Last ${n} innings: <b>${sum(last, 1)}</b> runs, average <b>${defs.avg.f(last).toFixed(1)}</b>, strike rate <b>${(defs.sr.f(last) || 0).toFixed(1)}</b> (career ${defs.avg.f(rows).toFixed(1)} and ${(defs.sr.f(rows) || 0).toFixed(1)} over ${rows.length} innings)`;
+    const draw = () => {
+      panel.innerHTML = `<div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:8px"><h2 style="margin:0">Rolling form <span class="r">${esc(label)} · each point = the ${n} innings up to then · dashed = career</span></h2>
+        <div class="seg" role="group" aria-label="Rolling metric">${Object.entries(defs).map(([k, v]) => `<button data-m="${k}" class="${k === metric ? 'on' : ''}">${v.lab}</button>`).join('')}</div></div>
+        <div class="note" style="margin-bottom:6px">${summary}</div>${rollingSVG(rows, defs[metric], n)}`;
+      panel.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { metric = b.dataset.m; if (bowler) state.rollBowl = metric; else state.rollBat = metric; draw(); });
+    };
+    draw();
+  });
+  return panel;
+}
 /* Form chart follows the selected competition (per-year cohort data); all-format career is a toggle. */
 const BAT_DEFS = { runs: { lab: 'Runs', unit: 'runs', bar: true }, avg: { lab: 'Average', unit: 'avg' }, sr: { lab: 'Strike rate', unit: 'SR' } };
 mountCareer = function (app, pid) {
@@ -328,6 +390,7 @@ mountCareer = function (app, pid) {
   panel.innerHTML = '<h2>Form by year <span class="r">loading…</span></h2>';
   const anchor = w.querySelector('.xstrip'); const at = [...w.children].indexOf(anchor);
   w.insertBefore(panel, w.children[Math.max(1, at + 1)] || null);
+  panel.after(rollingFormPanel(pid, false));
   let scope = state.formScope || 'comp', metric = state.careerMetric || 'runs';
   const draw = () => {
     const x = xNow();
@@ -392,6 +455,7 @@ bowlerProfile = function (id) {
   // form by year (this competition)
   const form = $('<div class="panel" style="margin-top:13px"><h2>Form by year <span class="r">loading…</span></h2></div>');
   w.insertBefore(form, w.children[2] || null);
+  form.after(rollingFormPanel(id, true));
   let metric = state.bowlMetric || 'wkts';
   ensureExtras(dataKey(), x => {
     const rows = x && scopeRows(x).byW[id] || [];
@@ -530,6 +594,7 @@ function matchDetail(app, x, id) {
   const g = $('<div class="grid bento"></div>');
   g.appendChild($(`<div class="panel s12" style="background:linear-gradient(120deg,rgba(229,154,47,.13),transparent)"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:10px"><h2 style="margin:0;font-size:17px">${esc(resultText(mt))}</h2><div class="row" style="gap:16px;flex-wrap:wrap">${mt.inns.map((i, k) => `<span class="num"><span class="sw" style="background:${INN_COL[k % 4]};display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px"></span>${esc(i.team || '')} <b>${i.runs}/${i.wkts}</b> <span class="dim">(${i.overs.length} ov)</span></span>`).join('')}</div></div></div>`));
   const wpSlot = $('<div class="panel s12" style="display:none"></div>'); g.appendChild(wpSlot);
+  const projSlot = $('<div class="panel s12" style="display:none"></div>'); g.appendChild(projSlot);
   ensureWinProb(wp => {
     const c = cur(), model = wpModel(wp, c.meta.format, c.meta.gender);
     if (!model || c.meta.format === 'test' || mt.inns.length < 2) return;
@@ -543,6 +608,14 @@ function matchDetail(app, x, id) {
     wpSlot.innerHTML = `<h2>Win probability <span class="r">biggest swing: ${at}</span></h2>${winProbSVG(series, i1.team || 'Batting first', i2.team || 'Chasing', split)}
       <div class="note" style="margin-top:6px">From runs, balls and wickets after each over, using a model trained on every ${c.meta.format.toUpperCase()} in the data. It doesn't know the teams, the pitch or rain rules.</div>`;
     wpSlot.style.display = '';
+    if (model.proj) {
+      let pr = 0, pw = 0, pb = 0; const ps = [projectTotal(model, 0, 0, 0)];
+      i1.overs.forEach(o => { pr += o[0]; pw += o[1]; pb = Math.min(pb + 6, model.T); ps.push(projectTotal(model, pr, pb, pw)); });
+      const half = ps[Math.min(ps.length - 1, Math.floor(model.T / 12))];
+      projSlot.innerHTML = `<h2>Projected total <span class="r">${esc(i1.team || 'Batting first')} · at the halfway mark: ${Math.round(half)}, finished on ${i1.runs}</span></h2>${projSVG(ps, i1.runs, i1.team || 'Batting first')}
+        <div class="note" style="margin-top:6px">After each over: runs so far plus the average runs still to come from the same overs and wickets, across every completed first innings in ${c.meta.format.toUpperCase()}s in the data. Typically about ${model.proj_mae_mid || '?'} runs out at the halfway mark.</div>`;
+      projSlot.style.display = '';
+    }
   });
   g.appendChild($(`<div class="panel s12"><h2>Run progression <span class="r">dots = wickets</span></h2>${wormSVG(mt.inns)}</div>`));
   g.appendChild($(`<div class="panel s12"><h2>Runs per over <span class="r">solid = wicket in the over</span></h2>${manhattanSVG(mt.inns)}</div>`));
@@ -575,6 +648,25 @@ function winProbFirst(model, inn, runs, balls, wkts, target) {
   const p = 1 / (1 + Math.exp(-Math.max(-30, Math.min(30, z))));
   return inn === 1 ? p : 1 - p;
 }
+/* Projected first-innings total from the lookup table in winprob.js. Mirrors project() in winprob.py. */
+function projectTotal(model, runs, balls, wkts) {
+  const tab = model && model.proj; if (!tab) return null;
+  const T = model.T, overs = Math.floor(T / 6);
+  if (balls >= T || wkts >= 10) return runs;
+  const k = Math.min(Math.floor(balls / 6), overs - 1), w = Math.min(wkts, 9), f = (balls % 6) / 6;
+  const nxt = k + 1 < overs ? tab[k + 1][w] : 0;
+  return runs + tab[k][w] + (nxt - tab[k][w]) * f;
+}
+function projSVG(series, final, team) {
+  const W = 720, H = 190, pad = 38, n = series.length, all = series.concat([final]);
+  const lo = Math.min(...all), hi = Math.max(...all), sp = (hi - lo) || 1, y0 = lo - sp * 0.1, y1 = hi + sp * 0.1;
+  const X = i => pad + i / Math.max(n - 1, 1) * (W - 2 * pad), Y = v => H - pad - (v - y0) / (y1 - y0) * (H - 2 * pad);
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Projected total through the first innings">${axisTicksSVG(null, Y, null, [y0, y1], [pad, pad, W - pad, H - pad])}
+    <line x1="${pad}" x2="${W - pad}" y1="${Y(final).toFixed(1)}" y2="${Y(final).toFixed(1)}" stroke="#5a5d66" stroke-dasharray="4 4"/><text x="${W - pad}" y="${(Y(final) - 5).toFixed(1)}" text-anchor="end" fill="#8B8E96" font-size="9.5">final ${final}</text>
+    <polyline points="${series.map((v, i) => `${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ')}" fill="none" stroke="${INN_COL[0]}" stroke-width="2.2"/>
+    ${series.map((v, i) => `<circle cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="2.2" fill="${INN_COL[0]}"><title>${i ? 'After over ' + i : 'Before the first ball'}: projected ${Math.round(v)}</title></circle>`).join('')}
+    <text x="${pad + 4}" y="${pad - 8}" fill="${INN_COL[0]}" font-size="10.5">${esc(team)} projected total</text></svg>`;
+}
 const wpModel = (wp, fmt, gender) => wp && wp.models && wp.models[`${fmt === 'odi' ? 'odi' : 't20'}_${gender === 'female' ? 'female' : 'male'}`];
 function winProbSVG(series, teamA, teamB, split) {
   const W = 720, H = 210, pad = 38, n = series.length;
@@ -605,7 +697,9 @@ function liveWinLine(m, wp) {
   else if (sa && sb) pA = winProbFirst(model, 2, sb.runs, sb.balls, sb.wkts, sa.runs + 1);
   if (pA == null || /won|tied|abandon|no result/i.test(m.status || '')) return '';
   const fav = pA >= .5 ? a.name : b.name, pct = Math.round(100 * Math.max(pA, 1 - pA));
-  return `<div class="wpline" title="Estimated from runs, balls and wickets with a model trained on every ${fmt.toUpperCase()} in Cricsheet. It doesn't know the teams or conditions."><span>Win chance</span><div class="wpbar"><span style="width:${(100 * pA).toFixed(0)}%"></span></div><b>${esc(fav)} ${pct}%</b></div>`;
+  const proj = sa && !sb ? projectTotal(model, sa.runs, sa.balls, sa.wkts) : null;
+  const projHTML = proj != null && sa.balls >= 30 ? `<div class="wpline" title="Runs so far plus the average still to come from this many overs and wickets, across every completed first innings in the data."><span>Projected</span><b>${esc(a.name)} about ${Math.round(proj)}</b></div>` : '';
+  return projHTML + `<div class="wpline" title="Estimated from runs, balls and wickets with a model trained on every ${fmt.toUpperCase()} in Cricsheet. It doesn't know the teams or conditions."><span>Win chance</span><div class="wpbar"><span style="width:${(100 * pA).toFixed(0)}%"></span></div><b>${esc(fav)} ${pct}%</b></div>`;
 }
 const _matchCardHTML = matchCardHTML;
 matchCardHTML = function (m, clickable) {
@@ -689,7 +783,69 @@ window.detailView = function (app) {
   else { const l = $('<div class="loadbox"><div class="spinner"></div><div>Loading…</div></div>'); app.appendChild(l); ensureExtras(key, x => { if (dataKey() !== key) return; l.remove(); draw(x); }); }
   return true;
 };
-window.EXTRA_VIEWS = { bowlto: app => withSince(bowlToView, app), matches: matchesView };
+/* ---------- Trends: how the whole competition has changed, season by season ---------- */
+const TR_MIN = 5; // seasons with fewer matches are drawn hollow and left out of the "then vs now" summary
+function trendLineSVG(series, opt) {
+  const W = 520, H = 210, padL = 40, padR = 12, padT = 12, padB = 26;
+  const xs = series.flatMap(s => s.pts.map(p => p[0])), ys = series.flatMap(s => s.pts.map(p => p[1])).concat(opt.ref != null ? [opt.ref] : []);
+  if (!xs.length) return '<span class="note">Not enough data.</span>';
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), lo = Math.min(...ys), hi = Math.max(...ys), sp = (hi - lo) || 1;
+  const y0 = opt.zero ? 0 : lo - sp * 0.08, y1 = hi + sp * 0.08;
+  const X = x => padL + (x - x0) / ((x1 - x0) || 1) * (W - padL - padR), Y = y => H - padB - (y - y0) / ((y1 - y0) || 1) * (H - padT - padB);
+  let g = axisTicksSVG(null, Y, null, [y0, y1], [padL, padT, W - padR, H - padB]);
+  const step = Math.max(1, Math.ceil((x1 - x0) / 7));
+  for (let x = x0; x <= x1; x += step) g += `<text x="${X(x).toFixed(1)}" y="${H - 8}" text-anchor="middle" fill="#8A6A5C" font-size="9">${x}</text>`;
+  if (opt.ref != null) g += `<line x1="${padL}" x2="${W - padR}" y1="${Y(opt.ref).toFixed(1)}" y2="${Y(opt.ref).toFixed(1)}" stroke="#5a5d66" stroke-dasharray="4 4"/>`;
+  for (const s of series) {
+    g += `<polyline points="${s.pts.map(p => `${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(' ')}" fill="none" stroke="${s.color}" stroke-width="2"/>`;
+    g += s.pts.map(p => `<circle cx="${X(p[0]).toFixed(1)}" cy="${Y(p[1]).toFixed(1)}" r="3" fill="${p[2] ? s.color : '#16181D'}" stroke="${s.color}" stroke-width="1.5"><title>${p[0]}: ${esc(s.name)} ${opt.fmt(p[1])}${p[2] ? '' : ` (only ${p[3]} matches)`}</title></circle>`).join('');
+  }
+  const leg = series.length > 1 ? `<div class="trleg">${series.map(s => `<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join('')}</div>` : '';
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(opt.label)} by season">${g}</svg>${leg}`;
+}
+function trendsView(app) {
+  const c = cur(), m = meta(state.cohort), test = m.format === 'test';
+  app.appendChild($(`<div><h1>Trends</h1><p class="sub">How ${esc(c.meta.label)} has changed season by season. Every number covers the whole competition${state.fm && c.meta.fm ? ' (full-member matches only)' : ''}, so the time window doesn't apply here. Hollow points are seasons with fewer than ${TR_MIN} matches.</p></div>`));
+  const box = $('<div class="loadbox"><div class="spinner"></div><div>Loading trends…</div></div>'); app.appendChild(box);
+  ensureExtras(dataKey(), x => {
+    box.className = ''; box.innerHTML = '';
+    if (!x || !x.trend || !x.trend.length) { box.innerHTML = '<div class="cov">Trends arrive with the next weekly data rebuild.</div>'; return; }
+    const C = x.trend_cols, rows = x.trend.map(r => Object.fromEntries(C.map((k, i) => [k, r[i]])));
+    const ok = r => r.matches >= TR_MIN;
+    const pt = (r, v) => v == null || !isFinite(v) ? null : [r.yr, v, ok(r), r.matches];
+    const ser = (name, color, f) => ({ name, color, pts: rows.map(r => pt(r, f(r))).filter(Boolean) });
+    const rr = (runs, balls) => balls ? runs * 6 / balls : null, pc = (a, b) => b ? 100 * a / b : null;
+    const charts = [];
+    charts.push([test ? 'Runs per over' : 'Run rate, overall and by phase', test ? [ser('Runs per over', '#F2B24C', r => rr(r.runs, r.balls))]
+      : [ser('Overall', '#F2B24C', r => rr(r.runs, r.balls)), ser('Powerplay', '#6FA8FF', r => rr(r.pp_runs, r.pp_balls)), ser('Middle', '#33D17A', r => rr(r.mid_runs, r.mid_balls)), ser('Death', '#FF6B7E', r => rr(r.death_runs, r.death_balls))],
+      { fmt: v => v.toFixed(2), label: 'Run rate' }]);
+    charts.push(['Average first-innings total', [ser('First innings', '#F2B24C', r => r.inn1_n ? r.inn1_runs / r.inn1_n : null)], { fmt: v => v.toFixed(1), label: 'First-innings total' }]);
+    charts.push(['Boundaries and dot balls (% of balls)', [ser('Boundary %', '#F2B24C', r => pc(r.fours + r.sixes, r.balls)), ser('Dot-ball %', '#6FA8FF', r => pc(r.dots, r.balls))], { fmt: v => v.toFixed(1) + '%', label: 'Boundary and dot-ball share' }]);
+    charts.push([test ? 'Toss winner won (% of decided matches)' : 'Who won (% of decided matches)', test ? [ser('Toss winner', '#F2B24C', r => pc(r.toss_won, r.decided))]
+      : [ser('Batting second', '#F2B24C', r => pc(r.bat2_won, r.decided)), ser('Toss winner', '#6FA8FF', r => pc(r.toss_won, r.decided))], { fmt: v => v.toFixed(0) + '%', ref: 50, label: 'Win share' }]);
+    charts.push(['Runs per wicket', [ser('Runs per wicket', '#F2B24C', r => r.wkts ? r.runs / r.wkts : null)], { fmt: v => v.toFixed(1), label: 'Runs per wicket' }]);
+    charts.push(['Matches per season', [ser('Matches', '#8B8E96', r => r.matches)], { fmt: v => String(Math.round(v)), zero: true, label: 'Matches' }]);
+    // then vs now: the first three and the last three seasons with a full sample
+    const full = rows.filter(ok), sum = (rs, k) => rs.reduce((a, r) => a + (r[k] || 0), 0);
+    let hl = '';
+    if (full.length >= 6) {
+      const a = full.slice(0, 3), b = full.slice(-3), span = rs => `${rs[0].yr}–${rs[rs.length - 1].yr}`;
+      const kp = (lab, f, fmt) => `<div class="s3"><div class="panel kpi" style="padding:12px"><div class="l">${lab}</div><div class="n" style="font-size:20px">${fmt(f(b))}</div><div class="dim" style="font-size:11.5px">${fmt(f(a))} in ${span(a)}</div></div></div>`;
+      hl = `<p class="sub" style="margin:4px 0 8px">${span(b)} compared with ${span(a)}:</p><div class="grid bento">`
+        + kp(test ? 'Runs per over' : 'Run rate', rs => rr(sum(rs, 'runs'), sum(rs, 'balls')), v => v.toFixed(2))
+        + kp('First-innings total', rs => sum(rs, 'inn1_runs') / Math.max(1, sum(rs, 'inn1_n')), v => v.toFixed(1))
+        + kp('Boundary %', rs => pc(sum(rs, 'fours') + sum(rs, 'sixes'), sum(rs, 'balls')), v => v.toFixed(1) + '%')
+        + (test ? kp('Runs per wicket', rs => sum(rs, 'runs') / Math.max(1, sum(rs, 'wkts')), v => v.toFixed(1))
+          : kp('Batting second won', rs => pc(sum(rs, 'bat2_won'), sum(rs, 'decided')), v => v.toFixed(0) + '%')) + '</div>';
+    }
+    box.appendChild($(`<div>${hl}<div class="grid bento" style="margin-top:13px">${charts.map(([t, sr, o]) => `<div class="s6"><div class="panel"><h3 style="margin:0 0 8px;font-size:14px">${t}</h3>${trendLineSVG(sr, o)}</div></div>`).join('')}</div></div>`));
+    const th = ['Season', 'Matches', test ? 'Runs/over' : 'Run rate', '1st inns', 'Boundary %', 'Dot %', 'Runs/wkt', test ? 'Toss won' : 'Bat 2nd won'];
+    const f1 = v => v == null ? '-' : v.toFixed(1);
+    const tb = rows.slice().reverse().map(r => `<tr${ok(r) ? '' : ' class="dim"'}><td class="num">${r.yr}</td><td class="num">${r.matches}</td><td class="num">${(rr(r.runs, r.balls) || 0).toFixed(2)}</td><td class="num">${r.inn1_n ? f1(r.inn1_runs / r.inn1_n) : '-'}</td><td class="num">${f1(pc(r.fours + r.sixes, r.balls))}</td><td class="num">${f1(pc(r.dots, r.balls))}</td><td class="num">${r.wkts ? f1(r.runs / r.wkts) : '-'}</td><td class="num">${r.decided ? Math.round(pc(test ? r.toss_won : r.bat2_won, r.decided)) + '%' : '-'}</td></tr>`).join('');
+    box.appendChild($(`<div class="panel" style="margin-top:13px;overflow-x:auto"><h3 style="margin:0 0 8px;font-size:14px">Season by season</h3><table><thead><tr>${th.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${tb}</tbody></table></div>`));
+  });
+}
+window.EXTRA_VIEWS = { bowlto: app => withSince(bowlToView, app), matches: matchesView, trends: trendsView };
 /* Matchups view: under "full members only" swap in the full-member pair list. */
 const _matchupsView = matchupsView;
 matchupsView = function (app) {

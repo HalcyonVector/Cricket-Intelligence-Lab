@@ -21,11 +21,11 @@ import argparse, json, os, re, sqlite3, time, math
 from collections import defaultdict
 import numpy as np
 try:
-    from .extras import build_extras, write_extras
+    from .extras import build_extras, write_extras, innings_log
     from .winprob import train as train_winprob, write as write_winprob
     from .extras import FULL_MEMBERS
 except ImportError:  # run as a plain script
-    from extras import build_extras, write_extras
+    from extras import build_extras, write_extras, innings_log
     from winprob import train as train_winprob, write as write_winprob
     from extras import FULL_MEMBERS
 
@@ -829,6 +829,21 @@ def career_shard(pid):
     return c if c in CAREER_SHARDS else "0"
 
 
+def write_innings(jsdir, key, bat, bowl):
+    """cohorts/f/<key>/<0-f>.js: each player's innings in match order (rolling-form chart), split
+    into 16 shards by player id like careers/, so a profile downloads about 1/16th of them."""
+    out = os.path.join(jsdir, "f", key)
+    os.makedirs(out, exist_ok=True)
+    parts = {k: ({}, {}) for k in CAREER_SHARDS}
+    for pid, rows in bat.items():
+        parts[career_shard(pid)][0][pid] = rows
+    for pid, rows in bowl.items():
+        parts[career_shard(pid)][1][pid] = rows
+    for k, (b, w) in parts.items():
+        _awrite(os.path.join(out, f"{k}.js"), f"window.__inningsLoaded({json.dumps(key)},{json.dumps(k)},"
+                f"{json.dumps({'b': b, 'w': w}, separators=(',', ':'))});\n")
+
+
 def write_career_shards(dashdir, career, venues):
     """Write careers/<0-f>.js so a profile downloads ~1/16th of the career data.
 
@@ -872,6 +887,7 @@ def build(db="cil.db", outdir="web/data", jsdir="web/dashboard/cohorts"):
         xdir = os.path.join(jsdir, "x"); os.makedirs(xdir, exist_ok=True)
         write_extras(os.path.join(xdir, f"{spec['key']}.js"), spec["key"],
                      build_extras(conn, names, fmt=spec["format"], rpo=RPO.get(spec["format"], 6.0)), _awrite)
+        write_innings(jsdir, spec["key"], *innings_log(conn))
         if index_players:
             for pid, pl in b["players"].items():
                 players_ix.setdefault(pid, {})[spec["key"]] = [pl.get("runs", 0), 0]

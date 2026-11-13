@@ -643,6 +643,8 @@ to{transform:rotate(360deg)}
    header .modebar{position:fixed!important;left:0;right:0;bottom:0;top:auto!important;z-index:60;background:#121317!important;border-top:1px solid var(--hair)!important}
    header .modebtn::after{display:none}
  }
+#srcnote.stale{color:var(--neg)}
+.trleg{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin-top:4px}.trleg i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle}
 </style>
 </head>
 <body>
@@ -873,7 +875,7 @@ function init(){
   window.MODES=[
     ["DISCOVER",[["home","Overview"]]],
     ["ANALYZE",[["players","Batters"],["bowlers","Bowlers"],["teams","Teams"],["compare","Compare"],["matchups","Matchups"],["bowlto","Bowl to…"],["matches","Matches"],["network","Network"],["venues","Venues"]]],
-    ["RESEARCH",[["research","Research Lab"],["records","Records"]].concat(window.CIL_RANKINGS?[["rankings","ICC Rankings"]]:[])],
+    ["RESEARCH",[["trends","Trends"],["research","Research Lab"],["records","Records"]].concat(window.CIL_RANKINGS?[["rankings","ICC Rankings"]]:[])],
     ["LIVE",[["live","Live Scores"],["schedule","Schedule"]]],
   ];
   window.VIEW_MODE={};window.MODES.forEach(([mo,subs])=>subs.forEach(([v])=>window.VIEW_MODE[v]=mo));
@@ -881,6 +883,11 @@ function init(){
   document.querySelectorAll('.modebtn').forEach(b=>b.onclick=()=>{const subs=window.MODES.find(x=>x[0]===b.dataset.m)[1];state.view=subs[0][0];state.player=null;state.bowler=null;state.venue=state.team=state.match=null;render();});
   document.getElementById('home').onclick=()=>{state.view="home";state.player=null;state.bowler=null;state.venue=state.team=state.match=null;render();};
   document.getElementById('srcnote').textContent=`${IDX.cohorts.length} competitions`;
+  if(IDX.generated){ // when the weekly build last ran; older than 10 days means a build is failing
+    const g=new Date(IDX.generated),days=Math.floor((Date.now()-g)/864e5),sn=document.getElementById('srcnote');
+    sn.textContent+=` · data updated ${g.toISOString().slice(0,10)}`;
+    if(days>10){sn.classList.add('stale');sn.title=`The weekly data build hasn't run for ${days} days`;}
+  }
   setupPalette();
   setupSearch();
   if(location.hash.length>1)hashToState();
