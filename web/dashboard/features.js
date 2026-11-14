@@ -66,7 +66,7 @@ const goAttr = (k, v) => `data-go="${k}=${esc(v)}" href="#"`;
 /* Year-by-year chart. defs: {key:{lab, unit, bar, lowerBetter}}; peak ignores tiny-sample years. */
 function yearChartSVG(years, defs, metric, minBalls) {
   const M = defs[metric] || defs[Object.keys(defs)[0]];
-  const W = 720, H = 210, pad = 36, n = years.length, val = y => (y[metric] == null ? null : +y[metric]);
+  const W = CW(720), H = 210, pad = 36, n = years.length, val = y => (y[metric] == null ? null : +y[metric]);
   const vals = years.map(val).filter(v => v != null);
   const mx = Math.max(...vals, 1), gap = (W - 2 * pad) / Math.max(n, 1), bw = Math.min(34, gap * 0.66);
   const elig = years.filter(y => val(y) != null && (M.bar || (y.balls || 0) >= (minBalls || 60)));
@@ -343,7 +343,7 @@ const ROLL_BOWL = {
   avg: { lab: 'Average', f: w => { const k = w.reduce((a, r) => a + r[3], 0); return k ? w.reduce((a, r) => a + r[2], 0) / k : null; }, d: 1, low: true },
 };
 function rollingSVG(rows, def, n) {
-  const W = 720, H = 210, padL = 40, padR = 12, padT = 12, padB = 26;
+  const W = CW(720), H = 210, padL = 40, padR = 12, padT = 12, padB = 26;
   const pts = [];
   for (let i = n - 1; i < rows.length; i++) { const v = def.f(rows.slice(i - n + 1, i + 1)); if (v != null && isFinite(v)) pts.push([i + 1, v]); }
   if (pts.length < 2) return '<span class="note">Not enough innings yet.</span>';
@@ -568,7 +568,7 @@ function matchesView(app) {
 }
 const INN_COL = ['#F2B24C', '#6FA8FF', '#FF6B7E', '#33D17A'];
 function wormSVG(inns) {
-  const W = 720, H = 240, pad = 38, maxO = Math.max(...inns.map(i => i.overs.length), 1);
+  const W = CW(720), H = 240, pad = 38, maxO = Math.max(...inns.map(i => i.overs.length), 1);
   const cum = inns.map(i => { let s = 0; return i.overs.map(o => (s += o[0])); });
   const mx = Math.max(...cum.map(cs => cs[cs.length - 1] || 0), 1);
   const X = o => pad + o / maxO * (W - 2 * pad), Y = v => H - pad - v / mx * (H - 2 * pad);
@@ -578,7 +578,7 @@ function wormSVG(inns) {
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Run progression by over">${axisTicksSVG(X, Y, [0, maxO], [0, mx], [pad, pad, W - pad, H - pad])}<line x1="${pad}" y1="${H - pad}" x2="${W - pad}" y2="${H - pad}" stroke="#33363E"/>${lines}<text x="${W / 2}" y="${H - 4}" text-anchor="middle" fill="#8B8E96" font-size="10">Overs →</text></svg>`;
 }
 function manhattanSVG(inns) {
-  const W = 720, H = 200, pad = 38, maxO = Math.max(...inns.map(i => i.overs.length), 1), n = inns.length;
+  const W = CW(720), H = 200, pad = 38, maxO = Math.max(...inns.map(i => i.overs.length), 1), n = inns.length;
   const mx = Math.max(...inns.flatMap(i => i.overs.map(o => o[0])), 1), gw = (W - 2 * pad) / maxO, bw = Math.max(1, gw * 0.8 / n);
   const Y = v => H - pad - v / mx * (H - 2 * pad);
   const bars = inns.map((inn, k) => inn.overs.map((o, j) => { const x = pad + j * gw + gw * 0.1 + k * bw, y = Y(o[0]);
@@ -674,7 +674,7 @@ function projFactor(model, meta) {
 }
 function projSVG(series, final, refLab, title, col) {
   col = col || INN_COL[0];
-  const W = 720, H = 190, pad = 38, n = series.length, all = series.concat([final]);
+  const W = CW(720), H = 190, pad = 38, n = series.length, all = series.concat([final]);
   const lo = Math.min(...all), hi = Math.max(...all), sp = (hi - lo) || 1, y0 = lo - sp * 0.1, y1 = hi + sp * 0.1;
   const X = i => pad + i / Math.max(n - 1, 1) * (W - 2 * pad), Y = v => H - pad - (v - y0) / (y1 - y0) * (H - 2 * pad);
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Projected total through the first innings">${axisTicksSVG(null, Y, null, [y0, y1], [pad, pad, W - pad, H - pad])}
@@ -685,7 +685,7 @@ function projSVG(series, final, refLab, title, col) {
 }
 const wpModel = (wp, fmt, gender) => wp && wp.models && wp.models[`${fmt === 'odi' ? 'odi' : 't20'}_${gender === 'female' ? 'female' : 'male'}`];
 function winProbSVG(series, teamA, teamB, split) {
-  const W = 720, H = 210, pad = 38, n = series.length;
+  const W = CW(720), H = 210, pad = 38, n = series.length;
   const X = i => pad + i / Math.max(n - 1, 1) * (W - 2 * pad), Y = v => H - pad - v * (H - 2 * pad);
   const pts = series.map((v, i) => `${X(i).toFixed(1)},${Y(v).toFixed(1)}`);
   const area = `M${X(0)},${Y(.5)} L${pts.join(' L')} L${X(n - 1)},${Y(.5)} Z`;
@@ -845,7 +845,7 @@ window.detailView = function (app) {
 /* ---------- Trends: how the whole competition has changed, season by season ---------- */
 const TR_MIN = 5; // seasons with fewer matches are drawn hollow and left out of the "then vs now" summary
 function trendLineSVG(series, opt) {
-  const W = 520, H = 210, padL = 40, padR = 12, padT = 12, padB = 26;
+  const W = CW(520), H = 210, padL = 40, padR = 12, padT = 12, padB = 26;
   const xs = series.flatMap(s => s.pts.map(p => p[0])), ys = series.flatMap(s => s.pts.map(p => p[1])).concat(opt.ref != null ? [opt.ref] : []);
   if (!xs.length) return '<span class="note">Not enough data.</span>';
   const x0 = Math.min(...xs), x1 = Math.max(...xs), lo = Math.min(...ys), hi = Math.max(...ys), sp = (hi - lo) || 1;
@@ -901,7 +901,7 @@ function trendsView(app) {
     const th = ['Season', 'Matches', test ? 'Runs/over' : 'Run rate', '1st inns', 'Boundary %', 'Dot %', 'Runs/wkt', test ? 'Toss won' : 'Bat 2nd won'];
     const f1 = v => v == null ? '-' : v.toFixed(1);
     const tb = rows.slice().reverse().map(r => `<tr${ok(r) ? '' : ' class="dim"'}><td class="num">${r.yr}</td><td class="num">${r.matches}</td><td class="num">${(rr(r.runs, r.balls) || 0).toFixed(2)}</td><td class="num">${r.inn1_n ? f1(r.inn1_runs / r.inn1_n) : '-'}</td><td class="num">${f1(pc(r.fours + r.sixes, r.balls))}</td><td class="num">${f1(pc(r.dots, r.balls))}</td><td class="num">${r.wkts ? f1(r.runs / r.wkts) : '-'}</td><td class="num">${r.decided ? Math.round(pc(test ? r.toss_won : r.bat2_won, r.decided)) + '%' : '-'}</td></tr>`).join('');
-    box.appendChild($(`<div class="panel" style="margin-top:13px;overflow-x:auto"><h3 style="margin:0 0 8px;font-size:14px">Season by season</h3><table><thead><tr>${th.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${tb}</tbody></table></div>`));
+    box.appendChild($(`<div class="panel" style="margin-top:13px"><h3 style="margin:0 0 8px;font-size:14px">Season by season</h3><div class="tscroll"><table><thead><tr>${th.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${tb}</tbody></table></div></div>`));
   });
 }
 window.EXTRA_VIEWS = { bowlto: app => withSince(bowlToView, app), matches: matchesView, trends: trendsView };
@@ -1202,3 +1202,21 @@ init = function () {
   const setH = () => document.documentElement.style.setProperty('--hdr', (document.querySelector('header') || {}).offsetHeight + 'px');
   setH(); window.addEventListener('resize', setH);
 };
+
+/* Phones: the filter row (time window, full members) tucks away while scrolling down and comes
+   back on the way up, so the sticky header doesn't take a fifth of the screen. */
+(function () {
+  let lastY = 0;
+  window.addEventListener('scroll', () => {
+    const y = window.scrollY, hf = document.getElementById('sinceHost');
+    if (!hf) return;
+    const tuck = window.innerWidth < 640 && y > 160 && y > lastY + 4;
+    if (tuck) hf.classList.add('tucked'); else if (y < lastY - 4 || y <= 160) hf.classList.remove('tucked');
+    lastY = y;
+  }, { passive: true });
+})();
+// tap a clamped coverage note to read all of it (phones); links inside still work
+document.addEventListener('click', e => {
+  const n = e.target.closest('.covnote'); if (!n || e.target.closest('a') || window.innerWidth >= 640) return;
+  n.classList.toggle('open');
+});
