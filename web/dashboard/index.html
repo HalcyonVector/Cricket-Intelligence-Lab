@@ -778,6 +778,25 @@ to{transform:rotate(360deg)}
   /* section tabs sit straight under it, no extra divider */
   header .raterow{border-top:none!important}
 }
+
+/* ---------- phone header v7: everything on one grid, filters lined up under the title ---------- */
+@media(max-width:720px){
+  header .cbar{grid-template-columns:36px minmax(0,1fr) 38px!important;
+    grid-template-areas:"logo comp find" "logo meta find" ".    filt filt" "srch srch srch"!important;
+    column-gap:12px!important;row-gap:0!important;padding:12px 14px 10px!important;align-items:center}
+  header .wm{width:36px!important;height:36px!important;align-self:center!important}
+  header #scopeHost{align-self:end!important}
+  header #dsline.cbar-r{align-self:start!important;margin-top:2px!important}
+  header .hsearch-btn{align-self:center!important;justify-self:end}
+  /* pills start where the title text starts, sit close under the stats line */
+  header .hfilters{margin-top:9px!important;gap:8px!important;align-items:center}
+  header .hf-time,header .hfilters .fmsw{height:30px!important;box-sizing:border-box}
+  header .hf-time{padding:0 6px 0 10px!important}
+  header .hfilters .hf-time .drop-btn{height:auto!important;line-height:1}
+  header .hfilters .fmsw{padding:0 12px 0 9px!important;line-height:1;display:inline-flex!important;align-items:center!important;color:var(--ink)!important}
+  header .hfilters .fmsw[aria-checked="true"]{color:#F2B24C!important}
+  header .cmd{margin-top:10px!important}
+}
 </style>
 </head>
 <body>
