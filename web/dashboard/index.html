@@ -737,6 +737,47 @@ to{transform:rotate(360deg)}
   #app .toolbar .seg button{flex:1 1 auto}
   #app .toolbar .seg button{padding:7px 9px;font-size:12px}
 }
+
+/* ---------- phone header v6: an app bar instead of three rows of boxes ---------- */
+@media(max-width:720px){
+  header{background:linear-gradient(180deg,#17181d 0%,#121317 100%)!important;border-bottom:1px solid rgba(255,255,255,.06)!important}
+  header .cbar{grid-template-columns:auto minmax(0,1fr) auto!important;grid-template-areas:"logo comp find" "logo meta find" "filt filt filt" "srch srch srch"!important;
+    gap:0 11px!important;padding:10px 14px 8px!important}
+  /* brand mark */
+  header .wm{grid-area:logo;align-self:center;width:34px;height:34px;display:grid!important;place-items:center;border-radius:10px;
+    background:linear-gradient(135deg,#F7C873,#E59A2F);box-shadow:0 4px 14px rgba(229,154,47,.25),inset 0 1px 0 rgba(255,255,255,.35)}
+  header .wm::before{display:none!important}
+  header .wm{font-size:11.5px!important;font-weight:900!important;letter-spacing:-.02em!important;color:#1A1205!important;font-family:inherit!important;line-height:1}
+  /* competition as the title */
+  header #scopeHost{grid-area:comp;align-self:end}
+  header #scopeHost .drop-btn{height:auto!important;background:none!important;border:none!important;box-shadow:none!important;padding:0!important;
+    justify-content:flex-start!important;gap:5px;font-size:16.5px!important;font-weight:700!important;color:var(--ink)!important;letter-spacing:-.01em}
+  header #scopeHost .drop-cur{max-width:calc(100vw - 130px)!important}
+  header #scopeHost .chev{width:15px;height:15px;flex:none;color:var(--accent2)!important}
+  header #dsline.cbar-r{grid-area:meta;display:flex!important;gap:5px;align-self:start;margin-top:1px;font-size:11px!important;color:var(--dim)!important;white-space:nowrap;overflow:hidden}
+  header #dsline .dot{color:#3a3d45}
+  header #dsline .cvw{display:none}
+  /* search: a round ghost button */
+  .hsearch-btn{grid-area:find;align-self:center;width:38px!important;height:38px!important;border-radius:50%!important;border:none!important;background:rgba(255,255,255,.06)!important;color:var(--ink)!important}
+  header.searching .hsearch-btn{background:rgba(242,178,76,.16)!important;color:#F2B24C!important}
+  header .cmd{margin-top:10px}
+  /* filters: small pills, not two big boxes */
+  header .hfilters{grid-area:filt;display:flex!important;gap:7px!important;margin-top:10px;justify-content:flex-start}
+  header .hfilters>*{flex:none!important}
+  header .hfilters.idle{opacity:1!important}
+  header .hf-time{display:inline-flex!important;align-items:center;gap:6px;height:30px;padding:0 4px 0 11px;border:1px solid var(--hair2);border-radius:999px;background:rgba(255,255,255,.025)}
+  header .hf-time .hf-ic{width:14px;height:14px;color:var(--dim)}
+  header .hf-time .drop,header .hf-time .drop-btn{width:auto!important}
+  header .hfilters .hf-time .drop-btn{height:28px!important;border:none!important;background:none!important;box-shadow:none!important;padding:0 6px 0 0!important;font-size:12.5px!important;font-weight:600!important;color:var(--ink)!important;gap:3px}
+  header .hfilters .fmsw{height:30px!important;padding:0 12px 0 8px!important;border:1px solid var(--hair2)!important;border-radius:999px!important;background:rgba(255,255,255,.025)!important;
+    font-size:12.5px!important;font-weight:600!important;gap:7px!important;color:var(--muted)!important;justify-content:flex-start!important}
+  header .fmsw .trk{width:26px!important;height:15px!important}
+  header .fmsw .knob{width:11px!important;height:11px!important}
+  header .fmsw[aria-checked="true"]{border-color:rgba(242,178,76,.45)!important;color:#F2B24C!important;background:rgba(242,178,76,.08)!important}
+  #sinceHost.tucked{margin-top:0!important}
+  /* section tabs sit straight under it, no extra divider */
+  header .raterow{border-top:none!important}
+}
 </style>
 </head>
 <body>
@@ -1021,7 +1062,7 @@ function render(){
   nav.querySelectorAll('button').forEach(b=>{const on=b.dataset.v===state.view;b.classList.toggle('active',on);if(on)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
   const dm=meta(state.cohort)||{},ds=document.getElementById('dsline');
   if(ds){const y0=String(dm.coverage_from||'').slice(0,4),y1=String(dm.coverage_to||'').slice(0,4);
-    ds.innerHTML=`<span>${(((dm.deliveries||0))/1e6).toFixed(1)}M balls</span><span class="dot">•</span><span>${(dm.matches||0).toLocaleString()} matches</span>${(y0&&y1)?`<span class="dot">•</span><span>Coverage ${y0}–${y1}</span>`:''}`;}
+    ds.innerHTML=`<span>${(((dm.deliveries||0))/1e6).toFixed(1)}M balls</span><span class="dot">•</span><span>${(dm.matches||0).toLocaleString()} matches</span>${(y0&&y1)?`<span class="dot">•</span><span><span class="cvw">Coverage </span>${y0}–${y1}</span>`:''}`;}
   if(window._scopeDrop)window._scopeDrop.setValue(state.cohort);
   const app=document.getElementById('app');
   const dk=dataKey();
