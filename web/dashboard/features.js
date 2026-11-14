@@ -253,6 +253,13 @@ function mountSinceControl() {
     const intl = !!meta(state.cohort).intl;
     fmb.style.display = intl ? '' : 'none';
     fmb.classList.toggle('on', !!state.fm && intl); fmb.setAttribute('aria-checked', String(!!state.fm && intl));
+    const on = [];
+    if (state.since) { const o = opts.find(x => x[0] === state.since); on.push(o ? o[1].replace(/ \(\d+\+\)$/, '') : 'Since ' + state.since); }
+    if (state.fm && intl) on.push('Full members');
+    const fbtn = document.querySelector('.hfilter-btn'); if (fbtn) fbtn.classList.toggle('has-f', on.length > 0);
+    const ds = document.getElementById('dsline');
+    if (ds) { let fl = ds.querySelector('.flon'); if (!fl) { fl = document.createElement('span'); fl.className = 'flon'; ds.appendChild(fl); }
+      fl.textContent = on.length ? on.join(' · ') : ''; fl.style.display = on.length ? '' : 'none'; }
     const applies = FILTER_VIEWS.includes(state.view) || state.player || state.bowler;
     wrap.classList.toggle('idle', !applies);
     wrap.title = applies ? '' : 'Filters apply to Batters, Bowlers, Records, Matchups, Bowl to… and player profiles';
@@ -1198,6 +1205,13 @@ init = function () {
     sb.onclick = () => { const on = hdr.classList.toggle('searching'); sb.setAttribute('aria-expanded', on);
       if (on) { const i = document.getElementById('search'); i && i.focus(); } setH(); };
     cbar.appendChild(sb);
+    const fb = document.createElement('button'); fb.type = 'button'; fb.className = 'hfilter-btn'; fb.setAttribute('aria-label', 'Filters');
+    fb.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg><span class="fdot"></span>';
+    fb.onclick = () => { const on = hdr.classList.toggle('filtering'); fb.setAttribute('aria-expanded', on);
+      if (on) { hdr.classList.remove('searching'); sb.setAttribute('aria-expanded', false); } setH(); };
+    const sbClick = sb.onclick;
+    sb.onclick = () => { hdr.classList.remove('filtering'); fb.setAttribute('aria-expanded', false); sbClick(); };
+    cbar.insertBefore(fb, sb);
   }
   const setH = () => document.documentElement.style.setProperty('--hdr', (document.querySelector('header') || {}).offsetHeight + 'px');
   setH(); window.addEventListener('resize', setH);

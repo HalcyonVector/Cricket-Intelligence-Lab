@@ -797,6 +797,53 @@ to{transform:rotate(360deg)}
   header .hfilters .fmsw[aria-checked="true"]{color:#F2B24C!important}
   header .cmd{margin-top:10px!important}
 }
+
+/* ---------- phone header v8: one bar, competition as a card, filters behind a button ---------- */
+.hfilter-btn{display:none}
+#dsline .flon{display:none}
+@media(max-width:720px){
+  header .cbar{grid-template-columns:30px minmax(0,1fr) 36px 36px!important;grid-template-rows:auto!important;
+    grid-template-areas:"logo comp fbtn find" "filt filt filt filt" "srch srch srch srch"!important;
+    column-gap:8px!important;row-gap:0!important;padding:10px 12px!important;align-items:center}
+  header .wm{width:30px!important;height:30px!important;border-radius:9px!important;font-size:10px!important}
+  /* the card: the competition button itself, tall enough to hold the stats line */
+  header #scopeHost{grid-area:comp!important;align-self:stretch!important;min-width:0}
+  header #scopeHost .drop,header #scopeHost .drop-btn{width:100%!important}
+  header #scopeHost .drop-btn{position:relative;display:flex!important;align-items:flex-start!important;justify-content:flex-start!important;
+    height:auto!important;min-height:52px;padding:8px 32px 24px 12px!important;border-radius:14px!important;
+    background:var(--panel2)!important;border:1px solid var(--hair2)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.03)!important;
+    font-size:15px!important;font-weight:700!important;line-height:1.25}
+  header #scopeHost .drop-btn:active{background:#23262d!important}
+  header #scopeHost .drop-cur{max-width:100%!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  header #scopeHost .drop-btn .chev{position:absolute!important;right:11px!important;top:50%!important;margin:0!important;transform:translateY(-50%)!important;width:16px!important;height:16px!important}
+  header #scopeHost .drop-btn[aria-expanded="true"] .chev{transform:translateY(-50%) rotate(180deg)!important}
+  /* stats line sits inside the card, under the title; taps go through to the card */
+  header #dsline.cbar-r{grid-area:comp!important;align-self:end!important;justify-self:start;margin:0 32px 8px 13px!important;
+    pointer-events:none;position:relative;z-index:6;font-size:11px!important;max-width:calc(100% - 45px);overflow:hidden;white-space:nowrap}
+  header #dsline .flon{display:inline;color:#F2B24C;font-weight:600}
+  header #dsline .flon::before{content:"\00b7";color:#3a3d45;margin:0 5px 0 0}
+  header #dsline>span:first-child,header #dsline>span:first-child+.dot{display:none}
+  /* round buttons: filters and search */
+  .hfilter-btn{grid-area:fbtn;display:inline-grid;place-items:center;position:relative;width:36px;height:36px;border-radius:50%;border:none;
+    background:rgba(255,255,255,.06);color:var(--ink);cursor:pointer}
+  .hfilter-btn svg{width:18px;height:18px}
+  .hfilter-btn .fdot{position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;background:#F2B24C;box-shadow:0 0 0 2px #17181d;display:none}
+  .hfilter-btn.has-f .fdot{display:block}
+  header.filtering .hfilter-btn{background:rgba(242,178,76,.16);color:#F2B24C}
+  header .hsearch-btn{width:36px!important;height:36px!important}
+
+  /* filters row: hidden until the button opens it */
+  header .hfilters{display:none!important;margin-top:10px!important}
+  header.filtering .hfilters{display:flex!important}
+  header.filtering #sinceHost.tucked{max-height:80px;opacity:1;pointer-events:auto}
+}
+/* narrow phones: the card takes the logo's room so the competition name fits */
+@media(max-width:399px){
+  header .wm{display:none!important}
+  header .cbar{grid-template-columns:0 minmax(0,1fr) 36px 36px!important}
+  header #scopeHost{margin-left:-8px}
+  header #dsline.cbar-r{margin-left:5px!important}
+}
 </style>
 </head>
 <body>
