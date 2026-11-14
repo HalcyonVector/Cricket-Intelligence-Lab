@@ -1212,6 +1212,15 @@ init = function () {
     const sbClick = sb.onclick;
     sb.onclick = () => { hdr.classList.remove('filtering'); fb.setAttribute('aria-expanded', false); sbClick(); };
     cbar.insertBefore(fb, sb);
+    fb.insertAdjacentHTML('beforeend', '<span class="fl">Filters</span>');
+    // phones: search lives in the bottom tab bar as a fifth tab
+    const mb = document.getElementById('modebar');
+    if (mb && !mb.querySelector('.srchtab')) {
+      const st = document.createElement('button'); st.type = 'button'; st.className = 'modebtn srchtab'; st.setAttribute('aria-label', 'Search');
+      st.innerHTML = '<span class="mb-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg></span><span class="mb-l">Search</span>';
+      st.onclick = () => { sb.onclick(); if (hdr.classList.contains('searching')) window.scrollTo({ top: 0 }); };
+      mb.appendChild(st);
+    }
   }
   const setH = () => document.documentElement.style.setProperty('--hdr', (document.querySelector('header') || {}).offsetHeight + 'px');
   setH(); window.addEventListener('resize', setH);

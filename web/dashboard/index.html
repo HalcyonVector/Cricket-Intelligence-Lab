@@ -837,12 +837,40 @@ to{transform:rotate(360deg)}
   header.filtering .hfilters{display:flex!important}
   header.filtering #sinceHost.tucked{max-height:80px;opacity:1;pointer-events:auto}
 }
-/* narrow phones: the card takes the logo's room so the competition name fits */
+
+/* ---------- phone header v9: competition card, a matching filter card, CIL on the right; search in the tab bar ---------- */
+.srchtab{display:none!important}
+.hfilter-btn .fl{display:none}
+@media(max-width:720px){
+  header .cbar{grid-template-columns:minmax(0,1fr) 54px 54px!important;grid-template-areas:"comp fbtn logo" "filt filt filt" "srch srch srch"!important;column-gap:8px!important}
+  header .hsearch-btn{display:none!important}
+  /* filter: same height and style as the competition card */
+  .hfilter-btn{width:54px!important;height:54px!important;border-radius:14px!important;align-self:stretch;height:auto!important;min-height:54px;
+    background:var(--panel2)!important;border:1px solid var(--hair2)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.03);
+    display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--ink)!important}
+  .hfilter-btn svg{width:19px!important;height:19px!important}
+  .hfilter-btn .fl{display:block;font-size:9.5px;font-weight:600;color:var(--dim);letter-spacing:.02em}
+  .hfilter-btn .fdot{top:8px!important;right:9px!important;box-shadow:0 0 0 2px var(--panel2)!important}
+  header.filtering .hfilter-btn{background:rgba(242,178,76,.12)!important;border-color:rgba(242,178,76,.45)!important;color:#F2B24C!important}
+  header.filtering .hfilter-btn .fl{color:#F2B24C}
+  /* CIL mark: same size, on the right, takes you home */
+  header .wm{grid-area:logo!important;display:grid!important;width:54px!important;height:auto!important;min-height:54px;align-self:stretch!important;
+    border-radius:14px!important;font-size:13px!important;cursor:pointer}
+  /* search tab in the bottom bar */
+  header .modebar .srchtab{display:flex!important}
+  header.searching .modebar .srchtab{color:var(--ink)!important}
+  header.searching .modebar .srchtab .mb-ic{background:rgba(242,178,76,.16);color:#F2B24C}
+  header.searching .modebar .modebtn.on:not(.srchtab){color:var(--dim)!important}
+  header.searching .modebar .modebtn.on:not(.srchtab) .mb-ic{background:none;color:inherit}
+  header .cmd{margin-top:10px!important}
+  header .wm{box-shadow:0 2px 8px rgba(229,154,47,.18),inset 0 1px 0 rgba(255,255,255,.35)!important}
+}
 @media(max-width:399px){
-  header .wm{display:none!important}
-  header .cbar{grid-template-columns:0 minmax(0,1fr) 36px 36px!important}
-  header #scopeHost{margin-left:-8px}
-  header #dsline.cbar-r{margin-left:5px!important}
+  header .cbar{grid-template-columns:minmax(0,1fr) 48px 48px!important;column-gap:7px!important;padding:10px 10px!important}
+  .hfilter-btn,header .wm{width:48px!important}
+  header #scopeHost .drop-btn{font-size:14.5px!important;padding-right:28px!important;padding-left:11px!important}
+  header #scopeHost .drop-btn .chev{right:9px!important}
+  header #dsline.cbar-r{margin-left:12px!important}
 }
 </style>
 </head>
