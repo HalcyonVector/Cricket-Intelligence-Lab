@@ -842,7 +842,7 @@ to{transform:rotate(360deg)}
 .srchtab{display:none!important}
 .hfilter-btn .fl{display:none}
 @media(max-width:720px){
-  header .cbar{grid-template-columns:minmax(0,1fr) 54px 54px!important;grid-template-areas:"comp fbtn logo" "filt filt filt" "srch srch srch"!important;column-gap:8px!important}
+  header .cbar{grid-template-columns:54px minmax(0,1fr) 54px!important;grid-template-areas:"logo comp fbtn" "filt filt filt" "srch srch srch"!important;column-gap:8px!important}
   header .hsearch-btn{display:none!important}
   /* filter: same height and style as the competition card */
   .hfilter-btn{width:54px!important;height:54px!important;border-radius:14px!important;align-self:stretch;height:auto!important;min-height:54px;
@@ -853,7 +853,7 @@ to{transform:rotate(360deg)}
   .hfilter-btn .fdot{top:8px!important;right:9px!important;box-shadow:0 0 0 2px var(--panel2)!important}
   header.filtering .hfilter-btn{background:rgba(242,178,76,.12)!important;border-color:rgba(242,178,76,.45)!important;color:#F2B24C!important}
   header.filtering .hfilter-btn .fl{color:#F2B24C}
-  /* CIL mark: same size, on the right, takes you home */
+  /* CIL mark: same size as the cards, on the left, takes you home */
   header .wm{grid-area:logo!important;display:grid!important;width:54px!important;height:auto!important;min-height:54px;align-self:stretch!important;
     border-radius:14px!important;font-size:13px!important;cursor:pointer}
   /* search tab in the bottom bar */
@@ -866,7 +866,7 @@ to{transform:rotate(360deg)}
   header .wm{box-shadow:0 2px 8px rgba(229,154,47,.18),inset 0 1px 0 rgba(255,255,255,.35)!important}
 }
 @media(max-width:399px){
-  header .cbar{grid-template-columns:minmax(0,1fr) 48px 48px!important;column-gap:7px!important;padding:10px 10px!important}
+  header .cbar{grid-template-columns:48px minmax(0,1fr) 48px!important;column-gap:7px!important;padding:10px 10px!important}
   .hfilter-btn,header .wm{width:48px!important}
   header #scopeHost .drop-btn{font-size:14.5px!important;padding-right:28px!important;padding-left:11px!important}
   header #scopeHost .drop-btn .chev{right:9px!important}
