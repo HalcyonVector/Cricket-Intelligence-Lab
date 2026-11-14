@@ -667,6 +667,7 @@ to{transform:rotate(360deg)}
   .panel table.sc{display:block;overflow-x:auto;max-width:100%}
   .tablewrap table{min-width:0;width:100%}
   .tablewrap td,.tablewrap th{white-space:nowrap}
+  .tablewrap td:first-child{white-space:normal;min-width:120px;max-width:160px;line-height:1.3}
   .tablewrap td:first-child,.tablewrap th:first-child{position:sticky;left:0;background:var(--panel);z-index:1;box-shadow:6px 0 8px -6px rgba(0,0,0,.6)}
   .panel table.sc th,.panel table.sc td{padding-left:3px;padding-right:3px;font-size:11.5px}
   .xstrip{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
@@ -693,6 +694,48 @@ to{transform:rotate(360deg)}
   .phead .avatar{width:60px;height:60px;flex:none}
   .phead h1{font-size:23px}
   .phead .row{flex-wrap:wrap;row-gap:6px}
+}
+
+/* ---------- phone header v5 and bottom tab bar ---------- */
+.mb-ic{display:none}
+@media(max-width:720px){
+  header .cbar{padding:8px 12px 6px!important;gap:7px 8px!important}
+  header #scopeHost .drop-btn,.hsearch-btn{height:38px!important}
+  header .hfilters{gap:7px!important}
+  header .hfilters .drop-btn,header .fmsw{height:34px!important;min-height:0!important;padding-top:0!important;padding-bottom:0!important;font-size:13px!important;border-radius:9px!important}
+  header .fmsw{display:flex;align-items:center;gap:8px}
+  /* section tabs: compact chips, fade where more are off-screen */
+  header .raterow{padding:0 8px!important}
+  header .subnav{gap:4px!important;padding:6px 4px 7px!important;scroll-behavior:smooth}
+  header .subnav button{font-size:13px!important;padding:6px 11px!important;border-radius:999px!important}
+  header .subnav button.active{background:rgba(242,178,76,.13)!important;color:#F2B24C!important;box-shadow:inset 0 0 0 1px rgba(242,178,76,.35)!important}
+  header .subnav.fade-r{-webkit-mask-image:linear-gradient(90deg,#000 82%,transparent);mask-image:linear-gradient(90deg,#000 82%,transparent)}
+  header .subnav.fade-l{-webkit-mask-image:linear-gradient(90deg,transparent,#000 18%);mask-image:linear-gradient(90deg,transparent,#000 18%)}
+  header .subnav.fade-l.fade-r{-webkit-mask-image:linear-gradient(90deg,transparent,#000 15%,#000 85%,transparent);mask-image:linear-gradient(90deg,transparent,#000 15%,#000 85%,transparent)}
+  /* bottom tab bar: icon + label, a soft pill behind the active icon */
+  header .modebar{background:rgba(18,19,23,.94)!important;-webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);
+    border-top:1px solid rgba(255,255,255,.06)!important;padding:6px 6px calc(6px + env(safe-area-inset-bottom))!important;justify-content:space-around!important;gap:0!important;box-shadow:0 -8px 24px rgba(0,0,0,.35)}
+  header .modebar .modebtn{flex:1 1 0!important;display:flex!important;flex-direction:column;align-items:center;gap:3px;padding:4px 0 2px!important;
+    font-family:inherit!important;font-size:11px!important;font-weight:600!important;letter-spacing:.01em!important;text-transform:none!important;color:var(--dim)!important;border:none!important;background:none!important}
+  header .modebar .modebtn::after,header .modebar .modebtn::before{display:none!important}
+  header .modebar .mb-ic{display:grid;place-items:center;width:52px;height:28px;border-radius:14px;transition:background .18s ease}
+  header .modebar .mb-ic svg{width:20px;height:20px}
+  header .modebar .modebtn.on{color:var(--ink)!important}
+  header .modebar .modebtn.on .mb-ic{background:rgba(242,178,76,.16);color:#F2B24C}
+  header .modebar .modebtn:active .mb-ic{background:rgba(255,255,255,.08)}
+  body{padding-bottom:calc(68px + env(safe-area-inset-bottom))}
+  /* list filters: search across the top, the rest side by side, smaller labels */
+  #app .toolbar{display:grid!important;grid-template-columns:1fr 1fr;gap:10px 10px!important;align-items:end}
+  #app .toolbar>.field:first-child{grid-column:1/-1}
+  #app .toolbar>.field:first-child input{width:100%}
+  #app .toolbar .field{min-width:0}
+  #app .toolbar .field .drop,#app .toolbar .field .drop-btn,#app .toolbar .field select{width:100%;max-width:100%}
+  #app .toolbar .flab{font-size:10px;margin-bottom:4px}
+  #app .toolbar .count{text-align:right;margin:0;align-self:center;order:1}
+  #app .toolbar>.field:has(.seg){grid-column:1/-1;order:2}
+  #app .toolbar .seg{flex-wrap:nowrap;display:flex;width:100%}
+  #app .toolbar .seg button{flex:1 1 auto}
+  #app .toolbar .seg button{padding:7px 9px;font-size:12px}
 }
 </style>
 </head>
@@ -945,7 +988,9 @@ function init(){
     ["LIVE",[["live","Live Scores"],["schedule","Schedule"]]],
   ];
   window.VIEW_MODE={};window.MODES.forEach(([mo,subs])=>subs.forEach(([v])=>window.VIEW_MODE[v]=mo));
-  document.getElementById('modebar').innerHTML=window.MODES.map(([mo])=>`<button class="modebtn" data-m="${mo}">${mo.charAt(0)+mo.slice(1).toLowerCase()}</button>`).join('');
+  const MODE_IC={DISCOVER:'<circle cx="12" cy="12" r="9"/><path d="m15.6 8.4-2.1 5.1-5.1 2.1 2.1-5.1z"/>',ANALYZE:'<path d="M5 20V11M12 20V4M19 20v-6"/>',
+    RESEARCH:'<path d="m3 17 6-6 4 4 8-8"/><path d="M15 7h6v6"/>',LIVE:'<circle cx="12" cy="12" r="2"/><path d="M8 8a5.7 5.7 0 0 0 0 8M16 16a5.7 5.7 0 0 0 0-8M5.2 5.2a9.6 9.6 0 0 0 0 13.6M18.8 18.8a9.6 9.6 0 0 0 0-13.6"/>'};
+  document.getElementById('modebar').innerHTML=window.MODES.map(([mo])=>`<button class="modebtn" data-m="${mo}"><span class="mb-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${MODE_IC[mo]||''}</svg></span><span class="mb-l">${mo.charAt(0)+mo.slice(1).toLowerCase()}</span></button>`).join('');
   document.querySelectorAll('.modebtn').forEach(b=>b.onclick=()=>{const subs=window.MODES.find(x=>x[0]===b.dataset.m)[1];state.view=subs[0][0];state.player=null;state.bowler=null;state.venue=state.team=state.match=null;render();});
   document.getElementById('home').onclick=()=>{state.view="home";state.player=null;state.bowler=null;state.venue=state.team=state.match=null;render();};
   document.getElementById('srcnote').textContent=`${IDX.cohorts.length} competitions`;
@@ -961,6 +1006,8 @@ function init(){
   render();
 }
 
+function _navFade(nav){const more=nav.scrollWidth-nav.clientWidth;nav.classList.toggle('fade-r',more>2&&nav.scrollLeft<more-2);nav.classList.toggle('fade-l',more>2&&nav.scrollLeft>2);
+  if(!nav._fadeHooked){nav._fadeHooked=1;nav.addEventListener('scroll',()=>_navFade(nav),{passive:true});}}
 function render(){
   stateToHash();
   const cm=(window.VIEW_MODE&&window.VIEW_MODE[state.view])||'DISCOVER';
@@ -969,6 +1016,7 @@ function render(){
   nav.innerHTML=subs.map(([v,lab])=>`<button data-v="${v}">${esc(lab)}</button>`).join('');
   nav.querySelectorAll('button').forEach(b=>b.onclick=()=>{state.view=b.dataset.v;state.player=null;state.bowler=null;state.venue=state.team=state.match=null;render();});
   nav.style.display=subs.length>1?'flex':'none';
+  requestAnimationFrame(()=>{const a=nav.querySelector('button.active');if(a&&nav.scrollWidth>nav.clientWidth)nav.scrollLeft=a.offsetLeft-(nav.clientWidth-a.offsetWidth)/2;_navFade(nav);});
   document.querySelectorAll('.modebtn').forEach(b=>{b.classList.toggle('on',b.dataset.m===cm);b.setAttribute('aria-pressed',b.dataset.m===cm);});
   nav.querySelectorAll('button').forEach(b=>{const on=b.dataset.v===state.view;b.classList.toggle('active',on);if(on)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
   const dm=meta(state.cohort)||{},ds=document.getElementById('dsline');
