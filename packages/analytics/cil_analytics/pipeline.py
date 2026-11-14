@@ -768,7 +768,10 @@ def _awrite(path, data):
 
 # Profile-only fields: moved out of the first-load bundle into cohorts/d/<key>.js, which
 # the dashboard fetches in the background (Overview paints from the core file alone).
-DETAIL_FIELDS = {"players": ("phases", "matchups", "similar", "context", "venues"), "bowlers": ("similar", "context")}
+DETAIL_FIELDS = {"players": ("phases", "similar", "context", "venues"), "bowlers": ("similar", "context")}
+# Each batter's matchups were also shipped in the detail file, but every view that shows them loads
+# the full cohorts/matchups/<key>.js and replaces them, so they're dropped from the browser files.
+BROWSER_DROP = {"players": ("matchups",)}
 
 
 def split_bundle(b):
@@ -776,8 +779,9 @@ def split_bundle(b):
     core, detail = dict(b), {}
     for group, fields in DETAIL_FIELDS.items():
         slim, extra = {}, {}
+        drop = BROWSER_DROP.get(group, ())
         for pid, rec in (b.get(group) or {}).items():
-            slim[pid] = {k: v for k, v in rec.items() if k not in fields}
+            slim[pid] = {k: v for k, v in rec.items() if k not in fields and k not in drop}
             d = {k: rec[k] for k in fields if k in rec}
             if d:
                 extra[pid] = d
@@ -827,6 +831,20 @@ def career_shard(pid):
     """Shard key for a player id: first hex char of the Cricsheet id (16 shards)."""
     c = (pid or "0")[0].lower()
     return c if c in CAREER_SHARDS else "0"
+
+
+def write_detail_shards(jsdir, key, detail):
+    """cohorts/d/<key>/<0-f>.js: the detail file split by player id (like careers/), so a single
+    profile downloads about 1/16th of it. Views that need every player still load d/<key>.js."""
+    out = os.path.join(jsdir, "d", key)
+    os.makedirs(out, exist_ok=True)
+    parts = {k: {g: {} for g in detail} for k in CAREER_SHARDS}
+    for g, recs in detail.items():
+        for pid, rec in recs.items():
+            parts[career_shard(pid)][g][pid] = rec
+    for k, d in parts.items():
+        _awrite(os.path.join(out, f"{k}.js"), f"window.__detailShard({json.dumps(key)},{json.dumps(k)},"
+                f"{json.dumps(d, separators=(',', ':'))});\n")
 
 
 def write_innings(jsdir, key, bat, bowl):
@@ -901,6 +919,7 @@ def build(db="cil.db", outdir="web/data", jsdir="web/dashboard/cohorts"):
         os.makedirs(os.path.join(jsdir, "d"), exist_ok=True)
         _awrite(os.path.join(jsdir, "d", f"{spec['key']}.js"),
                 f"window.__detailLoaded({json.dumps(spec['key'])},{json.dumps(detail, separators=(',', ':'))});")
+        write_detail_shards(jsdir, spec["key"], detail)
         _awrite(os.path.join(outdir, f"{spec['key']}.meta.json"),
                 json.dumps({**b["meta"], "bytes": len(payload)}))
         print(f"  {spec['key']}: {b['meta']['n_batters']}bat/{b['meta']['n_bowlers']}bowl "

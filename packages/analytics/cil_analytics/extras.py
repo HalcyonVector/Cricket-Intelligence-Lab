@@ -12,6 +12,7 @@ Contents (all compact arrays, keyed by player index into `p`):
   recent  the latest matches with over-by-over runs/wickets and top performers
   week    standout innings / spells from the last 30 days of data
   trend   one row per season for the whole competition (columns in trend_cols)
+  elo     Elo rating per team (current, matches, end-of-season history) and how often the favourite won
 """
 from __future__ import annotations
 import json
@@ -118,6 +119,43 @@ def season_trend(conn):
         if r["yr"] and int(r["yr"]) in rows:
             rows[int(r["yr"])][10:13] = [r["n"], r["b2"] or 0, r["tw"] or 0]
     return [rows[y] for y in sorted(rows)]
+
+
+ELO_K, ELO_START, ELO_MIN_MATCHES = 32, 1500, 10
+# Franchises that were renamed keep one rating (Elo is about the side, not the name).
+TEAM_RENAMES = {"Royal Challengers Bangalore": "Royal Challengers Bengaluru", "Delhi Daredevils": "Delhi Capitals",
+                "Kings XI Punjab": "Punjab Kings", "Rising Pune Supergiants": "Rising Pune Supergiant"}
+
+
+def team_elo(conn, k=ELO_K):
+    """Elo ratings for every team in this competition, updated match by match in date order.
+
+    A win scores 1, a tie or draw 0.5, a no result is skipped. Expected score for A against B is
+    1 / (1 + 10^((Rb - Ra) / 400)), and each side moves by k * (score - expected). Also returns how
+    often the pre-match favourite won, counting only matches where both sides already had
+    ELO_MIN_MATCHES rated games (so early, unsettled ratings don't flatter the number)."""
+    r, n, hist, pre = {}, defaultdict(int), defaultdict(dict), {}
+    right = total = 0
+    brier = 0.0
+    for m in _rows(conn, """SELECT m.match_id id, m.match_date d, m.team_a a, m.team_b b, m.winner w, m.result_type rt
+            FROM dim_match m JOIN sm ON sm.match_id=m.match_id
+            WHERE m.team_a IS NOT NULL AND m.team_b IS NOT NULL ORDER BY m.match_date, m.match_id"""):
+        a, b, rt = TEAM_RENAMES.get(m["a"], m["a"]), TEAM_RENAMES.get(m["b"], m["b"]), m["rt"]
+        m["w"] = TEAM_RENAMES.get(m["w"], m["w"])
+        if rt == "no result":
+            continue
+        ra, rb = r.get(a, ELO_START), r.get(b, ELO_START)
+        pre[m["id"]] = [round(ra), round(rb)]
+        ea = 1 / (1 + 10 ** ((rb - ra) / 400))
+        sa = 1.0 if m["w"] == a else 0.0 if m["w"] == b else 0.5
+        if rt == "win" and m["w"] in (a, b) and n[a] >= ELO_MIN_MATCHES and n[b] >= ELO_MIN_MATCHES and ra != rb:
+            total += 1; right += (ea > 0.5) == (sa == 1.0); brier += (ea - sa) ** 2
+        r[a], r[b] = ra + k * (sa - ea), rb + k * ((1 - sa) - (1 - ea))
+        n[a] += 1; n[b] += 1
+        yr = int(m["d"][:4])
+        hist[a][yr], hist[b][yr] = round(r[a]), round(r[b])
+    teams = {t: {"r": round(v), "n": n[t], "hist": sorted([y, x] for y, x in hist[t].items())} for t, v in r.items()}
+    return {"k": k, "teams": teams, "acc": [right, total], "brier": round(brier / total, 4) if total else None}, pre
 
 
 def venue_detail(conn, P, top_n=6):
@@ -343,6 +381,10 @@ def build_extras(conn, names, intl=False, fmt="t20", rpo=8.0):
     data = {"yb": yb, "yw": yw, "bp": bp, "wp": wp, "venues": venue_detail(conn, P), "teams": team_detail(conn, P),
             "recent": recent_matches(conn, P), "week": this_week(conn, P),
             "trend": season_trend(conn), "trend_cols": TREND_COLS}
+    data["elo"], pre = team_elo(conn)
+    for mt in data["recent"]:  # pre-match ratings on the match pages
+        if mt.get("id") in pre:
+            mt["elo"] = pre[mt["id"]]
     data["p"] = P.p
     return data
 

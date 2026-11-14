@@ -8,7 +8,7 @@ States are taken at the end of every over. The coefficients go to web/dashboard/
 where the dashboard evaluates the same features (keep features() in sync with features.js).
 """
 from __future__ import annotations
-import json, math, zlib
+import json, math, re, zlib
 from collections import defaultdict
 import numpy as np
 
@@ -50,14 +50,17 @@ def _states(conn, fmt, gender):
     T = BALLS[fmt]
     rows = conn.execute(f"""SELECT d.match_id, d.innings_no, d.over_no,
             SUM(d.runs_batter + d.runs_extras), SUM(CASE WHEN {WK} THEN 1 ELSE 0 END),
-            SUM(CASE WHEN {LEGAL} THEN 1 ELSE 0 END), MAX(d.batting_team), MAX(m.winner)
+            SUM(CASE WHEN {LEGAL} THEN 1 ELSE 0 END), MAX(d.batting_team), MAX(m.winner),
+            MAX(substr(m.match_date,1,4)), MAX(CASE WHEN m.team_type='club' THEN m.league ELSE '' END)
         FROM fact_delivery d JOIN dim_match m ON m.match_id = d.match_id
         WHERE m.format = ? AND m.gender = ? AND d.innings_no IN (1, 2) AND m.winner IS NOT NULL
         GROUP BY d.match_id, d.innings_no, d.over_no ORDER BY d.match_id, d.innings_no, d.over_no""",
         (fmt, gender)).fetchall()
     by = defaultdict(lambda: {1: [], 2: []})
-    for mid, inn, _o, r, w, b, bt, win in rows:
+    meta = {}
+    for mid, inn, _o, r, w, b, bt, win, yr, lg in rows:
         by[mid][inn].append((r or 0, w or 0, b or 0, bt, win))
+        meta[mid] = (int(yr), comp_key(lg, gender))
     out = []
     for mid, inns in by.items():
         if not inns[1] or not inns[2]:
@@ -71,8 +74,30 @@ def _states(conn, fmt, gender):
                 runs += r; wk += w; balls += b
                 if balls >= T or wk >= 10:
                     break
-                out.append((mid, inn, runs, balls, wk, target if inn == 2 else None, 1 if win == bt else 0, tot1))
+                out.append((mid, inn, runs, balls, wk, target if inn == 2 else None, 1 if win == bt else 0, tot1) + meta[mid])
     return out
+
+
+def comp_key(league, gender):
+    """Competition key as used for cohort file names ("intl" for internationals)."""
+    if not league:
+        return "intl"
+    return re.sub(r"[^a-z0-9]+", "_", (("w_" if gender == "female" else "") + league).lower()).strip("_")[:46]
+
+
+PROJ_RECENT, PROJ_PRIOR = 3, 1000   # seasons used for a competition's factor; prior weight in runs
+
+
+def _proj_factors(rows, tab, T):
+    """How much more (or less) a competition scores than the format average lately: actual runs
+    still to come / the table's expectation, over its last PROJ_RECENT seasons, shrunk toward 1."""
+    latest = max((s[8] for s in rows), default=0)
+    num, den = defaultdict(float), defaultdict(float)
+    for s in rows:
+        if s[8] > latest - PROJ_RECENT and s[3] >= 6:
+            num[s[9]] += s[7] - s[2]
+            den[s[9]] += project(tab, T, s[2], s[3], s[4]) - s[2]
+    return {c: round((num[c] + PROJ_PRIOR) / (den[c] + PROJ_PRIOR), 3) for c in den}
 
 
 def _proj_table(rows, T, min_n=25):
@@ -99,14 +124,14 @@ def _proj_table(rows, T, min_n=25):
     return tab
 
 
-def project(tab, T, runs, balls, wkts):
+def project(tab, T, runs, balls, wkts, fac=1.0):
     """Projected first-innings total. Mirrors projectTotal() in web/dashboard/features.js."""
     overs = T // 6
     if balls >= T or wkts >= 10:
         return runs
     k, w, f = min(balls // 6, overs - 1), min(wkts, 9), (balls % 6) / 6
     nxt = tab[k + 1][w] if k + 1 < overs else 0.0
-    return runs + tab[k][w] + (nxt - tab[k][w]) * f
+    return runs + (tab[k][w] + (nxt - tab[k][w]) * f) * fac
 
 
 def train(conn):
@@ -133,13 +158,22 @@ def train(conn):
             # projected first-innings total: lookup table, checked on the same held-out 20% of matches
             r1 = [s for s in st if s[1] == 1]
             held = lambda s: zlib.crc32(str(s[0]).encode()) % 5 == 0
-            tab = _proj_table([s for s in r1 if not held(s)], T)
+            train_rows = [s for s in r1 if not held(s)]
+            tab = _proj_table(train_rows, T)
+            fac = _proj_factors(train_rows, tab, T)
             mid = [s for s in r1 if held(s) and s[3] // 6 == T // 12]
+            latest = max((s[8] for s in r1), default=0)
+            recent = [s for s in mid if s[8] >= latest - 1]
+            err = lambda rs, f: round(float(np.mean([abs(project(tab, T, s[2], s[3], s[4], f(s)) - s[7]) for s in rs])), 1) if rs else None
             m["proj"] = _proj_table(r1, T)
-            m["proj_mae_mid"] = round(float(np.mean([abs(project(tab, T, s[2], s[3], s[4]) - s[7]) for s in mid])), 1) if mid else None
+            m["proj_fac"] = _proj_factors(r1, m["proj"], T)
+            m["proj_mae_mid"] = err(mid, lambda s: fac.get(s[9], 1.0))
+            # the same check on the last two seasons, without and with the per-competition factor
+            m["proj_mae_recent"] = [err(recent, lambda s: 1.0), err(recent, lambda s: fac.get(s[9], 1.0))]
             models[f"{fmt}_{gender}"] = m
             print(f"  winprob {fmt}_{gender}: {n_matches} matches, held-out Brier inn1 {m['brier1']} inn2 {m['brier2']}, "
-                  f"projection error at the halfway mark {m['proj_mae_mid']} runs")
+                  f"projection error at the halfway mark {m['proj_mae_mid']} runs "
+                  f"(last two seasons: {m['proj_mae_recent'][0]} -> {m['proj_mae_recent'][1]} with competition factors)")
     return models
 
 

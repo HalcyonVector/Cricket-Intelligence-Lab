@@ -77,7 +77,7 @@ def test_full_build():
         idx = build(db, os.path.join(d, "data"), cohorts)
         keys = [c["key"] for c in idx["cohorts"]]
         assert "t20i_men" in keys
-        load = lambda p: json.loads(open(p, encoding="utf-8").read().split(",", 1)[1].rsplit(")", 1)[0])
+        load = lambda p: (lambda t: json.JSONDecoder().raw_decode(t, t.index("{"))[0])(open(p, encoding="utf-8").read())
         b = load(os.path.join(cohorts, "t20i_men.js"))
         assert b["players"] and b["bowlers"]
         assert "_matchups_all" not in b
@@ -96,6 +96,15 @@ def test_full_build():
         assert sum(r[1] for r in x["trend"]) == b["meta"]["matches"], "trend seasons should cover every match"
         fdir = os.path.join(cohorts, "f", "t20i_men")
         assert len(os.listdir(fdir)) == 16, "innings log is sharded like careers/"
+        assert x["elo"]["teams"] and x["elo"]["acc"][0] <= x["elo"]["acc"][1]
+        assert all("elo" in mt for mt in x["recent"] if mt["result"] != "no result"), "pre-match ratings on match pages"
+        assert not any("matchups" in v for v in det["players"].values()), "matchups ship only in cohorts/matchups/"
+        dsh = os.path.join(cohorts, "d", "t20i_men")
+        assert len(os.listdir(dsh)) == 16
+        merged = {}
+        for f in os.listdir(dsh):
+            merged.update(load(os.path.join(dsh, f))["players"])
+        assert merged == det["players"], "detail shards hold exactly the detail file"
         # full-members-only bundle: same competition, only matches between full members
         f = load(os.path.join(cohorts, "t20i_men__fm.js"))
         assert f["meta"].get("fm") is True and f["meta"]["base_key"] == "t20i_men"

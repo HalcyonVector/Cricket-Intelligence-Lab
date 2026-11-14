@@ -185,6 +185,19 @@ def main():
                 check("trend phase balls <= season balls", r["pp_balls"] + r["mid_balls"] + r["death_balls"] <= r["balls"], f"{key} {r['yr']}")
                 check("trend decided <= matches and wins <= decided", r["decided"] <= r["matches"] and r["bat2_won"] <= r["decided"]
                       and r["toss_won"] <= r["decided"], f"{key} {r['yr']}")
+        if x and x.get("elo"):
+            right, total = x["elo"]["acc"]
+            check("ratings: favourite wins <= rated matches <= all matches", right <= total <= core["meta"]["matches"], key)
+            check("ratings: every team has a positive rating and match count", all(t["r"] > 0 and t["n"] > 0 for t in x["elo"]["teams"].values()), key)
+        dsh = os.path.join(DASH, "cohorts", "d", key)
+        if os.path.isdir(dsh):
+            full = js(os.path.join(DASH, "cohorts", "d", f"{key}.js")) or {"players": {}, "bowlers": {}}
+            merged = {"players": {}, "bowlers": {}}
+            for fn in os.listdir(dsh):
+                part = js(os.path.join(dsh, fn))
+                for g in merged:
+                    merged[g].update(part.get(g, {}))
+            check("profile detail shards = the whole detail file", merged["players"] == full.get("players", {}) and merged["bowlers"] == full.get("bowlers", {}), key)
         fdir = os.path.join(DASH, "cohorts", "f", key)
         if not os.path.isdir(fdir):
             continue

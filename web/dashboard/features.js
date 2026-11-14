@@ -593,6 +593,8 @@ function matchDetail(app, x, id) {
   app.appendChild($(`<div style="margin-top:10px"><h1 style="margin:0">${esc(mt.teams[0])} <span class="dim">vs</span> ${esc(mt.teams[1])}</h1><p class="sub">${esc(mt.date)} · <a ${goAttr('venue', (mt.venue || '').split(',')[0].trim())}>${esc(mt.venue || '')}</a>${mt.stage ? ' · ' + esc(mt.stage) : ''} · toss: ${esc(mt.toss[0] || '-')} chose to ${esc(mt.toss[1] || '-')}</p></div>`));
   const g = $('<div class="grid bento"></div>');
   g.appendChild($(`<div class="panel s12" style="background:linear-gradient(120deg,rgba(229,154,47,.13),transparent)"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:10px"><h2 style="margin:0;font-size:17px">${esc(resultText(mt))}</h2><div class="row" style="gap:16px;flex-wrap:wrap">${mt.inns.map((i, k) => `<span class="num"><span class="sw" style="background:${INN_COL[k % 4]};display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px"></span>${esc(i.team || '')} <b>${i.runs}/${i.wkts}</b> <span class="dim">(${i.overs.length} ov)</span></span>`).join('')}</div></div></div>`));
+  if (mt.elo) { const [ra, rb] = mt.elo, pa = eloWinPct(ra, rb), fav = pa >= 50 ? 0 : 1, won = mt.winner ? mt.winner === mt.teams[fav] : null;
+    g.appendChild($(`<div class="panel s12"><h2>Before the match <span class="r">Elo ratings</span></h2><div class="row" style="gap:18px;flex-wrap:wrap;align-items:center"><span><b>${esc(mt.teams[0])}</b> ${ra}</span><span><b>${esc(mt.teams[1])}</b> ${rb}</span><span class="dim">${esc(mt.teams[fav])} favoured, ${Math.round(Math.max(pa, 100 - pa))}% from ratings alone${won == null ? '' : won ? ' · the favourite won' : ' · an upset'}</span></div></div>`)); }
   const wpSlot = $('<div class="panel s12" style="display:none"></div>'); g.appendChild(wpSlot);
   const projSlot = $('<div class="panel s12" style="display:none"></div>'); g.appendChild(projSlot);
   ensureWinProb(wp => {
@@ -609,11 +611,19 @@ function matchDetail(app, x, id) {
       <div class="note" style="margin-top:6px">From runs, balls and wickets after each over, using a model trained on every ${c.meta.format.toUpperCase()} in the data. It doesn't know the teams, the pitch or rain rules.</div>`;
     wpSlot.style.display = '';
     if (model.proj) {
-      let pr = 0, pw = 0, pb = 0; const ps = [projectTotal(model, 0, 0, 0)];
-      i1.overs.forEach(o => { pr += o[0]; pw += o[1]; pb = Math.min(pb + 6, model.T); ps.push(projectTotal(model, pr, pb, pw)); });
-      const half = ps[Math.min(ps.length - 1, Math.floor(model.T / 12))];
-      projSlot.innerHTML = `<h2>Projected total <span class="r">${esc(i1.team || 'Batting first')} · at the halfway mark: ${Math.round(half)}, finished on ${i1.runs}</span></h2>${projSVG(ps, i1.runs, i1.team || 'Batting first')}
-        <div class="note" style="margin-top:6px">After each over: runs so far plus the average runs still to come from the same overs and wickets, across every completed first innings in ${c.meta.format.toUpperCase()}s in the data. Typically about ${model.proj_mae_mid || '?'} runs out at the halfway mark.</div>`;
+      const fac = projFactor(model, c.meta), halfK = Math.floor(model.T / 12);
+      let pr = 0, pw = 0, pb = 0; const ps = [projectTotal(model, 0, 0, 0, fac)];
+      i1.overs.forEach(o => { pr += o[0]; pw += o[1]; pb = Math.min(pb + 6, model.T); ps.push(projectTotal(model, pr, pb, pw, fac)); });
+      // the chase: where it would finish at this pace (above the target line = on course)
+      pr = pw = pb = 0; const cs = [projectTotal(model, 0, 0, 0, fac)];
+      i2.overs.forEach(o => { pr += o[0]; pw += o[1]; pb = Math.min(pb + 6, model.T); cs.push(projectTotal(model, pr, pb, pw, fac)); });
+      const half = ps[Math.min(ps.length - 1, halfK)], ch = cs[Math.min(cs.length - 1, halfK)];
+      const facNote = Math.abs(fac - 1) >= 0.02 ? ` Scaled by ${fac.toFixed(2)} because ${esc(c.meta.label)} has scored ${fac > 1 ? 'more' : 'less'} than the average ${c.meta.format.toUpperCase()} over the last three seasons.` : '';
+      const rec = model.proj_mae_recent && model.proj_mae_recent[1];
+      projSlot.innerHTML = `<h2>Projected totals <span class="r">at the halfway mark: ${esc(i1.team || 'Batting first')} ${Math.round(half)} (made ${i1.runs}) · ${esc(i2.team || 'Chasing')} on pace for ${Math.round(ch)} (target ${target})</span></h2>
+        <div class="grid bento"><div class="s6">${projSVG(ps, i1.runs, `final ${i1.runs}`, `${i1.team || 'Batting first'} projected total`)}</div>
+        <div class="s6">${projSVG(cs, target, `target ${target}`, `${i2.team || 'Chasing'} pace (above the line = on course)`, INN_COL[1])}</div></div>
+        <div class="note" style="margin-top:6px">After each over: runs so far plus the average runs still to come from the same overs and wickets, across every completed first innings in ${c.meta.format.toUpperCase()}s in the data.${facNote} On recent matches it is typically about ${rec || model.proj_mae_mid || '?'} runs out at the halfway mark. For the chase it shows where the innings would end at that rate if it ran the full distance, not whether they win.</div>`;
       projSlot.style.display = '';
     }
   });
@@ -649,23 +659,29 @@ function winProbFirst(model, inn, runs, balls, wkts, target) {
   return inn === 1 ? p : 1 - p;
 }
 /* Projected first-innings total from the lookup table in winprob.js. Mirrors project() in winprob.py. */
-function projectTotal(model, runs, balls, wkts) {
+function projectTotal(model, runs, balls, wkts, fac) {
   const tab = model && model.proj; if (!tab) return null;
   const T = model.T, overs = Math.floor(T / 6);
   if (balls >= T || wkts >= 10) return runs;
   const k = Math.min(Math.floor(balls / 6), overs - 1), w = Math.min(wkts, 9), f = (balls % 6) / 6;
   const nxt = k + 1 < overs ? tab[k + 1][w] : 0;
-  return runs + tab[k][w] + (nxt - tab[k][w]) * f;
+  return runs + (tab[k][w] + (nxt - tab[k][w]) * f) * (fac || 1);
 }
-function projSVG(series, final, team) {
+/* How much this competition outscores the format average lately (1 = average). */
+function projFactor(model, meta) {
+  const F = (model && model.proj_fac) || {}, base = String(meta.key || '').replace(/__fm$/, '');
+  return (meta.intl ? F.intl : F[base]) || 1;
+}
+function projSVG(series, final, refLab, title, col) {
+  col = col || INN_COL[0];
   const W = 720, H = 190, pad = 38, n = series.length, all = series.concat([final]);
   const lo = Math.min(...all), hi = Math.max(...all), sp = (hi - lo) || 1, y0 = lo - sp * 0.1, y1 = hi + sp * 0.1;
   const X = i => pad + i / Math.max(n - 1, 1) * (W - 2 * pad), Y = v => H - pad - (v - y0) / (y1 - y0) * (H - 2 * pad);
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Projected total through the first innings">${axisTicksSVG(null, Y, null, [y0, y1], [pad, pad, W - pad, H - pad])}
-    <line x1="${pad}" x2="${W - pad}" y1="${Y(final).toFixed(1)}" y2="${Y(final).toFixed(1)}" stroke="#5a5d66" stroke-dasharray="4 4"/><text x="${W - pad}" y="${(Y(final) - 5).toFixed(1)}" text-anchor="end" fill="#8B8E96" font-size="9.5">final ${final}</text>
-    <polyline points="${series.map((v, i) => `${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ')}" fill="none" stroke="${INN_COL[0]}" stroke-width="2.2"/>
-    ${series.map((v, i) => `<circle cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="2.2" fill="${INN_COL[0]}"><title>${i ? 'After over ' + i : 'Before the first ball'}: projected ${Math.round(v)}</title></circle>`).join('')}
-    <text x="${pad + 4}" y="${pad - 8}" fill="${INN_COL[0]}" font-size="10.5">${esc(team)} projected total</text></svg>`;
+    <line x1="${pad}" x2="${W - pad}" y1="${Y(final).toFixed(1)}" y2="${Y(final).toFixed(1)}" stroke="#5a5d66" stroke-dasharray="4 4"/><text x="${W - pad}" y="${(Y(final) - 5).toFixed(1)}" text-anchor="end" fill="#8B8E96" font-size="9.5">${esc(refLab)}</text>
+    <polyline points="${series.map((v, i) => `${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ')}" fill="none" stroke="${col}" stroke-width="2.2"/>
+    ${series.map((v, i) => `<circle cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="2.2" fill="${col}"><title>${i ? 'After over ' + i : 'Before the first ball'}: projected ${Math.round(v)}</title></circle>`).join('')}
+    <text x="${pad + 4}" y="${pad - 8}" fill="${col}" font-size="10.5">${esc(title)}</text></svg>`;
 }
 const wpModel = (wp, fmt, gender) => wp && wp.models && wp.models[`${fmt === 'odi' ? 'odi' : 't20'}_${gender === 'female' ? 'female' : 'male'}`];
 function winProbSVG(series, teamA, teamB, split) {
@@ -697,8 +713,17 @@ function liveWinLine(m, wp) {
   else if (sa && sb) pA = winProbFirst(model, 2, sb.runs, sb.balls, sb.wkts, sa.runs + 1);
   if (pA == null || /won|tied|abandon|no result/i.test(m.status || '')) return '';
   const fav = pA >= .5 ? a.name : b.name, pct = Math.round(100 * Math.max(pA, 1 - pA));
-  const proj = sa && !sb ? projectTotal(model, sa.runs, sa.balls, sa.wkts) : null;
-  const projHTML = proj != null && sa.balls >= 30 ? `<div class="wpline" title="Runs so far plus the average still to come from this many overs and wickets, across every completed first innings in the data."><span>Projected</span><b>${esc(a.name)} about ${Math.round(proj)}</b></div>` : '';
+  const ser = ((m.series || '') + ' ' + (m.title || '')).toLowerCase();
+  const lg = (window.CIL_INDEX ? CIL_INDEX.cohorts : []).find(x => !x.intl && x.label && ser.includes(x.label.toLowerCase()));
+  const fac = lg ? projFactor(model, lg) : 1;
+  let projHTML = '';
+  if (sa && !sb && sa.balls >= 30) {
+    const proj = projectTotal(model, sa.runs, sa.balls, sa.wkts, fac);
+    if (proj != null) projHTML = `<div class="wpline" title="Runs so far plus the average still to come from this many overs and wickets, across every completed first innings in the data${lg ? ', scaled for ' + esc(lg.label) : ''}."><span>Projected</span><b>${esc(a.name)} about ${Math.round(proj)}</b></div>`;
+  } else if (sa && sb && sb.balls >= 30) {
+    const proj = projectTotal(model, sb.runs, sb.balls, sb.wkts, fac), tgt = sa.runs + 1;
+    if (proj != null) projHTML = `<div class="wpline" title="Where the chase would end at this rate if it ran the full distance (runs so far plus the average still to come). Not the same as the win chance."><span>On this pace</span><b>${esc(b.name)} about ${Math.round(proj)} (need ${tgt})</b></div>`;
+  }
   return projHTML + `<div class="wpline" title="Estimated from runs, balls and wickets with a model trained on every ${fmt.toUpperCase()} in Cricsheet. It doesn't know the teams or conditions."><span>Win chance</span><div class="wpbar"><span style="width:${(100 * pA).toFixed(0)}%"></span></div><b>${esc(fav)} ${pct}%</b></div>`;
 }
 const _matchCardHTML = matchCardHTML;
@@ -744,6 +769,34 @@ function venueDetail(app, x, name) {
   if (rec.length) g2.appendChild($(`<div class="panel s12"><h2>Recent matches here</h2>${rec.map(mt => `<a class="mrow" ${goAttr('match', mt.id)}><span class="dim num">${esc(mt.date)}</span><span>${esc(mt.teams[0])} <span class="dim">vs</span> ${esc(mt.teams[1])}</span><span class="mres">${esc(resultText(mt))}</span></a>`).join('')}</div>`));
   app.appendChild(g2); wireLinks(app);
 }
+/* ---------- Team ratings (Elo, built per competition in extras.py) ---------- */
+const ELO_COLS = ['#F2B24C', '#6FA8FF', '#33D17A', '#FF6B7E', '#C792EA', '#8B8E96'];
+const eloWinPct = (ra, rb) => 100 / (1 + Math.pow(10, (rb - ra) / 400));
+function eloPanel(x, c) {
+  const E = x && x.elo; if (!E || !E.teams) return null;
+  const latestYr = Math.max(...Object.values(E.teams).map(t => (t.hist[t.hist.length - 1] || [0])[0]));
+  // rank teams still playing (a match in the last three seasons) with a few games behind them
+  const active = Object.entries(E.teams).filter(([, t]) => t.n >= 10 && (t.hist[t.hist.length - 1] || [0])[0] >= latestYr - 2).sort((a, b) => b[1].r - a[1].r);
+  if (!active.length) return null;
+  const top = active.slice(0, 6);
+  const yrs = [...new Set(top.flatMap(([, t]) => t.hist.map(h => h[0])))].sort((a, b) => a - b);
+  const series = top.map(([name, t], i) => ({ name, color: ELO_COLS[i], pts: t.hist.map(h => [h[0], h[1], true, 99]) }));
+  const acc = E.acc && E.acc[1] ? Math.round(100 * E.acc[0] / E.acc[1]) : null;
+  const yearAgo = t => { const h = t.hist.filter(v => v[0] <= latestYr - 1); return h.length ? h[h.length - 1][1] : null; };
+  const rows = active.map(([name, t], i) => { const y = yearAgo(t), d = y == null ? null : t.r - y;
+    return `<tr class="cl" data-team="${esc(name)}"><td class="n dim">${i + 1}</td><td>${esc(name)}</td><td class="n"><b>${t.r}</b></td><td class="n ${d > 0 ? 'pos' : d < 0 ? 'neg' : 'dim'}">${d == null ? '-' : (d > 0 ? '+' : '') + d}</td><td class="n dim">${t.n}</td></tr>`; }).join('');
+  const el = $(`<div class="grid bento" style="margin-bottom:13px"><div class="s7"><div class="panel"><h2>Team ratings <span class="r">Elo, end of each season · top ${top.length} now</span></h2>${yrs.length > 1 ? trendLineSVG(series, { fmt: v => String(Math.round(v)), label: 'Elo rating', ref: 1500 }) : ''}
+    <div class="note" style="margin-top:6px">Every team starts at 1500 and gains or loses points after each match, more for beating a stronger side. ${acc != null ? `The higher-rated side won <b>${acc}%</b> of ${E.acc[1].toLocaleString()} decided matches between established teams in ${esc(c.meta.label)}${acc < 56 ? ', so ratings barely predict results here' : ''}.` : ''}</div></div></div>
+    <div class="s5"><div class="panel"><h2>Current ratings <span class="r">change = since a year ago</span></h2><div class="tscroll" style="max-height:330px"><table><thead><tr><th class="n">#</th><th>Team</th><th class="n">Rating</th><th class="n">Change</th><th class="n">Matches</th></tr></thead><tbody>${rows}</tbody></table></div></div></div></div>`);
+  el.querySelectorAll('tr[data-team]').forEach(tr => tr.onclick = () => { state.team = tr.dataset.team; render(); });
+  return el;
+}
+const _teamsViewElo = teamsView;
+teamsView = function (app) {
+  _teamsViewElo(app);
+  const slot = $('<div></div>'), h = app.querySelector('.sub'); if (h) h.parentElement.after(slot); else app.prepend(slot);
+  ensureExtras(dataKey(), x => { const p = eloPanel(x, cur()); if (p) slot.appendChild(p); });
+};
 function teamDetail(app, x, name) {
   const c = cur(), t = (c.teams || []).find(r => r.team === name) || { team: name }, d = x && x.teams && x.teams[name];
   const back = $('<div class="row" style="margin-top:20px"><button class="pill" id="tback">← teams</button></div>'); app.appendChild(back);
@@ -753,6 +806,12 @@ function teamDetail(app, x, name) {
   const lost = d ? d.years.reduce((s, y) => s + y[3], 0) : null;
   const k = (l, val) => `<div class="s3"><div class="panel kpi"><div class="l">${l}</div><div class="n">${val == null ? '-' : fmtN(val)}</div></div></div>`;
   const g = $('<div class="grid bento"></div>'); g.innerHTML = k('Matches', t.matches) + k('Won', t.wins) + k('Lost', lost) + k('Win %', t.winpct); app.appendChild(g);
+  const et = x && x.elo && x.elo.teams && x.elo.teams[name];
+  if (et && et.hist.length >= 2) {
+    const peak = et.hist.reduce((a, h) => h[1] > a[1] ? h : a, et.hist[0]);
+    const rank = Object.values(x.elo.teams).filter(o => o.r > et.r && o.n >= 10).length + 1;
+    app.appendChild($(`<div class="panel" style="margin-top:13px"><h2>Elo rating <span class="r">now ${et.r} (#${rank} in ${esc(c.meta.label)}) · peak ${peak[1]} in ${peak[0]} · dashed = 1500 start</span></h2>${trendLineSVG([{ name, color: '#F2B24C', pts: et.hist.map(h => [h[0], h[1], true, 99]) }], { fmt: v => String(Math.round(v)), label: 'Elo rating', ref: 1500 })}</div>`));
+  }
   if (!d) { app.appendChild($('<div class="cov" style="margin-top:13px">Results by year, head-to-heads and top players arrive with the next weekly data rebuild.</div>')); return; }
   const g2 = $('<div class="grid bento" style="margin-top:13px"></div>');
   const yrs = d.years.map(y => ({ year: y[0], pct: y[1] ? Math.round(100 * y[2] / y[1]) : 0, balls: y[1] >= 3 ? 999 : 0, tip: `${y[0]}: won ${y[2]} of ${y[1]} (lost ${y[3]})` }));

@@ -10,6 +10,8 @@ Built with Python, SQLite, NumPy and a plain HTML/JavaScript dashboard, rebuilt 
 
 ![Dashboard: today's discovery, the last 30 days and the milestone watch for Men's T20 Internationals](docs/screenshots/dashboard.png)
 
+![Trends for the Indian Premier League: run rate by phase, first-innings totals, boundary and dot-ball share, and who won, season by season since 2008](docs/screenshots/trends.png)
+
 ---
 
 ## Disclaimer
@@ -23,7 +25,9 @@ This is a personal learning project, not an official statistics source. Figures 
 From the data, using complete seasons up to 2025:
 
 - **IPL scoring jumped in 2023.** The average first-innings total was **162.6** from 2008 to 2022 and **187.8** from 2023 to 2025. Totals of 200 or more went from **10%** of first innings (96 of 946) to **38%** (82 of 215). The jump lines up with the Impact Player rule, which lets teams bat deeper, and the run rate has kept rising since (8.05 an over in 2021, 9.63 in 2025).
+- **The IPL's jump came first in the powerplay.** From 2008 to 2022 teams scored **7.67** an over in the powerplay, **7.77** in the middle overs and **10.10** at the death. From 2023 to 2025 that became **9.26**, **8.87** and **11.15**: the powerplay gained the most (+1.59 an over), more than the death overs (+1.05).
 - **Chasing stopped being the safe choice in the IPL.** Chasing sides won **55.3%** of decided matches before 2023 (515 of 932) and **49.5%** since (106 of 214). Bigger first-innings totals took away most of the old advantage.
+- **Team ratings predict internationals, not the IPL.** With an Elo rating for every team, the higher-rated side won **63%** of decided men's T20Is (2,779 matches between established teams), **63%** of ODIs (2,546) and **65%** of Tests (657). In the IPL it won **51%** (1,112), barely better than a coin toss: auctions reshuffle squads every year, so last season's results say little about this one.
 - **The toss barely matters.** Across every decided match in the data, the toss winner won **50.7%** of T20s (13,529 matches), **49.7%** of ODIs (4,783) and **52.2%** of Tests (2,056).
 - **Most men's T20Is are no longer between the top teams.** Before 2019, **59%** of men's T20Is were between two ICC full members (499 of 852). After the ICC gave every member T20I status, that fell to **22%** (558 of 2,499). Raw leaderboards fill up with figures built against associate nations, which is why the dashboard has a "full members only" switch that rebuilds every view from full-member matches only.
 - **A small counting rule moved career totals.** The first version counted a batter's balls the way a bowler's are counted, leaving out no-balls. Batters do get the runs and the ball off a no-ball, so their totals were too low. With that fixed, Alastair Cook's Test runs in the data are **12,472**, matching his official total, and a 513,000-check audit now guards every weekly build.
@@ -53,10 +57,11 @@ From the data, using complete seasons up to 2025:
 
 ### Teams, grounds and matches
 
-- **Team pages:** win % by year, head-to-head against every opponent, top run-scorers and wicket-takers.
+- **Team ratings:** an Elo rating for every team, with the top six charted season by season, a current table with the change over the last year, and how often the higher-rated side has won.
+- **Team pages:** rating history, win % by year, head-to-head against every opponent, top run-scorers and wicket-takers.
 - **Venue pages:** first-innings average by year, toss effect, top performers and recent matches.
-- **Match pages:** the latest 40 matches per competition with run progression, runs per over, batting and bowling summaries, a win-probability line and the projected first-innings total after every over.
-- **Live scores:** live scores, fixtures and ball-by-ball commentary from Cricbuzz, with a live win chance and a projected first-innings total on T20 and ODI scorecards.
+- **Match pages:** the latest 40 matches per competition with run progression, runs per over, batting and bowling summaries, each side's rating before the match, a win-probability line, and the projected total after every over for both innings.
+- **Live scores:** live scores, fixtures and ball-by-ball commentary from Cricbuzz, with a live win chance, a projected first-innings total and the chasing side's pace on T20 and ODI scorecards.
 
 ### Exploring the data
 
@@ -84,7 +89,8 @@ From the data, using complete seasons up to 2025:
 - **Era-adjusted index:** a batter's runs against what an average batter would have scored on the same balls in the same seasons (100 = par).
 - **Dominance:** a batter-versus-bowler score from 0 to 1 combining scoring rate and dismissal rate, shrunk toward 0.5 for small samples.
 - **Win probability:** two logistic models per format and gender (first innings: runs, balls, wickets; chase: runs needed, balls left, wickets), fitted on every end-of-over state. Held-out Brier scores are about 0.21 (first innings) and 0.12 (chase).
-- **Projected total:** runs so far plus the average runs still to come from the same overs completed and wickets lost, across every completed first innings in that format. On held-out matches it is typically 17 runs out at the halfway mark of a T20 and 32 in an ODI.
+- **Projected total:** runs so far plus the average runs still to come from the same overs completed and wickets lost, across every completed first innings in that format, then scaled by how much the competition has outscored that average over its last three seasons (1.18 for the IPL, 0.95 for men's T20Is). On held-out matches from the last two seasons it is typically 17 runs out at the halfway mark of a men's T20 (18 without the scaling; 15 instead of 22 for the IPL) and 35 in a men's ODI.
+- **Team ratings (Elo):** every team starts at 1500; after each match both move by 32 x (result - expected), where a win is 1, a tie or draw 0.5 and the expected score is 1 / (1 + 10^((opponent - team) / 400)). Renamed franchises (Delhi Daredevils to Delhi Capitals, for example) keep one rating.
 - **Time window:** rebuilt in the browser from per-season totals. Advanced metrics and similarity stay all-time.
 
 ---
@@ -199,7 +205,7 @@ all_json.zip ─► build_all.py ─► cil.db (SQLite) ─► pipeline.py + ext
 | Code deploys | GitHub Actions (`site.yml`) | A push touching `web/` redeploys with the latest data, without a rebuild |
 | Live scores API | Vercel (`api/index.py`) | Runs `serve.py`'s `/api/*`, CDN-cached (live 30 s, schedule 10 min) |
 
-The heavy work happens once a week in the build. Each competition gets a small core file loaded on first view, plus profile detail, matchups, extras (seasons, venues, teams, matches, trends) and innings files loaded only when a page needs them. The innings files are split into 16 parts by player, so a profile downloads about a sixteenth of them.
+The heavy work happens once a week in the build. Each competition gets a small core file loaded on first view, plus profile detail, matchups, extras (seasons, venues, teams, matches, trends) and innings files loaded only when a page needs them. The profile detail and innings files are also split into 16 parts by player, so a single profile downloads about a sixteenth of them (about 2 MB compressed for a men's T20I profile instead of about 3.7 MB). Views that compare every player still load the whole detail file.
 
 If the weekly build fails, the site keeps serving the last good data, the footer's "data updated" date turns red after 10 days, and the workflow opens a GitHub issue (closed again by the next successful build). The browser only re-ranks for a time window and does the win-probability maths.
 
@@ -228,7 +234,8 @@ All three run in CI on every push.
 - **Coverage has gaps.** Ball-by-ball data starts in 2001 for men's internationals and 2003 for women's, and leagues from their first covered season. Some matches are [missing from Cricsheet's archive](https://cricsheet.org/missing/), and domestic competitions it doesn't cover (such as the Ranji Trophy) aren't here at all.
 - **No Afghanistan matches.** Cricsheet withholds every match involving Afghanistan ([their explanation](https://cricsheet.org/article/explanation-for-withholding-of-afghanistani-matches/)), so Afghanistan's players and results are missing and their opponents' totals are lower.
 - **Correlation, not cause.** The findings above, like the 2023 jump in IPL totals, line up with rule changes but the data can't separate the rule from other changes such as pitches or batting depth.
-- **The win-probability models and projected totals don't know the teams,** the pitch, the weather or rain rules. They only see the score, balls and wickets, and the projection averages over every era, so it runs low for today's higher-scoring T20 leagues.
+- **The win-probability models and projected totals don't know the teams,** the pitch, the weather or rain rules. They only see the score, balls and wickets (plus a per-competition scoring factor for projections). The Elo ratings aren't fed into them yet.
+- **Ratings are only as good as the schedule.** Elo can only compare teams that play each other, so associate nations that mostly play other associates can rate higher than their real strength (Uganda sits near the top of men's T20Is). The full-members switch avoids this.
 - **Small samples.** Matchups need only 12 balls (18 in Tests). Dominance is shrunk toward neutral to help, but short histories are still noisy.
 - **Photos are incomplete.** Players without a Cricbuzz headshot or a freely licensed Wikipedia photo show initials.
 - **Live scores depend on Cricbuzz's pages,** which can change or rate-limit without notice.
@@ -237,9 +244,9 @@ All three run in CI on every push.
 
 ## Suggested Future Features
 
-- **Era-aware projections:** weight recent seasons more, so projected totals keep up with rising scoring.
-- **Team-aware win probability** that uses team strength, not just the score.
-- **Second-innings projection:** where a chase is likely to end, not just who wins.
+- **Team-aware win probability** that adds the Elo gap between the sides to the score-based model.
+- **Venue-aware projections:** scale projected totals for the ground as well as the competition.
+- **Player ratings over time:** an Elo-style rating for batter-versus-bowler contests.
 - **Custom stat definitions** built in the browser.
 
 ---

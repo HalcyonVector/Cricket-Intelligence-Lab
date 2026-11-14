@@ -775,7 +775,7 @@ function gLabel(m){return m.gender==='female'?"Women's":m.gender==='male'?"Men's
 function loadCohort(key,cb){
   if(COH[key])return cb(COH[key]);
   const s=document.createElement('script');s.src='cohorts/'+encodeURIComponent(key)+'.js';
-  s.onload=()=>{cb(COH[key]||null);if(COH[key])ensureDetail(key,()=>{});};s.onerror=()=>cb(null);document.head.appendChild(s);
+  s.onload=()=>cb(COH[key]||null);s.onerror=()=>cb(null);document.head.appendChild(s);
 }
 /* Profile-only fields (phase/context splits, matchups, similar players) live in cohorts/d/<key>.js.
    The Overview paints from the core bundle; this loads in the background and is merged in place.
@@ -785,6 +785,20 @@ window.__detailLoaded=(key,d)=>{const c=COH[key];if(!c)return;
   ['players','bowlers'].forEach(g=>{const src=d[g]||{},dst=c[g]||{};for(const id in src)if(dst[id])Object.assign(dst[id],src[id]);});
   const x=typeof _X!=='undefined'&&_X[key];if(x)x._flt=null;
   if(_muStore[key]){_muStore[key]._attached=null;_attachMatchups(key);}};
+/* A single profile needs only its own player's detail: cohorts/d/<key>/<shard>.js (1/16th of the
+   file, by the first hex digit of the id). Older data without shards falls back to the whole file. */
+const DSHARD={};
+const _shardOf=pid=>{const c=String(pid||'0')[0].toLowerCase();return /[0-9a-f]/.test(c)?c:'0';};
+window.__detailShard=(key,sh,d)=>{window.__detailLoaded(key,d);(DSHARD[key]=DSHARD[key]||{})[sh]=true;};
+function ensureDetailShard(key,pid,cb){
+  const sh=_shardOf(pid),st=DSHARD[key]=DSHARD[key]||{};
+  if(st[sh]===true||DETAIL[key]===true)return cb();
+  if(Array.isArray(st[sh])){st[sh].push(cb);return;}
+  const q=st[sh]=[cb],s=document.createElement('script');s.src='cohorts/d/'+encodeURIComponent(key)+'/'+sh+'.js';
+  s.onload=()=>{if(st[sh]!==true)st[sh]=true;q.forEach(f=>f());};
+  s.onerror=()=>{st[sh]=undefined;ensureDetail(key,()=>q.forEach(f=>f()));};
+  document.head.appendChild(s);
+}
 function ensureDetail(key,cb){
   const st=DETAIL[key];
   if(st===true)return cb();
@@ -793,7 +807,8 @@ function ensureDetail(key,cb){
   const s=document.createElement('script');s.src='cohorts/d/'+encodeURIComponent(key)+'.js';
   const done=()=>{DETAIL[key]=true;q.forEach(f=>f());};s.onload=done;s.onerror=done;document.head.appendChild(s);
 }
-const _needsDetail=()=>!!(state.player||state.bowler)||['compare','network','research','bowlto'].includes(state.view);
+const _needsDetail=()=>['compare','network','research','bowlto'].includes(state.view)&&!state.player&&!state.bowler;
+const _profileId=()=>state.player||state.bowler||null;
 
 function dropdown(items,value,onpick){
   const el=document.createElement('div');el.className='drop';
@@ -922,6 +937,12 @@ function render(){
     const key=dk;_MU_TRIED[key]=1;
     app.innerHTML='<div class="loadbox"><div class="spinner"></div><div>Loading matchups…</div></div>';
     ensureMatchups(key,()=>{if(dataKey()===key)render();});
+    return;
+  }
+  if(_profileId()&&DETAIL[dk]!==true&&(DSHARD[dk]||{})[_shardOf(_profileId())]!==true){
+    const key=dk,pid=_profileId();
+    app.innerHTML='<div class="loadbox"><div class="spinner"></div><div>Loading player details…</div></div>';
+    ensureDetailShard(key,pid,()=>{if(dataKey()===key&&_profileId()===pid)render();});
     return;
   }
   if(_needsDetail()&&DETAIL[dk]!==true){
