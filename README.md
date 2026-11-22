@@ -39,7 +39,7 @@ From the data, using complete seasons up to 2025:
 
 ### Players
 
-- **Batter and bowler profiles:** percentiles within the competition, archetypes, phase splits (powerplay, middle, death), situation splits, by-venue records and the most similar players.
+- **Batter and bowler profiles:** headed by a card in the player's team colours, then percentiles within the competition, archetypes, phase splits (powerplay, middle, death), situation splits, by-venue records and the most similar players.
 - **Form by season:** runs, average or strike rate (wickets, economy or strike rate for bowlers) per season, for one competition or all of them.
 - **Rolling form:** average, strike rate or runs per innings over the last 10 innings at every point of a career (economy, wickets per innings or average for bowlers), against the career line, so slumps and hot streaks stand out.
 - **Where they stand:** each key stat drawn against every rated player in the competition, so "96th percentile" shows how far ahead that really is.
@@ -61,7 +61,7 @@ From the data, using complete seasons up to 2025:
 - **Team pages:** rating history, win % by year, head-to-head against every opponent, top run-scorers and wicket-takers.
 - **Venue pages:** first-innings average by year, toss effect, top performers and recent matches.
 - **Match pages:** the latest 40 matches per competition with run progression, runs per over, batting and bowling summaries, each side's rating before the match, a win-probability line, and the projected total after every over for both innings.
-- **Live scores:** live scores, fixtures and ball-by-ball commentary from Cricbuzz, with a live win chance, a projected first-innings total and the chasing side's pace on T20 and ODI scorecards.
+- **Live scores:** live scores, fixtures and ball-by-ball commentary from Cricbuzz, with a live win chance, a projected first-innings total and the chasing side's pace on T20 and ODI scorecards. Live commentary shows the recent overs as ball-by-ball chips (4s, 6s and wickets marked).
 
 ### Exploring the data
 
@@ -263,4 +263,4 @@ GitHub: [@HalcyonVector](https://github.com/HalcyonVector)
 
 **Data:** [Cricsheet](https://cricsheet.org), Open Data Commons Open Database License (ODbL). If you reuse the data, attribute Cricsheet and share alike.
 
-**Code:** no license specified yet; contact the author for usage rights.
+**Code:** MIT License. See [LICENSE](LICENSE).

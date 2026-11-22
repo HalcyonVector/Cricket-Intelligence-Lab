@@ -217,6 +217,8 @@ footer a{color:var(--muted)}
 .covrow .cv{font-size:13.5px;line-height:1.55;color:var(--muted)}
 .covrow a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--line2);white-space:nowrap}
 @media(max-width:860px){.covrow{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}}
+.cfoot{display:flex;flex-direction:column;gap:4px;font-size:13px}
+@media(max-width:640px){.cfoot{font-size:12.5px}}
 </style>
 </head>
 <body>
@@ -345,9 +347,10 @@ footer a{color:var(--muted)}
 </section>
 
 <footer>
-  <div class="wrap">
-    Match data from <a href="https://cricsheet.org">Cricsheet</a> (ODbL). Live data from Cricbuzz.<br>
-    Made by <a href="https://github.com/HalcyonVector">HalcyonVector</a>. <a href="https://github.com/HalcyonVector/Cricket-Intelligence-Lab">Source on GitHub</a>.
+  <div class="wrap cfoot">
+    <span class="fl-l"><b>Cricket Intelligence Lab</b>: ball-by-ball cricket analysis. Not official statistics: totals cover only matches in Cricsheet's data (<a href="https://cricsheet.org/missing/" target="_blank" rel="noopener">what's missing</a>).</span>
+    <span class="fl-l">Data: <a href="https://cricsheet.org" target="_blank" rel="noopener">Cricsheet</a> (ball-by-ball, ODbL) · <a href="https://www.cricbuzz.com" target="_blank" rel="noopener">Cricbuzz</a> (live scores) · <a href="https://www.icc-cricket.com/rankings" target="_blank" rel="noopener">ICC</a> (rankings) · <a href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a> (photos)</span>
+    <span class="fl-l">Built by <b>Sagnik</b> · <a href="https://github.com/HalcyonVector" target="_blank" rel="noopener">GitHub @HalcyonVector</a> · <a href="https://github.com/HalcyonVector/Cricket-Intelligence-Lab" target="_blank" rel="noopener">Source</a> · <a href="https://github.com/HalcyonVector/Cricket-Intelligence-Lab/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a></span>
   </div>
 </footer>
 

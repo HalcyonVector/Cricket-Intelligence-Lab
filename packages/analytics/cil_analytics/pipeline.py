@@ -21,11 +21,11 @@ import argparse, json, os, re, sqlite3, time, math
 from collections import defaultdict
 import numpy as np
 try:
-    from .extras import build_extras, write_extras, innings_log
+    from .extras import build_extras, write_extras, innings_log, player_teams
     from .winprob import train as train_winprob, write as write_winprob
     from .extras import FULL_MEMBERS
 except ImportError:  # run as a plain script
-    from extras import build_extras, write_extras, innings_log
+    from extras import build_extras, write_extras, innings_log, player_teams
     from winprob import train as train_winprob, write as write_winprob
     from extras import FULL_MEMBERS
 
@@ -901,6 +901,13 @@ def build(db="cil.db", outdir="web/data", jsdir="web/dashboard/cohorts"):
             print(f"  {spec['key']}: too small, skipped"); return
         if spec.get("fm"):
             b["meta"].update(fm=True, base_key=spec["base_key"])
+        bat_team, bowl_team = player_teams(conn)
+        for pid, rec in b["players"].items():
+            if bat_team.get(pid):
+                rec["team"] = bat_team[pid]
+        for pid, rec in b["bowlers"].items():
+            if bowl_team.get(pid):
+                rec["team"] = bowl_team[pid]
         write_matchups(jsdir, spec["key"], b.pop("_matchups_all", []), b["meta"])
         xdir = os.path.join(jsdir, "x"); os.makedirs(xdir, exist_ok=True)
         write_extras(os.path.join(xdir, f"{spec['key']}.js"), spec["key"],

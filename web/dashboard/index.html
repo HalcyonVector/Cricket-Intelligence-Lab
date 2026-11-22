@@ -872,6 +872,59 @@ to{transform:rotate(360deg)}
   header #scopeHost .drop-btn .chev{right:9px!important}
   header #dsline.cbar-r{margin-left:12px!important}
 }
+.cfoot{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 16px;line-height:1.55;max-width:1100px;margin-left:auto;margin-right:auto}
+.cfoot .fl-l{display:inline}
+.cfoot a{color:var(--muted)}
+.cfoot a:hover{color:var(--accent2)}
+.cfoot b{color:var(--muted);font-weight:600}
+@media(max-width:640px){.cfoot{flex-direction:column;align-items:center;gap:6px;text-align:center;padding:16px 16px 20px}}
+.bchip{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 5px;border-radius:12px;font:700 11.5px/1 var(--mono);background:var(--panel3);color:var(--ink);box-shadow:inset 0 0 0 1px var(--hair2)}
+.bchip.b0{color:var(--dim)}
+.bchip.b4{background:rgba(242,178,76,.18);color:#F2B24C;box-shadow:inset 0 0 0 1px rgba(242,178,76,.45)}
+.bchip.b6{background:rgba(51,209,122,.16);color:#33D17A;box-shadow:inset 0 0 0 1px rgba(51,209,122,.45)}
+.bchip.bw{background:#E5484D;color:#fff;box-shadow:none}
+.bchip.bx{color:#C8A2FF;font-size:10px}
+.recentov{margin-top:13px}
+.rov{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--hair)}
+.rov:first-of-type{border-top:none}
+.rov-n{flex:none;width:58px;font-size:12px;color:var(--dim)}
+.rov-b{flex:1;display:flex;flex-wrap:wrap;gap:5px}
+.rov-r{flex:none;font-weight:700;color:var(--ink)}
+.comm-bn .bchip{margin-top:5px;min-width:22px;height:22px;font-size:10.5px}
+.comm-bn{display:flex;flex-direction:column;align-items:center}
+@keyframes barGrow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+.bar-grow{transform-box:fill-box;transform-origin:50% 100%;animation:barGrow .55s cubic-bezier(.3,.7,.2,1) both}
+@media (prefers-reduced-motion:reduce){.bar-grow{animation:none}}
+/* player card: the profile header in the player's team colour */
+.phead.pcard{position:relative;top:auto!important;z-index:1;margin-bottom:4px;padding:14px 16px!important;border-radius:16px;border:1px solid var(--hair2);overflow:hidden;
+  background:linear-gradient(115deg,color-mix(in srgb,var(--tc) 26%,transparent) 0%,color-mix(in srgb,var(--tc) 8%,transparent) 45%,transparent 75%),var(--panel)}
+.phead.pcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--tc)}
+.phead.pcard::after{content:"";position:absolute;right:-40px;top:-40px;width:160px;height:160px;border-radius:50%;border:18px solid color-mix(in srgb,var(--tc) 10%,transparent);pointer-events:none}
+.phead.pcard .avatar{box-shadow:0 0 0 2px color-mix(in srgb,var(--tc) 70%,transparent),0 6px 18px rgba(0,0,0,.35)}
+.tchip{display:inline-flex;align-items:center;gap:6px;margin-right:8px;padding:2px 9px 2px 7px;border-radius:999px;font-size:11.5px;font-weight:600;color:var(--ink);
+  background:color-mix(in srgb,var(--tc) 18%,transparent);border:1px solid color-mix(in srgb,var(--tc) 45%,transparent)}
+.tchip i{width:8px;height:8px;border-radius:50%;background:var(--tc)}
+
+/* ---------- cricket identity ---------- */
+/* each format has its own colour: T20 red-pink, ODI green, Test cream */
+body{--fmt:#F2B24C}
+body[data-fmt="t20"]{--fmt:#FF6B7E}
+body[data-fmt="odi"]{--fmt:#33D17A}
+body[data-fmt="test"]{--fmt:#F7C873}
+.fmtb{display:inline-flex;align-items:center;height:16px;padding:0 6px;border-radius:5px;font:800 9.5px/1 var(--mono);letter-spacing:.06em;
+  color:var(--fmt);background:color-mix(in srgb,var(--fmt) 15%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--fmt) 40%,transparent);margin-right:2px}
+header #dsline .fmtb+.dot{display:none}
+/* home hero: mown-pitch stripes, the format colour on its edge */
+.dhero{background-image:linear-gradient(115deg,color-mix(in srgb,var(--fmt) 9%,transparent),transparent 55%),
+  repeating-linear-gradient(90deg,rgba(255,255,255,.022) 0 34px,transparent 34px 68px)!important;box-shadow:inset 3px 0 0 var(--fmt)!important}
+.dhero .dh-lbl{color:var(--fmt)!important}
+/* batting pages lean amber, bowling pages lean cricket-ball red */
+.prof-bat .kpi{box-shadow:inset 0 2px 0 rgba(242,178,76,.55)}
+.prof-bowl .kpi{box-shadow:inset 0 2px 0 rgba(229,72,77,.6)}
+.prof-bowl .seg button.on,.prof-bowl .seg button.active{background:linear-gradient(180deg,#F06A6E,#D9474C)!important;color:#fff!important;border-color:transparent!important}
+.prof-bowl .panel h2::before,.prof-bat .panel h2::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:8px;vertical-align:middle;flex:none;align-self:center}
+.prof-bat .panel h2::before{background:#F2B24C}
+.prof-bowl .panel h2::before{background:#E5484D}
 </style>
 </head>
 <body>
@@ -907,7 +960,7 @@ to{transform:rotate(360deg)}
 </header>
 <main class="wrap" id="app" tabindex="-1"></main>
 <div class="tooltip" id="tip"></div>
-<footer>Cricket Intelligence Lab · open <a href="https://cricsheet.org">Cricsheet</a> ball-by-ball data (ODbL / CC BY-SA) · <span id="srcnote"></span> · <a href="https://cricsheet.org/missing/">what's not covered</a> · Made by <a class="credit" href="https://github.com/HalcyonVector" target="_blank" rel="noopener">HalcyonVector</a></footer>
+<footer class="cfoot"><span class="fl-l"><b>Cricket Intelligence Lab</b>: ball-by-ball cricket analysis. Not official statistics: totals cover only matches in Cricsheet's data (<a href="https://cricsheet.org/missing/" target="_blank" rel="noopener">what's missing</a>).</span><span class="fl-l"><span id="srcnote"></span></span><span class="fl-l">Data: <a href="https://cricsheet.org" target="_blank" rel="noopener">Cricsheet</a> (ball-by-ball, ODbL) · <a href="https://www.cricbuzz.com" target="_blank" rel="noopener">Cricbuzz</a> (live scores) · <a href="https://www.icc-cricket.com/rankings" target="_blank" rel="noopener">ICC</a> (rankings) · <a href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a> (photos)</span><span class="fl-l">Built by <b>Sagnik</b> · <a href="https://github.com/HalcyonVector" target="_blank" rel="noopener">GitHub @HalcyonVector</a> · <a href="https://github.com/HalcyonVector/Cricket-Intelligence-Lab" target="_blank" rel="noopener">Source</a> · <a href="https://github.com/HalcyonVector/Cricket-Intelligence-Lab/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a></span></footer>
 
 <script src="playermeta.js" async onload="window.__metaReady&&__metaReady()" onerror="window.__noMeta=1"></script>
 <script src="playerimg.js" onerror="window.__noImg=1"></script>
@@ -1156,7 +1209,8 @@ function render(){
   nav.querySelectorAll('button').forEach(b=>{const on=b.dataset.v===state.view;b.classList.toggle('active',on);if(on)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
   const dm=meta(state.cohort)||{},ds=document.getElementById('dsline');
   if(ds){const y0=String(dm.coverage_from||'').slice(0,4),y1=String(dm.coverage_to||'').slice(0,4);
-    ds.innerHTML=`<span>${(((dm.deliveries||0))/1e6).toFixed(1)}M balls</span><span class="dot">•</span><span>${(dm.matches||0).toLocaleString()} matches</span>${(y0&&y1)?`<span class="dot">•</span><span><span class="cvw">Coverage </span>${y0}–${y1}</span>`:''}`;}
+    document.body.dataset.fmt=dm.format||'';
+    ds.innerHTML=`${dm.format?`<span class="fmtb">${esc(String(dm.format).toUpperCase())}</span>`:''}<span>${(((dm.deliveries||0))/1e6).toFixed(1)}M balls</span><span class="dot">•</span><span>${(dm.matches||0).toLocaleString()} matches</span>${(y0&&y1)?`<span class="dot">•</span><span><span class="cvw">Coverage </span>${y0}–${y1}</span>`:''}`;}
   if(window._scopeDrop)window._scopeDrop.setValue(state.cohort);
   const app=document.getElementById('app');
   const dk=dataKey();
@@ -1849,6 +1903,32 @@ function squadsHTML(squads){
   if(!squads||!squads.length)return '';
   return `<div class="panel" style="margin-top:13px"><h2>Playing XI</h2><div class="grid" style="grid-template-columns:1fr 1fr;gap:20px;margin-top:6px">${squads.map(sq=>`<div><div class="trh" style="margin-bottom:8px">${esc(sq.team)}</div>${(sq.players||[]).map(p=>`<div class="xirow"><a class="plink" data-name="${esc(p.name||'')}">${esc(p.name||'')}</a><span class="dim">${p.capt?'(c) ':''}${p.keeper?'(wk) ':''}${esc(p.role||'')}</span></div>`).join('')}</div>`).join('')}</div></div>`;
 }
+/* What happened off one ball, from Cricbuzz's commentary line: '4', '6', 'W', '•', '1', 'wd', 'nb', '1lb'... */
+function ballOutcome(c){
+  const ev=(c.events||[]).map(String),t=String(c.text||'').replace(/<[^>]+>/g,'');
+  if(ev.some(e=>/wicket|out/i.test(e))||/,\s*out\b/i.test(t))return 'W';
+  if(ev.includes('six')||/,\s*SIX/i.test(t))return '6';
+  if(ev.includes('four')||/,\s*FOUR/i.test(t))return '4';
+  let m=/,\s*(\d+)?\s*(wides?|no ball|leg byes?|byes?)/i.exec(t);
+  if(m){const n=m[1]||'',k=m[2].toLowerCase();return k.startsWith('wide')?(n&&n!=='1'?n+'wd':'wd'):k.startsWith('no')?'nb':(n||'1')+(k.startsWith('leg')?'lb':'b');}
+  m=/,\s*(\d+)\s*runs?/i.exec(t);if(m)return m[1];
+  if(/,\s*no run/i.test(t))return '•';
+  return null;
+}
+const ballChip=o=>`<span class="bchip ${o==='W'?'bw':o==='6'?'b6':o==='4'?'b4':o==='•'?'b0':/[a-z]/.test(o)?'bx':''}">${esc(o)}</span>`;
+/* The latest few overs as rows of ball chips, newest first. */
+function recentOversHTML(list){
+  const overs=[],seen={};
+  for(const c of list){ if(c.ball==null||isNaN(parseFloat(c.ball)))continue;
+    const o=ballOutcome(c);if(!o)continue;
+    const k=(c.inn||'')+':'+Math.floor(parseFloat(c.ball));
+    if(!seen[k]){if(overs.length>=3)break;seen[k]={no:Math.floor(parseFloat(c.ball))+1,balls:[]};overs.push(seen[k]);}
+    seen[k].balls.unshift(o);
+  }
+  if(!overs.length)return '';
+  const runs=b=>b.reduce((a,o)=>a+(o==='W'||o==='•'?0:/^\d+$/.test(o)?+o:/^(\d+)/.test(o)?+o.match(/^(\d+)/)[1]:1),0);
+  return `<div class="panel recentov"><h2>Recent overs</h2>${overs.map(ov=>`<div class="rov"><span class="rov-n">Over ${ov.no}</span><span class="rov-b">${ov.balls.map(ballChip).join('')}</span><span class="rov-r num">${runs(ov.balls)}</span></div>`).join('')}</div>`;
+}
 function commentaryHTML(d){
   const list=(d&&d.commentary)||[];const full=!!(d&&d.full);
   if(!list.length)return '<div class="cov">No commentary available.</div>';
@@ -1856,9 +1936,10 @@ function commentaryHTML(d){
     ?'<div class="dim" style="text-align:center;font-size:10.5px;margin-bottom:6px">Full ball-by-ball - built up live while the app watches the match</div>'
     :'<div class="dim" style="text-align:center;font-size:10.5px;margin-bottom:6px">Latest overs - commentary fills in as the match progresses (keep the app open)</div>';
   const cls=ev=>{ev=ev||[];return ev.includes('six')?'ev6':ev.includes('four')?'ev4':(ev.some(e=>/wicket|out/.test(e)))?'evw':'';};
-  return `<div class="panel" style="margin-top:13px">${note}<div class="comm">${list.map(c=>{
+  return `${recentOversHTML(list)}<div class="panel" style="margin-top:13px">${note}<div class="comm">${list.map(c=>{
     const ov=c.over?`<div class="comm-over"><span>Over ${esc(String(c.over.over??''))}</span><span class="num">${esc(c.over.team||'')} ${esc(c.over.score||'')}</span></div>`:'';
-    const bn=(c.ball!=null)?`<div class="comm-bn">${esc(String(c.ball))}</div>`:'<div class="comm-bn"></div>';
+    const bo=c.ball!=null?ballOutcome(c):null;
+    const bn=(c.ball!=null)?`<div class="comm-bn">${esc(String(c.ball))}${bo?ballChip(bo):''}</div>`:'<div class="comm-bn"></div>';
     return `${ov}<div class="comm-row ${cls(c.events)}">${bn}<div class="comm-tx">${c.text||''}</div></div>`;}).join('')}</div></div>`;
 }
 function factsHTML(list){

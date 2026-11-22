@@ -421,5 +421,15 @@ def innings_log(conn, min_inns=INNINGS_MIN):
     return keep(bat), keep(bowl)
 
 
+def player_teams(conn):
+    """Each player's team in their most recent match in this competition (batting side for batters,
+    fielding side for bowlers). Drives the team colours on profiles."""
+    bat = {r["pid"]: r["t"] for r in _rows(conn, """SELECT s.batter_id pid, s.batting_team t, MAX(m.match_date || s.match_id) k
+            FROM sd s JOIN dim_match m ON m.match_id=s.match_id WHERE s.batter_id IS NOT NULL GROUP BY s.batter_id""")}
+    bowl = {r["pid"]: r["t"] for r in _rows(conn, """SELECT s.bowler_id pid, s.bowling_team t, MAX(m.match_date || s.match_id) k
+            FROM sd s JOIN dim_match m ON m.match_id=s.match_id WHERE s.bowler_id IS NOT NULL GROUP BY s.bowler_id""")}
+    return bat, bowl
+
+
 def write_extras(path, key, data, write):
     write(path, f"window.__extrasLoaded({json.dumps(key)},{json.dumps(data, separators=(',', ':'))});")

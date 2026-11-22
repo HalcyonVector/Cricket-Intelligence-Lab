@@ -311,7 +311,7 @@ playerView = function (pid) {
   if (useF) withSince(() => run(), document.createElement('div')); else run();
   if ((state.since || state.fm) && !_X[dataKey()]) ensureExtras(dataKey(), () => render());
   const xf = _X[dataKey()], c = useF && xf && xf._flt ? xf._flt.c : cur(), p = c.players[pid]; if (!p || !w || !w.firstElementChild) return w;
-  stickyHeader(w);
+  stickyHeader(w); teamCard(w, p); w.classList.add('prof-bat');
   if (useF) { const b = $(filterBanner()); w.insertBefore(b, w.children[1] || null); _wireClear(b); }
   if (outside) w.insertBefore($('<div class="cov">No balls faced in the current filter selection, so this profile shows all their matches.</div>'), w.children[1] || null);
   w.insertBefore(alsoPlayedStrip(pid, false), w.children[1] || null);
@@ -450,7 +450,7 @@ bowlerProfile = function (id) {
   if (useSince) withSince(() => { w = _bowlerProfile(id); }, document.createElement('div')); else w = _bowlerProfile(id);
   if ((state.since || state.fm) && !_X[dataKey()]) ensureExtras(dataKey(), () => render());
   const xf = _X[dataKey()], c = useSince && xf && xf._flt ? xf._flt.c : cur(), b = (c.bowlers || {})[id]; if (!b || !w || !w.firstElementChild) return w;
-  stickyHeader(w);
+  stickyHeader(w); teamCard(w, b); w.classList.add('prof-bowl');
   const hdr = w.querySelector('.phead h1');
   if (hdr && b.archetype) hdr.after($(`<span class="arch" style="background:${BOWL_ARCH_COLOR[b.archetype] || '#888'}22;color:${BOWL_ARCH_COLOR[b.archetype] || '#aaa'}" title="${esc(GLOSSARY[b.archetype.toLowerCase()] || '')}">${esc(b.archetype)}</span>`));
   if (useSince) { const bn = $(filterBanner()); w.insertBefore(bn, w.children[1] || null); _wireClear(bn); }
@@ -573,7 +573,55 @@ function matchesView(app) {
     draw(''); q.querySelector('#mq').oninput = e => draw(e.target.value.toLowerCase().trim());
   });
 }
-const INN_COL = ['#F2B24C', '#6FA8FF', '#FF6B7E', '#33D17A'];
+
+/* ---------- Team colours: each side's own colour, tuned to read on the dark background ---------- */
+const TEAM_COL = {
+  'India': '#3B82F6', 'Australia': '#FACC15', 'England': '#E5484D', 'New Zealand': '#B4B7BE', 'Pakistan': '#22C55E',
+  'South Africa': '#10B981', 'Sri Lanka': '#818CF8', 'West Indies': '#C0365A', 'Bangladesh': '#EF4444', 'Afghanistan': '#60A5FA',
+  'Zimbabwe': '#F97316', 'Ireland': '#4ADE80', 'Netherlands': '#FB923C', 'Scotland': '#93C5FD', 'Nepal': '#F43F5E',
+  'United Arab Emirates': '#A3A3A3', 'Oman': '#F87171', 'Namibia': '#38BDF8', 'United States of America': '#60A5FA',
+  'Canada': '#EF4444', 'Uganda': '#FACC15', 'Papua New Guinea': '#FB7185', 'Hong Kong': '#F43F5E', 'Kenya': '#4ADE80',
+  // IPL
+  'Chennai Super Kings': '#FACC15', 'Mumbai Indians': '#3B82F6', 'Royal Challengers Bengaluru': '#E5484D', 'Royal Challengers Bangalore': '#E5484D',
+  'Kolkata Knight Riders': '#8B5CF6', 'Sunrisers Hyderabad': '#F97316', 'Delhi Capitals': '#60A5FA', 'Delhi Daredevils': '#60A5FA',
+  'Punjab Kings': '#F43F5E', 'Kings XI Punjab': '#F43F5E', 'Rajasthan Royals': '#EC4899', 'Gujarat Titans': '#94A3B8',
+  'Lucknow Super Giants': '#22D3EE', 'Deccan Chargers': '#CBD5E1', 'Rising Pune Supergiant': '#A78BFA', 'Rising Pune Supergiants': '#A78BFA',
+  'Gujarat Lions': '#F97316', 'Pune Warriors': '#60A5FA', 'Kochi Tuskers Kerala': '#F97316',
+  // BBL / WBBL
+  'Perth Scorchers': '#F97316', 'Sydney Sixers': '#EC4899', 'Sydney Thunder': '#A3E635', 'Melbourne Stars': '#22C55E',
+  'Melbourne Renegades': '#EF4444', 'Brisbane Heat': '#22D3EE', 'Adelaide Strikers': '#3B82F6', 'Hobart Hurricanes': '#8B5CF6',
+  // PSL
+  'Lahore Qalandars': '#4ADE80', 'Karachi Kings': '#60A5FA', 'Islamabad United': '#F43F5E', 'Peshawar Zalmi': '#FACC15',
+  'Quetta Gladiators': '#A78BFA', 'Multan Sultans': '#22D3EE',
+  // CPL
+  'Trinbago Knight Riders': '#8B5CF6', 'Guyana Amazon Warriors': '#22C55E', 'Jamaica Tallawahs': '#FACC15', 'Barbados Royals': '#EC4899',
+  'Saint Lucia Kings': '#60A5FA', 'St Kitts and Nevis Patriots': '#F43F5E',
+};
+function teamColor(name) {
+  if (!name) return null;
+  const n = String(name).replace(/ (Women|Men|A|U19|Under-19s?)$/i, '').trim();
+  return TEAM_COL[n] || null;
+}
+const _hexRgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const _colDist = (a, b) => { const x = _hexRgb(a), y = _hexRgb(b); return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]); };
+/* Colours for the two sides of a match: their own when they differ enough, the usual pair otherwise. */
+function matchColors(t1, t2) {
+  let a = teamColor(t1) || '#F2B24C', b = teamColor(t2) || '#6FA8FF';
+  if (_colDist(a, b) < 90) b = _colDist(a, '#6FA8FF') > 90 ? '#6FA8FF' : '#F2B24C';
+  return [a, b];
+}
+/* Player-card header: the profile's top block takes the player's team colour. */
+function teamCard(w, rec) {
+  const ph = w && w.querySelector('.phead'); if (!ph || ph.classList.contains('pcard')) return;
+  const col = teamColor(rec && rec.team);
+  ph.classList.add('pcard'); ph.style.setProperty('--tc', col || '#F2B24C');
+  if (rec && rec.team) {
+    const sub = ph.querySelector('.dim'); if (sub) sub.insertAdjacentHTML('afterbegin', `<span class="tchip"><i></i>${esc(rec.team)}</span>`);
+  }
+}
+
+const INN_COL_DEFAULT = ['#F2B24C', '#6FA8FF', '#FF6B7E', '#33D17A'];
+let INN_COL = INN_COL_DEFAULT.slice();
 function wormSVG(inns) {
   const W = CW(720), H = 240, pad = 38, maxO = Math.max(...inns.map(i => i.overs.length), 1);
   const cum = inns.map(i => { let s = 0; return i.overs.map(o => (s += o[0])); });
@@ -595,6 +643,9 @@ function manhattanSVG(inns) {
 function matchDetail(app, x, id) {
   const mt = x.recent.find(r => r.id === id);
   if (!mt) { app.appendChild($('<div class="cov">This match is no longer in the recent list.</div>')); return; }
+  { const [ca, cb] = matchColors(mt.teams[0], mt.teams[1]), byTeam = { [mt.teams[0]]: ca, [mt.teams[1]]: cb };
+    INN_COL = mt.inns.map((inn, k) => byTeam[inn.team] || INN_COL_DEFAULT[k % 4]);
+    while (INN_COL.length < 4) INN_COL.push(INN_COL_DEFAULT[INN_COL.length]); }
   const back = $('<div class="row" style="margin-top:20px;gap:10px;align-items:center"><button class="pill" id="mback">← matches</button></div>'); app.appendChild(back);
   back.querySelector('#mback').onclick = () => { state.match = null; render(); };
   app.appendChild($(`<div style="margin-top:10px"><h1 style="margin:0">${esc(mt.teams[0])} <span class="dim">vs</span> ${esc(mt.teams[1])}</h1><p class="sub">${esc(mt.date)} · <a ${goAttr('venue', (mt.venue || '').split(',')[0].trim())}>${esc(mt.venue || '')}</a>${mt.stage ? ' · ' + esc(mt.stage) : ''} · toss: ${esc(mt.toss[0] || '-')} chose to ${esc(mt.toss[1] || '-')}</p></div>`));
@@ -787,7 +838,10 @@ function eloPanel(x, c) {
   if (!active.length) return null;
   const top = active.slice(0, 6);
   const yrs = [...new Set(top.flatMap(([, t]) => t.hist.map(h => h[0])))].sort((a, b) => a - b);
-  const series = top.map(([name, t], i) => ({ name, color: ELO_COLS[i], pts: t.hist.map(h => [h[0], h[1], true, 99]) }));
+  const used = [];
+  const series = top.map(([name, t], i) => { let col = teamColor(name);
+    if (!col || used.some(u => _colDist(u, col) < 70)) col = ELO_COLS.find(c => !used.some(u => _colDist(u, c) < 70)) || ELO_COLS[i];
+    used.push(col); return { name, color: col, pts: t.hist.map(h => [h[0], h[1], true, 99]) }; });
   const acc = E.acc && E.acc[1] ? Math.round(100 * E.acc[0] / E.acc[1]) : null;
   const yearAgo = t => { const h = t.hist.filter(v => v[0] <= latestYr - 1); return h.length ? h[h.length - 1][1] : null; };
   const rows = active.map(([name, t], i) => { const y = yearAgo(t), d = y == null ? null : t.r - y;
@@ -817,7 +871,7 @@ function teamDetail(app, x, name) {
   if (et && et.hist.length >= 2) {
     const peak = et.hist.reduce((a, h) => h[1] > a[1] ? h : a, et.hist[0]);
     const rank = Object.values(x.elo.teams).filter(o => o.r > et.r && o.n >= 10).length + 1;
-    app.appendChild($(`<div class="panel" style="margin-top:13px"><h2>Elo rating <span class="r">now ${et.r} (#${rank} in ${esc(c.meta.label)}) · peak ${peak[1]} in ${peak[0]} · dashed = 1500 start</span></h2>${trendLineSVG([{ name, color: '#F2B24C', pts: et.hist.map(h => [h[0], h[1], true, 99]) }], { fmt: v => String(Math.round(v)), label: 'Elo rating', ref: 1500 })}</div>`));
+    app.appendChild($(`<div class="panel" style="margin-top:13px"><h2>Elo rating <span class="r">now ${et.r} (#${rank} in ${esc(c.meta.label)}) · peak ${peak[1]} in ${peak[0]} · dashed = 1500 start</span></h2>${trendLineSVG([{ name, color: teamColor(name) || '#F2B24C', pts: et.hist.map(h => [h[0], h[1], true, 99]) }], { fmt: v => String(Math.round(v)), label: 'Elo rating', ref: 1500 })}</div>`));
   }
   if (!d) { app.appendChild($('<div class="cov" style="margin-top:13px">Results by year, head-to-heads and top players arrive with the next weekly data rebuild.</div>')); return; }
   const g2 = $('<div class="grid bento" style="margin-top:13px"></div>');
@@ -1178,6 +1232,7 @@ function decorateGlossary(root) {
 /* ===================== wiring ===================== */
 const _paint = paint;
 paint = function (app) {
+  if (!(state.view === 'matches' && state.match)) INN_COL = INN_COL_DEFAULT.slice();
   _paint(app);
   if (state.fm && meta(state.cohort).intl && state.view !== 'live' && state.view !== 'schedule') {
     const c = cur(), ok = c && c.meta && c.meta.fm;
@@ -1243,3 +1298,47 @@ document.addEventListener('click', e => {
   const n = e.target.closest('.covnote'); if (!n || e.target.closest('a') || window.innerWidth >= 640) return;
   n.classList.toggle('open');
 });
+
+/* ---------- Motion: big numbers count up and charts draw themselves in when they come into view ----------
+   Skipped entirely for people who ask their system for reduced motion. */
+(function () {
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce || !('IntersectionObserver' in window)) return;
+  const NUM = /^([^\d-]*)(-?[\d,]*\.?\d+)(.*)$/;
+  function countUp(el) {
+    if (el.dataset.counted || el.children.length) return; el.dataset.counted = '1';
+    const raw = el.textContent.trim(), m = NUM.exec(raw); if (!m) return;
+    const target = parseFloat(m[2].replace(/,/g, '')); if (!isFinite(target) || Math.abs(target) < 2) return;
+    const dec = (m[2].split('.')[1] || '').length, comma = m[2].includes(','), t0 = performance.now(), dur = 700;
+    const fmt = v => { let s = v.toFixed(dec); if (comma) s = Number(s).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec }); return m[1] + s + m[3]; };
+    const step = now => { const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+      el.textContent = fmt(target * e); if (k < 1) requestAnimationFrame(step); else el.textContent = raw; };
+    requestAnimationFrame(step);
+  }
+  function drawIn(svg) {
+    if (svg.dataset.drawn) return; svg.dataset.drawn = '1';
+    svg.querySelectorAll('polyline').forEach(pl => {
+      let len = 0; try { len = pl.getTotalLength(); } catch (e) { return; }
+      if (!len || len < 40) return;
+      pl.style.strokeDasharray = len; pl.style.strokeDashoffset = len;
+      pl.getBoundingClientRect();
+      pl.style.transition = 'stroke-dashoffset .9s cubic-bezier(.3,.7,.2,1)'; pl.style.strokeDashoffset = 0;
+      setTimeout(() => { pl.style.strokeDasharray = ''; pl.style.strokeDashoffset = ''; pl.style.transition = ''; }, 1000);
+    });
+    const bars = [...svg.querySelectorAll('rect')].filter(r => +r.getAttribute('height') > 2 && +r.getAttribute('width') < 80);
+    if (bars.length >= 3) bars.forEach((r, i) => { r.classList.add('bar-grow'); r.style.animationDelay = Math.min(i * 18, 360) + 'ms'; });
+  }
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    if (!e.isIntersecting) return; io.unobserve(e.target);
+    if (e.target.tagName.toLowerCase() === 'svg') drawIn(e.target); else countUp(e.target);
+  }), { threshold: 0.25 });
+  const scan = root => {
+    root.querySelectorAll('.kpi .n, .hx-big').forEach(el => { if (!el.dataset.counted) io.observe(el); });
+    root.querySelectorAll('svg[role="img"]').forEach(svg => { if (!svg.dataset.drawn) io.observe(svg); });
+  };
+  const app = document.getElementById('app'); if (!app) return;
+  let pend = 0;
+  new MutationObserver(() => { if (pend) return; pend = requestAnimationFrame(() => { pend = 0; scan(app); }); })
+    .observe(app, { childList: true, subtree: true });
+  scan(app);
+})();
