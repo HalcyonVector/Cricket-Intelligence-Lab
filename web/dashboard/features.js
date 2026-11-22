@@ -57,6 +57,7 @@ function wireLinks(root) {
     el.onclick = e => { e.preventDefault(); const [k, v] = el.dataset.go.split('='); state.player = state.bowler = null;
       state.venue = state.team = state.match = null; if (k === 'venue') { state.view = 'venues'; state.venue = v; }
       else if (k === 'team') { state.view = 'teams'; state.team = v; } else if (k === 'match') { state.view = 'matches'; state.match = v; }
+      else if (k === 'view') { state.view = v; }
       render(); };
   });
 }
@@ -983,13 +984,55 @@ matchupsView = function (app) {
 const plural = (n, one, many) => `${n.toLocaleString()} ${n === 1 ? one : (many || one + 's')}`;
 const oversOf = balls => balls == null ? '' : `${Math.floor(balls / 6)}${balls % 6 ? '.' + balls % 6 : ''} ov`;
 const _homeView = homeView;
+
+/* ---------- Overview, livelier: photos, a big headline number, an at-a-glance strip ---------- */
+function photoOf(pid, name) {
+  const m = (window.CIL_PLAYERMETA || {})[pid] || {};
+  return playerImg(name, m.name, pid) || m.photo || '';
+}
+const faceHTML = (pid, name, cls) => `<span class="face ${cls || ''}">${(() => { const u = photoOf(pid, name);
+  return u ? `<img src="${esc(u)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()"/>` : ''; })()}<i>${esc(initials(name))}</i></span>`;
+const GLANCE_IC = {
+  matches: '<path d="M4 20V10l8-6 8 6v10"/><path d="M9 20v-6h6v6"/>',
+  runs: '<path d="M4 18 18 4"/><path d="m15 4 3 0 0 3"/><path d="M5 13l6 6"/>',
+  sixes: '<circle cx="12" cy="12" r="8"/><path d="M8.5 6.5c2.2 2 3.3 3.8 3.3 5.5s-1.1 3.5-3.3 5.5M15.5 6.5c-2.2 2-3.3 3.8-3.3 5.5s1.1 3.5 3.3 5.5"/>',
+  wkts: '<path d="M7 21V5M12 21V5M17 21V5"/><path d="M6 4.5h12"/>',
+};
+function glanceStrip(c, x) {
+  const T = (x && x.trend) || [], C = (x && x.trend_cols) || [];
+  if (!T.length) return null;
+  const col = k => C.indexOf(k), sum = k => T.reduce((a, r) => a + (r[col(k)] || 0), 0);
+  const last = T[T.length - 1], yr = last[col('yr')];
+  const rr = last[col('balls')] ? (6 * last[col('runs')] / last[col('balls')]).toFixed(2) : null;
+  const tiles = [
+    ['matches', 'Matches', sum('matches').toLocaleString(), `${c.meta.coverage_from ? String(c.meta.coverage_from).slice(0, 4) : ''}–${yr}`, '#F2B24C'],
+    ['runs', 'Runs scored', sum('runs').toLocaleString(), rr ? `${rr} an over in ${yr}` : '', '#6FA8FF'],
+    ['sixes', 'Sixes hit', sum('sixes').toLocaleString(), `${last[col('sixes')].toLocaleString()} in ${yr}`, '#33D17A'],
+    ['wkts', 'Wickets', sum('wkts').toLocaleString(), `${last[col('wkts')].toLocaleString()} in ${yr}`, '#FF6B7E'],
+  ];
+  return $(`<div class="glance">${tiles.map(([k, l, v, sub, colr]) => `<a class="gl-t" style="--gc:${colr}" ${goAttr('view', 'trends')}>
+    <span class="gl-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${GLANCE_IC[k]}</svg></span>
+    <span class="gl-l">${l}</span><span class="gl-v kpi-like">${v}</span><span class="gl-s">${esc(sub)}</span></a>`).join('')}</div>`);
+}
+function heroDress(app, c) {
+  const hero = app.querySelector('.dhero'); if (!hero || hero.dataset.dressed) return; hero.dataset.dressed = '1';
+  const d = hero._disc; if (!d || !d.pid) return;  // the same discovery the hero's text shows
+  const p = (c.players || {})[d.pid] || (c.bowlers || {})[d.pid] || {}, name = p.name || '';
+  const big = (/<b>([^<]+)<\/b>/.exec(d.body || '') || [])[1] || '';
+  const num = (/[-\d.,]+%?/.exec(big) || [''])[0], unit = big.replace(num, '').trim();
+  hero.classList.add('dhero-x'); hero.style.setProperty('--tc', teamColor(p.team) || 'var(--fmt)');
+  hero.insertAdjacentHTML('beforeend', `<div class="dh-side">${faceHTML(d.pid, name, 'xl')}
+    ${num ? `<div class="dh-stat"><span class="dh-num kpi-like">${esc(num)}</span>${unit ? `<span class="dh-unit">${esc(unit)}</span>` : ''}</div>` : ''}</div>`);
+}
 homeView = function (app) {
   _homeView(app);
+  heroDress(app, cur());
   const c = cur(), key = c.meta.key, slot = $('<div class="grid bento homex" style="margin-top:13px"></div>');
   const first = app.firstElementChild; if (first && first.nextSibling) app.insertBefore(slot, first.nextSibling); else app.appendChild(slot);
   slot.before($(`<div style="margin-top:10px">${covNote(c, 'site')}</div>`));
   ensureExtras(key, x => {
     if (!x || dataKey() !== key) { slot.remove(); return; }
+    { const g = glanceStrip(c, x), hero = app.querySelector('.dhero'); if (g && hero && !app.querySelector('.glance')) { hero.after(g); wireLinks(g); } }
     // "Full members only" also applies here: keep performances where both sides are full members
     const fmOn = !!(state.fm && x.fm), FM = new Set(fmOn ? x.fm.teams : []);
     const keep = r => !fmOn || (FM.has(r[4]) && FM.has(r[6]));
@@ -997,16 +1040,16 @@ homeView = function (app) {
     const inns = wk ? wk.innings.filter(keep) : [], spells = wk ? wk.spells.filter(keep) : [];
     if (inns.length || spells.length) {
       const bi = inns[0], bs = spells[0];
-      const tile = (k, big, small, who, sub, mid, wkCol) => `<a class="hx-tile" ${goAttr('match', mid)}><div class="hx-k">${k}</div>
+      const tile = (k, big, small, who, sub, mid, wkCol, pi) => `<a class="hx-tile" ${goAttr('match', mid)}>${pi != null ? faceHTML(pId(x, pi), who, 'lg') : ''}<div class="hx-k">${k}</div>
         <div class="hx-big" style="color:${wkCol ? 'var(--wk)' : 'var(--accent2)'}">${big}${small ? ` <small>${small}</small>` : ''}</div>
         <div class="hx-who">${esc(who)}</div><div class="hx-sub">${sub}</div></a>`;
       const rows = [...inns.slice(1, 5).map(r => ({ r, bat: 1 })), ...spells.slice(1, 5).map(r => ({ r, bat: 0 }))];
-      slot.appendChild($(`<div class="panel s6"><h2>Last 30 days <span class="r">${esc(wk.from)} to ${esc(wk.to)} · ${plural(wk.matches, 'match', 'matches')}${fmOn ? ' · full members' : ''}</span></h2>
+      slot.appendChild($(`<div class="panel s6 hx-recent"><h2>Last 30 days <span class="r">${esc(wk.from)} to ${esc(wk.to)} · ${plural(wk.matches, 'match', 'matches')}${fmOn ? ' · full members' : ''}</span></h2>
         <div class="hx-feat">
-          ${bi ? tile('Top innings', bi[1], `(${bi[2]})`, pName(x, bi[0]), `vs ${esc(bi[4] || '')} · SR ${bi[2] ? (100 * bi[1] / bi[2]).toFixed(0) : '-'}`, bi[5]) : ''}
-          ${bs ? tile('Best spell', `${bs[1]}/${bs[2]}`, '', pName(x, bs[0]), `vs ${esc(bs[4] || '')}${bs[7] != null ? ' · ' + oversOf(bs[7]) : ''}`, bs[5], true) : ''}
+          ${bi ? tile('Top innings', bi[1], `(${bi[2]})`, pName(x, bi[0]), `vs ${esc(bi[4] || '')} · SR ${bi[2] ? (100 * bi[1] / bi[2]).toFixed(0) : '-'}`, bi[5], false, bi[0]) : ''}
+          ${bs ? tile('Best spell', `${bs[1]}/${bs[2]}`, '', pName(x, bs[0]), `vs ${esc(bs[4] || '')}${bs[7] != null ? ' · ' + oversOf(bs[7]) : ''}`, bs[5], true, bs[0]) : ''}
         </div>
-        ${rows.map(({ r, bat }) => `<a class="hx-row" ${goAttr('match', r[5])}><span><span class="hx-tag${bat ? '' : ' wk'}">${bat ? 'bat' : 'bowl'}</span>${esc(pName(x, r[0]))} <span class="dim">vs ${esc(r[4] || '')}</span></span>
+        ${rows.map(({ r, bat }) => `<a class="hx-row" ${goAttr('match', r[5])}><span>${faceHTML(pId(x, r[0]), pName(x, r[0]), 'sm')}<span class="hx-tag${bat ? '' : ' wk'}">${bat ? 'bat' : 'bowl'}</span>${esc(pName(x, r[0]))} <span class="dim">vs ${esc(r[4] || '')}</span></span>
           <b>${bat ? `${r[1]} <span class="dim">(${r[2]})</span>` : `${r[1]}/${r[2]}`}</b></a>`).join('')}</div>`));
     }
     if (fmOn) fmTrending(app, c, x);
@@ -1023,10 +1066,10 @@ homeView = function (app) {
       if (have < WKS * 0.75 || !active(x._byW[id])) continue;
       const next = (Math.floor(have / WKS) + 1) * WKS, need = next - have; if (need <= WKS * 0.2) near.push({ id, name: b.name, have, need, next, unit: 'wicket', r: need / WKS, bowler: 1 }); }
     near.sort((a, b) => a.r - b.r);
-    if (near.length) slot.appendChild($(`<div class="panel s6"><h2>Milestone watch <span class="r">active in ${lastY - 1} or ${lastY}${fmOn ? ' · vs full members' : ''}</span></h2>
-      ${near.slice(0, 5).map(n => `<div class="hx-ms"><div class="top">${pidLink(n.id, n.name, n.bowler)}<span class="dim"><b style="color:var(--ink)">${n.have.toLocaleString()}</b> / ${n.next.toLocaleString()} ${n.unit}s</span></div>
+    if (near.length) slot.appendChild($(`<div class="panel s6 hx-mile"><h2>Milestone watch <span class="r">active in ${lastY - 1} or ${lastY}${fmOn ? ' · vs full members' : ''}</span></h2>
+      ${near.slice(0, 5).map(n => `<div class="hx-ms">${faceHTML(n.id, n.name, 'md')}<div class="hx-msb"><div class="top">${pidLink(n.id, n.name, n.bowler)}<span class="dim"><b style="color:var(--ink)">${n.have.toLocaleString()}</b> / ${n.next.toLocaleString()} ${n.unit}s</span></div>
         <div class="hx-bar${n.bowler ? ' wk' : ''}"><span style="width:${(100 * n.have / n.next).toFixed(1)}%"></span></div>
-        <div class="hx-go">${plural(n.need, n.unit)} to go</div></div>`).join('')}
+        <div class="hx-go">${plural(n.need, n.unit)} to go</div></div></div>`).join('')}
       <div class="note" style="margin-top:8px">Counts are within ${esc(c.meta.label)}${fmOn ? ', matches between full members only' : ''}.</div></div>`));
     if (!slot.children.length) slot.remove(); else wireLinks(slot);
   });
@@ -1333,7 +1376,7 @@ document.addEventListener('click', e => {
     if (e.target.tagName.toLowerCase() === 'svg') drawIn(e.target); else countUp(e.target);
   }), { threshold: 0.25 });
   const scan = root => {
-    root.querySelectorAll('.kpi .n, .hx-big').forEach(el => { if (!el.dataset.counted) io.observe(el); });
+    root.querySelectorAll('.kpi .n, .hx-big, .kpi-like').forEach(el => { if (!el.dataset.counted) io.observe(el); });
     root.querySelectorAll('svg[role="img"]').forEach(svg => { if (!svg.dataset.drawn) io.observe(svg); });
   };
   const app = document.getElementById('app'); if (!app) return;

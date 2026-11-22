@@ -925,6 +925,62 @@ header #dsline .fmtb+.dot{display:none}
 .prof-bowl .panel h2::before,.prof-bat .panel h2::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:8px;vertical-align:middle;flex:none;align-self:center}
 .prof-bat .panel h2::before{background:#F2B24C}
 .prof-bowl .panel h2::before{background:#E5484D}
+
+/* ---------- Overview, livelier ---------- */
+.face{position:relative;display:inline-grid;place-items:center;flex:none;width:28px;height:28px;border-radius:50%;overflow:hidden;
+  background:linear-gradient(135deg,#2a2d35,#1b1d22);box-shadow:0 0 0 1.5px var(--hair2);vertical-align:middle}
+.face img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 15%}
+.face i{font-style:normal;font-size:10px;font-weight:700;color:var(--muted)}
+.face.sm{width:24px;height:24px;margin-right:8px}.face.sm i{font-size:9px}
+.face.md{width:38px;height:38px}.face.md i{font-size:12px}
+.face.lg{width:54px;height:54px;position:absolute;right:14px;top:14px;box-shadow:0 0 0 2px color-mix(in srgb,var(--accent2) 55%,transparent)}
+.face.xl{width:132px;height:132px;box-shadow:0 0 0 3px color-mix(in srgb,var(--tc) 75%,transparent),0 0 0 9px color-mix(in srgb,var(--tc) 14%,transparent),0 18px 40px rgba(0,0,0,.45)}
+.face.xl i{font-size:34px}
+/* hero: text left, photo and the big number right */
+.dhero.dhero-x{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:28px;align-items:center;cursor:pointer}
+.dhero.dhero-x>*:not(.dh-side){grid-column:1}
+.dh-side{grid-column:2;grid-row:1 / span 5;display:flex;align-items:center;gap:22px}
+.dh-stat{display:flex;flex-direction:column;align-items:flex-start}
+.dh-num{font-size:64px;font-weight:800;letter-spacing:-.04em;line-height:.95;color:var(--fmt);text-shadow:0 0 34px color-mix(in srgb,var(--fmt) 35%,transparent)}
+.dh-unit{font-size:13px;color:var(--muted);margin-top:6px;max-width:120px}
+.dhero.dhero-x:hover{border-color:color-mix(in srgb,var(--fmt) 40%,var(--hair))!important}
+/* at a glance */
+.glance{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin-top:13px}
+.gl-t{position:relative;display:grid;grid-template-columns:auto 1fr;grid-template-areas:"ic l" "ic v" "ic s";column-gap:14px;align-items:center;
+  padding:16px 18px;border-radius:14px;background:linear-gradient(135deg,color-mix(in srgb,var(--gc) 14%,var(--panel)) 0%,var(--panel) 65%);
+  border:1px solid color-mix(in srgb,var(--gc) 28%,var(--hair));text-decoration:none!important;color:inherit;overflow:hidden;transition:transform .15s,border-color .15s}
+.gl-t:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--gc) 55%,var(--hair))}
+.gl-t::after{content:"";position:absolute;right:-30px;bottom:-30px;width:110px;height:110px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--gc) 22%,transparent),transparent 70%)}
+.gl-ic{grid-area:ic;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;color:var(--gc);background:color-mix(in srgb,var(--gc) 16%,transparent)}
+.gl-ic svg{width:22px;height:22px}
+.gl-l{grid-area:l;font-size:12px;color:var(--dim);font-weight:600}
+.gl-v{grid-area:v;font-size:26px;font-weight:800;letter-spacing:-.02em;color:var(--ink);line-height:1.15}
+.gl-s{grid-area:s;font-size:11.5px;color:color-mix(in srgb,var(--gc) 70%,var(--muted))}
+/* last 30 days and milestones */
+.hx-recent{border-top:2px solid rgba(242,178,76,.55)!important}
+.hx-mile{border-top:2px solid rgba(111,168,255,.55)!important}
+.hx-tile{position:relative;padding-right:78px!important}
+.hx-row>span{display:inline-flex;align-items:center}
+.hx-ms{display:flex!important;gap:12px;align-items:center}
+.hx-msb{flex:1;min-width:0}
+.hx-bar span{background:linear-gradient(90deg,#E59A2F,#F7C873)!important;box-shadow:0 0 10px rgba(242,178,76,.35)}
+.hx-bar.wk span{background:linear-gradient(90deg,#1FAE86,#5FD9B4)!important;box-shadow:0 0 10px rgba(95,217,180,.3)}
+@media(max-width:980px){.glance{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){
+  .dhero.dhero-x{grid-template-columns:1fr;row-gap:0}
+  .dh-side{grid-column:1;grid-row:auto;order:-1;margin-bottom:14px;gap:16px}
+  .face.xl{width:84px;height:84px}
+  .dh-num{font-size:44px}
+  .glance{gap:9px}
+  .gl-t{padding:12px;column-gap:10px}
+  .gl-ic{width:34px;height:34px;border-radius:10px}.gl-ic svg{width:18px;height:18px}
+  .gl-v{font-size:19px}
+  .gl-s{font-size:10.5px}
+  .hx-tile{padding-right:12px!important;padding-top:48px!important}
+  .face.lg{width:34px;height:34px;right:auto;left:12px;top:10px}
+  .hx-tile .hx-k{position:absolute;top:18px;left:54px}
+}
+.hx-row>span .dim{margin-left:5px}
 </style>
 </head>
 <body>
@@ -2163,6 +2219,7 @@ function homeView(app){
        <div class="dh-meta"><span class="conf conf-${d.conf.toLowerCase()}">Confidence · ${d.conf}</span><span class="dim">${lab}</span></div>`
       :`<div class="dh-head">Select a competition to surface a discovery.</div>`}</div>`);
   if(d&&d.pid)hero.onclick=()=>{state.player=d.pid;render();};
+  if(d){hero._disc=d;}
   app.appendChild(hero);
   const cols=[{ic:icn('bolt'),t:'Most clutch',u:'knockout SR vs overall, ×100',b:['bat','clutch_index','desc']},{ic:icn('shield'),t:'Collapse-proof',u:'SR after a collapse vs overall, ×100',b:['bat','collapse_resist','desc','collapse_balls']},{ic:icn('target'),t:'Strike bowlers',u:'balls per wicket',b:['bowl','bowl_sr','asc']}];
   const trend=$(`<div class="panel" style="margin-top:14px"><div class="sechead" style="margin:0 0 12px">Trending research ${infoIcon(SHRINK_TIP)}</div><div class="trend"></div></div>`);
