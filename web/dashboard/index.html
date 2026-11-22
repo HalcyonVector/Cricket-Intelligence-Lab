@@ -1025,9 +1025,59 @@ body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opa
   header .subnav button{border-radius:999px!important;padding:7px 13px!important}
   header .subnav button.active{background:rgba(242,178,76,.12)!important;color:#F2B24C!important;box-shadow:inset 0 0 0 1px rgba(242,178,76,.32)!important}
 }
+
+/* ---------- backgrounds: Lab (default, like the landing page), Floodlit night, Stadium dusk ---------- */
+body[data-bg]{background-attachment:fixed!important}
+body[data-bg="lab"]{background:
+  radial-gradient(1150px 780px at 50% -20%,rgba(229,154,47,.34) 0%,rgba(229,154,47,.12) 38%,transparent 66%),
+  radial-gradient(120% 80% at 50% 0%,transparent 56%,rgba(0,0,0,.45) 100%),
+  linear-gradient(180deg,#0E0F12 0%,#111215 28%,#151518 55%,#1C1B19 80%,#2A2316 100%)!important;background-attachment:fixed!important}
+body[data-bg="night"]{background:
+  radial-gradient(560px 360px at 12% 0%,rgba(255,226,160,.30),transparent 70%),
+  radial-gradient(560px 360px at 88% 0%,rgba(190,215,255,.26),transparent 70%),
+  radial-gradient(1400px 720px at 50% 108%,rgba(40,160,95,.36),transparent 65%),
+  linear-gradient(180deg,#0c1424 0%,#0b1a24 45%,#0b1f1a 100%)!important;background-attachment:fixed!important}
+body[data-bg="dusk"]{background:
+  radial-gradient(720px 430px at 15% 0%,rgba(255,170,90,.32),transparent 70%),
+  radial-gradient(820px 490px at 85% 5%,rgba(255,92,140,.26),transparent 70%),
+  radial-gradient(1300px 720px at 50% 110%,rgba(70,90,255,.30),transparent 65%),
+  linear-gradient(180deg,#1a1228 0%,#141530 50%,#0e1426 100%)!important;background-attachment:fixed!important}
+/* glass panels so the background shows through the cards too (no blur: cheap to scroll on phones) */
+body[data-bg] .panel{background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.026)),rgba(12,13,17,.5)!important;border-color:rgba(255,255,255,.09)!important}
+body[data-bg] .dhero{background-color:rgba(255,255,255,.03)!important}
+body[data-bg] header{background:linear-gradient(180deg,rgba(16,17,22,.9),rgba(12,13,17,.84))!important}
+body[data-bg="night"] header{background:linear-gradient(180deg,rgba(12,20,36,.92),rgba(10,18,30,.86))!important}
+body[data-bg="dusk"] header{background:linear-gradient(180deg,rgba(26,18,40,.92),rgba(20,20,46,.86))!important}
+body[data-bg="night"] header .modebar,body[data-bg="dusk"] header .modebar{background:rgba(12,16,28,.94)!important}
+/* the picker: three swatches in the filters row */
+.bgpick{display:inline-flex;align-items:center;gap:6px;height:42px;padding:0 10px;border:1px solid var(--hair2);border-radius:12px;background:var(--panel2);flex:none}
+.bgpick .bgl{font-size:12px;color:var(--dim);font-weight:600;margin-right:2px}
+.bgpick button{width:20px;height:20px;border-radius:50%;border:none;cursor:pointer;padding:0;box-shadow:0 0 0 1.5px rgba(255,255,255,.18);transition:transform .12s}
+.bgpick button:hover{transform:scale(1.12)}
+.bgpick button.on{box-shadow:0 0 0 2px #0E0F12,0 0 0 3.5px #F2B24C}
+.bgpick [data-bgv="lab"]{background:radial-gradient(circle at 50% 20%,#E59A2F,#3a2a12 75%)}
+.bgpick [data-bgv="night"]{background:linear-gradient(180deg,#2a4a7a,#0b2a22)}
+.bgpick [data-bgv="dusk"]{background:linear-gradient(135deg,#ff9a5a,#ff5c8c 45%,#3b3fae)}
+@media(max-width:720px){
+  .bgpick{height:30px;border-radius:999px;padding:0 9px;background:rgba(255,255,255,.025)}
+  .bgpick button{width:16px;height:16px}
+}
+header .hfilters .fmsw[hidden]{display:none!important}
+@media(max-width:720px){header.filtering .hfilters{flex-wrap:wrap;row-gap:7px}}
+@media(max-width:720px){header #dsline .dsb,header #dsline .dsb+.dot{display:none!important}}
+
+/* Lab theme: the landing page's amber light, fixed over the top-centre of the page */
+.bgglow{display:none}
+body[data-bg="lab"] .bgglow{display:block;position:fixed;z-index:-1;pointer-events:none;top:-24vw;left:50%;width:100vw;height:100vw;max-width:1200px;max-height:1200px;
+  transform:translateX(-50%);background:radial-gradient(circle,rgba(229,154,47,.34) 0%,rgba(229,154,47,.14) 34%,transparent 64%)}
+body[data-bg="lab"] header{background:linear-gradient(180deg,rgba(16,17,22,.78),rgba(12,13,17,.7))!important}
+@media(max-width:720px){
+  body[data-bg="lab"] .bgglow{top:-260px;width:860px;height:860px;max-width:none;max-height:none}
+  body[data-bg="lab"] header{background:linear-gradient(180deg,rgba(20,18,16,.86),rgba(16,15,14,.8))!important}
+}
 </style>
 </head>
-<body>
+<body><script>try{document.body.dataset.bg=localStorage.getItem('cil-bg')||'lab'}catch(e){document.body.dataset.bg='lab'}</script><div class="bgglow" aria-hidden="true"></div>
 <svg class="pitchbg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
  <g fill="none" stroke="#B4B7BE" stroke-width="1">
   <ellipse cx="870" cy="250" rx="70" ry="52"/><ellipse cx="868" cy="248" rx="135" ry="100"/>
@@ -1310,7 +1360,7 @@ function render(){
   const dm=meta(state.cohort)||{},ds=document.getElementById('dsline');
   if(ds){const y0=String(dm.coverage_from||'').slice(0,4),y1=String(dm.coverage_to||'').slice(0,4);
     document.body.dataset.fmt=dm.format||'';
-    ds.innerHTML=`${dm.format?`<span class="fmtb">${esc(String(dm.format).toUpperCase())}</span>`:''}<span>${(((dm.deliveries||0))/1e6).toFixed(1)}M balls</span><span class="dot">•</span><span>${(dm.matches||0).toLocaleString()} matches</span>${(y0&&y1)?`<span class="dot">•</span><span><span class="cvw">Coverage </span>${y0}–${y1}</span>`:''}`;}
+    ds.innerHTML=`${dm.format?`<span class="fmtb">${esc(String(dm.format).toUpperCase())}</span>`:''}<span class="dsb">${(((dm.deliveries||0))/1e6).toFixed(1)}M balls</span><span class="dot">•</span><span>${(dm.matches||0).toLocaleString()} matches</span>${(y0&&y1)?`<span class="dot">•</span><span><span class="cvw">Coverage </span>${y0}–${y1}</span>`:''}`;}
   if(window._scopeDrop)window._scopeDrop.setValue(state.cohort);
   const app=document.getElementById('app');
   const dk=dataKey();

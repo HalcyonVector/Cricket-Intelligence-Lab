@@ -231,14 +231,25 @@ function withSince(fn, app) {
   if (app.children.length) { const b = $(filterBanner()); app.insertBefore(b, app.children[1] || null); _wireClear(b); }
 }
 const FILTER_VIEWS = ['players', 'bowlers', 'records', 'bowlto', 'matchups', 'home'];
+/* Background look, chosen from the swatches in the filters row and remembered on this device. */
+const BG_OPTS = [['lab', 'Lab (default)'], ['night', 'Floodlit night'], ['dusk', 'Stadium dusk']];
+function setBg(v) {
+  if (!BG_OPTS.some(o => o[0] === v)) v = 'lab';
+  document.body.dataset.bg = v; try { localStorage.setItem('cil-bg', v); } catch (e) {}
+  document.querySelectorAll('.bgpick [data-bgv]').forEach(b => { const on = b.dataset.bgv === v; b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on)); });
+}
+(function () { let v = 'lab'; try { v = localStorage.getItem('cil-bg') || 'lab'; } catch (e) {} document.body.dataset.bg = v; })();
 function mountSinceControl() {
   const host = document.getElementById('scopeHost'); if (!host || document.getElementById('sinceHost')) return;
   // Filters live together: time window (themed dropdown, not a native <select>) + full-members switch
   const wrap = document.createElement('div'); wrap.id = 'sinceHost'; wrap.className = 'hfilters';
   wrap.innerHTML = `<span class="hf-time" title="Time window for leaderboards, records and profiles"><svg class="hf-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span class="hf-drop"></span></span>
-    <button type="button" id="fmbtn" class="fmsw" role="switch" aria-checked="false" title="Only count matches where both teams are ICC full members"><span class="trk"><span class="knob"></span></span>Full members</button>`;
+    <button type="button" id="fmbtn" class="fmsw" role="switch" aria-checked="false" title="Only count matches where both teams are ICC full members"><span class="trk"><span class="knob"></span></span>Full members</button>
+    <span class="bgpick" role="radiogroup" aria-label="Theme"><span class="bgl">Theme</span>${BG_OPTS.map(([v, l]) => `<button type="button" role="radio" data-bgv="${v}" title="${l}" aria-label="${l}"></button>`).join('')}</span>`;
   host.after(wrap);
   const slot = wrap.querySelector('.hf-drop'), fmb = wrap.querySelector('#fmbtn');
+  wrap.querySelectorAll('.bgpick [data-bgv]').forEach(b => b.onclick = () => setBg(b.dataset.bgv));
+  setBg(document.body.dataset.bg);
   fmb.onclick = () => { state.fm = !state.fm; render(); };
   let drop = null, dropKey = '';
   window._syncSince = () => {
@@ -252,7 +263,7 @@ function mountSinceControl() {
       slot.appendChild(drop);
     } else if (drop) drop.setValue(String(state.since || 0));
     const intl = !!meta(state.cohort).intl;
-    fmb.style.display = intl ? '' : 'none';
+    fmb.style.display = intl ? '' : 'none'; fmb.hidden = !intl;
     fmb.classList.toggle('on', !!state.fm && intl); fmb.setAttribute('aria-checked', String(!!state.fm && intl));
     const on = [];
     if (state.since) { const o = opts.find(x => x[0] === state.since); on.push(o ? o[1].replace(/ \(\d+\+\)$/, '') : 'Since ' + state.since); }
