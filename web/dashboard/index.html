@@ -1048,7 +1048,7 @@ body[data-bg] .dhero{background-color:rgba(255,255,255,.03)!important}
 body[data-bg] header{background:linear-gradient(180deg,rgba(16,17,22,.9),rgba(12,13,17,.84))!important}
 body[data-bg="night"] header{background:linear-gradient(180deg,rgba(12,20,36,.92),rgba(10,18,30,.86))!important}
 body[data-bg="dusk"] header{background:linear-gradient(180deg,rgba(26,18,40,.92),rgba(20,20,46,.86))!important}
-body[data-bg="night"] header .modebar,body[data-bg="dusk"] header .modebar{background:rgba(12,16,28,.94)!important}
+@media(max-width:720px){body[data-bg="night"] header .modebar,body[data-bg="dusk"] header .modebar{background:rgba(12,16,28,.94)!important}}
 /* the picker: three swatches in the filters row */
 .bgpick{display:inline-flex;align-items:center;gap:6px;height:42px;padding:0 10px;border:1px solid var(--hair2);border-radius:12px;background:var(--panel2);flex:none}
 .bgpick .bgl{font-size:12px;color:var(--dim);font-weight:600;margin-right:2px}
@@ -1102,8 +1102,48 @@ body[data-bg="lab"] header{background:linear-gradient(180deg,rgba(16,17,22,.78),
 body{--fmt-text:color-mix(in srgb,var(--fmt) 72%,#fff)}
 .dhero .dh-lbl,.dh-num{color:var(--fmt-text)!important}
 .arch{filter:brightness(1.18) saturate(1.05)}
-.themedrop .drop-btn .drop-cur::before{content:"Theme · ";color:var(--dim);font-weight:500;white-space:pre}
+
 .dh-unit{color:var(--ink)!important;opacity:.85}
+
+/* ---------- header alignment: competition, a wide search, filters, theme swatch ---------- */
+.themedrop .drop-cur,.themedrop .drop-btn .chev{display:none!important}
+.themedrop .drop-btn{justify-content:center!important;padding:0!important;gap:0!important}
+.themedrop .drop-btn::before{width:20px;height:20px}
+@media(min-width:721px){
+  header .cbar{flex-wrap:nowrap!important;align-items:center!important}
+  header .wm{order:0}
+  header #scopeHost{order:1;flex:none}
+  header .cmd{order:2;flex:1 1 auto!important;min-width:260px!important;max-width:none!important;width:auto!important;height:42px}
+  header .hf-time{order:3;flex:none!important;white-space:nowrap}
+  header .hf-time .drop-btn{white-space:nowrap}
+  header .hfilters .fmsw{order:4;flex:none!important;white-space:nowrap}
+  header .themedrop{order:5;flex:none}
+  header .themedrop .drop-btn{width:42px!important;height:42px!important;border-radius:12px!important}
+  header #scopeHost .drop-cur{white-space:nowrap}
+}
+@media(min-width:721px) and (max-width:1180px){
+  header .cmd .kbd{display:none}
+  header #scopeHost .drop-cur{max-width:200px!important;overflow:hidden;text-overflow:ellipsis}
+}
+@media(max-width:720px){
+  header .themedrop .drop-btn{width:30px!important;height:30px!important;border-radius:50%!important;padding:0!important}
+  header .themedrop .drop-btn::before{width:18px;height:18px}
+  header.filtering .hfilters{flex-wrap:nowrap!important}
+  header .themedrop .drop-menu{right:0;left:auto}
+}
+
+/* section tabs never wrap on desktop: they scroll sideways with a fade, like on phones */
+@media(min-width:721px){
+  header .raterow{gap:16px!important}
+  header .raterow>nav.subnav{flex:1 1 auto;min-width:0;flex-wrap:nowrap!important;overflow-x:auto;justify-content:flex-start!important;scrollbar-width:none;scroll-behavior:smooth}
+  header .raterow>nav.subnav::-webkit-scrollbar{display:none}
+  header .raterow>nav.subnav button{flex:none;white-space:nowrap}
+  header .modebar{flex:none!important}
+  header .subnav.fade-r{-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)}
+  header .subnav.fade-l{-webkit-mask-image:linear-gradient(90deg,transparent,#000 12%);mask-image:linear-gradient(90deg,transparent,#000 12%)}
+  header .subnav.fade-l.fade-r{-webkit-mask-image:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent);mask-image:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent)}
+}
+@media(min-width:1300px){header .raterow>nav.subnav{justify-content:flex-end!important}}
 </style>
 </head>
 <body><script>try{document.body.dataset.bg=localStorage.getItem('cil-bg')||'lab'}catch(e){document.body.dataset.bg='lab'}</script><div class="bgglow" aria-hidden="true"></div>
@@ -1385,7 +1425,7 @@ function render(){
   nav.innerHTML=subs.map(([v,lab])=>`<button data-v="${v}">${esc(lab)}</button>`).join('');
   nav.querySelectorAll('button').forEach(b=>b.onclick=()=>{state.view=b.dataset.v;state.player=null;state.bowler=null;state.venue=state.team=state.match=null;render();});
   nav.style.display=subs.length>1?'flex':'none';
-  requestAnimationFrame(()=>{const a=nav.querySelector('button.active');if(a&&nav.scrollWidth>nav.clientWidth)nav.scrollLeft=a.offsetLeft-(nav.clientWidth-a.offsetWidth)/2;_navFade(nav);});
+  requestAnimationFrame(()=>{const a=nav.querySelector('button.active');if(a&&nav.scrollWidth>nav.clientWidth){const ar=a.getBoundingClientRect(),nr=nav.getBoundingClientRect();nav.scrollLeft+=(ar.left-nr.left)-(nr.width-ar.width)/2;}_navFade(nav);});
   document.querySelectorAll('.modebtn').forEach(b=>{b.classList.toggle('on',b.dataset.m===cm);b.setAttribute('aria-pressed',b.dataset.m===cm);});
   nav.querySelectorAll('button').forEach(b=>{const on=b.dataset.v===state.view;b.classList.toggle('active',on);if(on)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
   const dm=meta(state.cohort)||{},ds=document.getElementById('dsline');
