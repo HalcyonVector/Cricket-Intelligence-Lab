@@ -1429,23 +1429,8 @@ function heroDress(app, c) {
     const line = bowl ? [fig(p.wickets, 'wkts'), fig(p.economy, 'econ'), fig(p.bowl_avg, 'avg'), fig(p.bowl_sr, 'SR'), fig(p.dot_pct != null ? p.dot_pct + '%' : null, 'dots')]
       : [fig(p.innings, 'inns'), fig(p.runs, 'runs'), fig(p.avg, 'avg'), fig(p.sr, 'SR'), fig(p.fifties != null ? `${p.fifties}/${p.hundreds}` : null, '50s/100s')];
     const who = [p.team, p.archetype].filter(Boolean).map(esc).join(' · ');
-    // where they rank in the competition, as percentiles
-    const T = bowl ? [[d.field, d.tag], ['economy', 'Economy'], ['bowl_sr', 'Strike rate'], ['dot_pct', 'Dot balls'], ['era_index', 'vs their era']]
-      : [['avg', 'Average'], ['sr', 'Strike rate'], [d.field, d.tag], ['boundary_pct', 'Boundaries'], ['consistency', 'Consistency']];
-    const seen = new Set(), bars = T.filter(([k]) => p.pct && p.pct[k] != null && !seen.has(k) && seen.add(k)).slice(0, 3);
-    const lbl = { economy: 'Economy', bowl_sr: 'Strike rate', dot_pct: 'Dot balls', era_index: 'vs their era', avg: 'Average', sr: 'Strike rate', boundary_pct: 'Boundaries', consistency: 'Consistency' };
-    if (line.join('')) hero.insertAdjacentHTML('beforeend', `<div class="dh-detail">
-      ${who ? `<div class="dh-who">${who}</div>` : ''}<div class="dh-line">${line.join('')}</div>
-      ${bars.length ? `<div class="dh-bars">${bars.map(([k, l]) => `<div class="dh-bar"><span class="dh-bl">${esc(lbl[k] || l)}</span><span class="dh-bt"><i style="width:${p.pct[k]}%"></i></span><span class="dh-bv">better than ${Math.round(p.pct[k])}%</span></div>`).join('')}</div>` : ''}</div>`);
-  }
-  // more discoveries from the same shuffle
-  const more = _picks.filter(t => t !== d).slice(0, 3);
-  if (more.length) {
-    const el = $(`<div class="dh-more"><div class="dh-mlbl">More discoveries</div><div class="dh-mgrid">${more.map((t, i) => {
-      const pic = t.pid ? faceHTML(t.pid, t.name, 'md', _teamOf(c, t)) : `<span class="face md"${teamColor(t.name) ? ` style="--fc:${teamColor(t.name)}"` : ''}><i>${esc(initials(t.name))}</i></span>`;
-      return `<a class="dh-mc" data-i="${i}">${pic}<span class="dh-mt"><span class="dh-mtag">${esc(t.tag)}</span><span class="dh-mh">${esc(t.head)}</span></span><b class="dh-mn">${esc(t.num)}</b></a>`; }).join('')}</div></div>`);
-    el.querySelectorAll('.dh-mc').forEach(a => a.onclick = e => { e.stopPropagation(); _openFind(more[+a.dataset.i]); });
-    hero.appendChild(el);
+    // one compact line: team and style, then the career numbers
+    if (line.join('')) hero.insertAdjacentHTML('beforeend', `<div class="dh-detail">${who ? `<span class="dh-who">${who}</span>` : ''}${line.join('')}</div>`);
   }
 }
 homeView = function (app) {
