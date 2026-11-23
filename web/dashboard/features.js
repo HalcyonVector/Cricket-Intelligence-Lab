@@ -1213,15 +1213,22 @@ function glanceStrip(c, x) {
     <span class="gl-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${GLANCE_IC[k]}</svg></span>
     <span class="gl-l">${l}</span><span class="gl-v kpi-like">${v}</span><span class="gl-s">${esc(sub)}</span></a>`).join('')}</div>`);
 }
-/* ---------- Today's discovery: a wide pool of finds, a fixed pick per day and competition ---------- */
-const _hash = s => [...s].reduce((h, ch) => (Math.imul(h, 31) + ch.charCodeAt(0)) >>> 0, 2166136261);
+/* ---------- Discovery: a large pool of finds, a fresh pick on every load ---------- */
 const _up = (a, b) => b ? Math.round(100 * a / b - 100) : 0;
+const _ORD = ['', 'second', 'third', 'fourth', 'fifth'];
+const _n = v => typeof v === 'number' ? v.toLocaleString() : v;
 function discoveries(c) {
-  const lab = compLabel(c.meta), P = c.players || {}, BW = c.bowlers || {}, lim = c.meta.format !== 'test';
+  const m = c.meta, lab = compLabel(m), P = c.players || {}, BW = c.bowlers || {}, lim = m.format !== 'test', R = c.records || {};
   const top = (k, f, d, need) => (_board(c, k, f, d, need) || [])[0];
-  const out = [], add = (x, kind, o) => { if (x) out.push({ pid: x.pid, name: x.name, kind, field: o.field, ...o }); };
-  let x, p;
-  /* batting */
+  const rec = k => (R[k] || []).find(r => !_isId(r.name));
+  const out = [], add = (x, kind, o) => { if (x && x.name && !_isId(x.name)) out.push({ pid: x.pid, name: x.name, kind, ...o }); };
+  const bq = Object.entries(P).filter(([id, p]) => p.qualified && !_isId(p.name));
+  const wq = Object.entries(BW).filter(([id, b]) => b.qualified && !_isId(b.name));
+  const best = (rows, f) => rows.reduce((a, r) => (a == null || f(r) > f(a)) ? r : a, null);
+  const bc = p => _conf(p.balls || 0, 2000, 700), wc = b => _conf(b.balls || 0, 2500, 900);
+  let x, p, b;
+
+  /* batting traits */
   if ((x = top('bat', 'collapse_resist', 'desc', 'collapse_balls')) && x.value > 105) { p = P[x.pid] || {};
     add(x, 'bat', { field: 'collapse_resist', tag: 'Collapse-proof', head: `${x.name} barely flinches in a collapse`, num: `+${x.value - 100}%`, unit: 'strike rate at 3+ down, vs their own norm',
       body: `Once the innings is 3 or more wickets down, ${x.name} scores at <b>${p.collapse_sr}</b> per 100 balls and averages <b>${p.collapse_avg}</b>, ${x.value - 100}% quicker than their usual rate. Nobody in ${lab} holds up better.`, conf: _conf(p.collapse_balls || 0, 800, 300) }); }
@@ -1230,10 +1237,10 @@ function discoveries(c) {
       body: `When the required rate climbs well above par, ${x.name} strikes at <b>${x.value}</b>, ${_up(x.value, p.sr)}% faster than their overall ${p.sr}. The best pressure strike rate in ${lab}.`, conf: _conf(p.pressure_balls || 0, 1500, 500) });
   if ((x = top('bat', 'era_index', 'desc')) && x.value > 105) { p = P[x.pid] || {};
     add(x, 'bat', { field: 'era_index', tag: 'Era-adjusted', head: `${x.name} towers over their era`, num: `+${x.value - 100}%`, unit: 'above the typical batter of the time',
-      body: `Measured against batters of the same seasons, ${x.name} is <b>${x.value - 100}%</b> more productive: ${p.runs.toLocaleString()} runs at an average of ${p.avg} and a strike rate of ${p.sr}.`, conf: _conf(p.balls || 0, 3000, 1000) }); }
+      body: `Measured against batters of the same seasons, ${x.name} is <b>${x.value - 100}%</b> more productive: ${_n(p.runs)} runs at an average of ${p.avg} and a strike rate of ${p.sr}.`, conf: _conf(p.balls || 0, 3000, 1000) }); }
   if ((x = top('bat', 'win_sr_ratio', 'desc')) && x.value > 103) { p = P[x.pid] || {};
     add(x, 'bat', { field: 'win_sr_ratio', tag: 'Match-winner', head: `${x.name} shows up on the days that are won`, num: `+${x.value - 100}%`, unit: 'strike rate in wins',
-      body: `In matches their side wins, ${x.name} strikes <b>${x.value - 100}% faster</b> than their overall ${p.sr}. The biggest winning-day gear change in ${lab}.`, conf: _conf(p.balls || 0, 2000, 700) }); }
+      body: `In matches their side wins, ${x.name} strikes <b>${x.value - 100}% faster</b> than their overall ${p.sr}. The biggest winning-day gear change in ${lab}.`, conf: bc(p) }); }
   if ((x = top('bat', 'clutch_index', 'desc')) && x.value > 105) { p = P[x.pid] || {};
     add(x, 'bat', { field: 'clutch_index', tag: 'Knockouts', head: `${x.name} lifts in knockout games`, num: `+${x.value - 100}%`, unit: 'strike rate in knockouts',
       body: `In finals, semi-finals and other knockouts, ${x.name} scores <b>${x.value - 100}% faster</b> than their overall strike rate of ${p.sr}. Nobody in ${lab} rises to the big occasion more.`, conf: 'Medium' }); }
@@ -1242,82 +1249,202 @@ function discoveries(c) {
       body: `Runs are spread across <b>${p.n_partners}</b> partners; even the most frequent, ${esc(p.top_partner)}, shared only ${p.top_partner_share}% of them. The least partner-dependent batter in ${lab}.`, conf: 'High' });
   if (lim && (x = top('bat', 'accel_index', 'desc')) && x.value > 1.2) { p = P[x.pid] || {};
     add(x, 'bat', { field: 'accel_index', tag: 'Accelerator', head: `${x.name} has the biggest top gear`, num: `${x.value}x`, unit: 'death-overs vs powerplay strike rate',
-      body: `${x.name} scores <b>${x.value} times</b> as fast at the death as in the powerplay. Nobody in ${lab} shifts gears harder.`, conf: _conf(p.balls || 0, 2000, 700) }); }
+      body: `${x.name} scores <b>${x.value} times</b> as fast at the death as in the powerplay. Nobody in ${lab} shifts gears harder.`, conf: bc(p) }); }
   if ((x = top('bat', 'strike_rot', 'desc'))) { p = P[x.pid] || {};
     add(x, 'bat', { field: 'strike_rot', tag: 'Strike rotator', head: `${x.name} never lets the scoreboard stall`, num: `${x.value}%`, unit: 'of balls turned into 1s, 2s or 3s',
-      body: `${x.name} runs on <b>${x.value}%</b> of the balls they face, and leave only ${p.dot_pct}% as dot balls. The busiest batter between the boundaries in ${lab}.`, conf: _conf(p.balls || 0, 2000, 700) }); }
+      body: `${x.name} runs on <b>${x.value}%</b> of the balls they face and leaves only ${p.dot_pct}% as dot balls. The busiest batter between the boundaries in ${lab}.`, conf: bc(p) }); }
   if ((x = top('bat', 'conversion', 'desc')) && (p = P[x.pid] || {}).hundreds >= 3)
     add(x, 'bat', { field: 'conversion', tag: 'Converter', head: `${x.name} turns starts into hundreds`, num: `${x.value}%`, unit: 'of fifty-plus scores go on to 100',
       body: `Of ${p.fifties + p.hundreds} fifty-plus scores, <b>${p.hundreds}</b> became hundreds (highest ${p.highest}). The best conversion rate in ${lab}.`, conf: _conf(p.innings || 0, 60, 25) });
   if ((x = top('bat', 'boundary_pct', 'desc'))) { p = P[x.pid] || {};
-    add(x, 'bat', { field: 'boundary_pct', tag: 'Boundary hitter', head: `${x.name} lives in the boundary rope`, num: `${x.value}%`, unit: 'of balls hit for four or six',
-      body: `One ball in ${Math.round(100 / x.value)} faced by ${x.name} goes to the rope, ${p.sixes.toLocaleString()} of them for six. ${p.boundary_dep}% of their runs come in boundaries.`, conf: _conf(p.balls || 0, 2000, 700) }); }
-  /* bowling */
-  if ((x = top('bowl', 'bowl_sr', 'asc'))) { p = BW[x.pid] || {};
+    add(x, 'bat', { field: 'boundary_pct', tag: 'Boundary hitter', head: `${x.name} lives at the boundary rope`, num: `${x.value}%`, unit: 'of balls hit for four or six',
+      body: `One ball in ${Math.round(100 / x.value)} faced by ${x.name} goes to the rope, ${_n(p.sixes)} of them for six. ${p.boundary_dep}% of their runs come in boundaries.`, conf: bc(p) }); }
+  if ((x = top('bat', 'dot_pct', 'asc'))) { p = P[x.pid] || {};
+    add(x, 'bat', { field: 'dot_pct', tag: 'Dot-ball dodger', head: `${x.name} almost never plays out a dot`, num: `${x.value}%`, unit: 'dot balls faced',
+      body: `Only <b>${x.value}%</b> of the balls ${x.name} faces go unscored, the lowest share among regular batters in ${lab}. That keeps a strike rate of ${p.sr} ticking without relying on boundaries.`, conf: bc(p) }); }
+  if ((x = top('bat', 'consistency', 'desc'))) { p = P[x.pid] || {};
+    add(x, 'bat', { field: 'consistency', tag: 'Mr Reliable', head: `${x.name} is the steadiest scorer in ${lab}`, num: `${x.value}`, unit: 'consistency score (out of 100)',
+      body: `${x.name}'s innings vary less than anyone's: <b>${p.innings} innings</b> averaging ${p.avg}, with ${p.fifties} fifties and ${p.hundreds} hundreds.`, conf: _conf(p.innings || 0, 60, 25) }); }
+
+  /* batting records */
+  if ((x = rec('most_runs'))) { p = P[x.pid] || {};
+    add(x, 'bat', { field: 'avg', tag: 'Run machine', head: `${x.name} has scored more runs than anyone`, num: _n(x.value), unit: `runs in ${lab}`,
+      body: `<b>${_n(x.value)} runs</b> from ${p.innings || '?'} innings at an average of ${p.avg} and a strike rate of ${p.sr}, the most in ${lab}.`, conf: 'High' }); }
+  if ((x = rec('most_sixes'))) { p = P[x.pid] || {};
+    add(x, 'bat', { field: 'boundary_pct', tag: 'Six machine', head: `${x.name} has cleared the rope more than anyone`, num: _n(x.value), unit: 'sixes',
+      body: `<b>${_n(x.value)} sixes</b>, the most in ${lab}: one every ${p.balls ? Math.round(p.balls / x.value) : '?'} balls faced.`, conf: 'High' }); }
+  if ((x = rec('most_hundreds')) && x.value >= 2) { p = P[x.pid] || {};
+    add(x, 'bat', { field: 'conversion', tag: 'Centurion', head: `${x.name} has the most hundreds`, num: `${x.value}`, unit: 'hundreds',
+      body: `<b>${x.value} hundreds</b> in ${lab}, more than anyone else, with a highest score of ${p.highest}.`, conf: 'High' }); }
+  if ((x = rec('most_fifties'))) { p = P[x.pid] || {};
+    add(x, 'bat', { field: 'avg', tag: 'Fifty king', head: `${x.name} passes fifty more often than anyone`, num: `${x.value}`, unit: 'fifties',
+      body: `<b>${x.value} fifties</b> and ${p.hundreds} hundreds in ${p.innings} innings: a fifty-plus score every ${p.innings ? (p.innings / (x.value + (p.hundreds || 0))).toFixed(1) : '?'} innings.`, conf: 'High' }); }
+  if ((x = rec('highest_avg'))) { p = P[x.pid] || {};
+    add(x, 'bat', { field: 'avg', tag: 'Best average', head: `${x.name} is the hardest batter to get out`, num: `${x.value}`, unit: 'batting average',
+      body: `An average of <b>${x.value}</b> across ${p.innings} innings, the highest among qualified batters in ${lab}.`, conf: _conf(p.innings || 0, 60, 25) }); }
+  if ((x = rec('highest_sr'))) { p = P[x.pid] || {};
+    add(x, 'bat', { field: 'sr', tag: 'Fastest scorer', head: `${x.name} scores faster than anyone`, num: `${x.value}`, unit: 'strike rate',
+      body: `A strike rate of <b>${x.value}</b> over ${_n(p.balls)} balls, the quickest among qualified batters in ${lab}.`, conf: bc(p) }); }
+  if ((x = rec('best_chase_avg'))) { p = P[x.pid] || {};
+    add(x, 'bat', { field: 'avg', tag: 'Chase master', head: `${x.name} is the one you want in a chase`, num: `${x.value}`, unit: 'average batting second',
+      body: `Batting second, ${x.name} averages <b>${x.value}</b>, against ${p.avg} overall. The best chasing average in ${lab}.`, conf: 'Medium' }); }
+  if (lim && (x = rec('best_death_sr'))) { p = P[x.pid] || {};
+    add(x, 'bat', { field: 'sr', tag: 'Finisher', head: `${x.name} is the deadliest finisher`, num: `${x.value}`, unit: 'strike rate at the death',
+      body: `In the final overs ${x.name} strikes at <b>${x.value}</b>, the best death-overs rate in ${lab}.`, conf: 'Medium' }); }
+  if ((b = best(bq, ([id, p]) => p.highest || 0))) { const [id, p] = b;
+    add({ pid: id, name: p.name }, 'bat', { field: 'avg', tag: 'Highest score', head: `${p.name} made the highest score: ${p.highest}`, num: `${p.highest}`, unit: 'highest score',
+      body: `${p.name}'s best of <b>${p.highest}</b> is the top score by any regular batter in ${lab}. Career: ${_n(p.runs)} runs at ${p.avg}.`, conf: 'High' }); }
+  if ((b = best(bq.filter(([id, p]) => p.balls >= (lim ? 500 : 2000)), ([id, p]) => p.sixes / p.balls))) { const [id, p] = b, every = (p.balls / p.sixes).toFixed(1);
+    add({ pid: id, name: p.name }, 'bat', { field: 'boundary_pct', tag: 'Six rate', head: `${p.name} hits a six more often than anyone`, num: every, unit: 'balls per six',
+      body: `${p.name} clears the rope every <b>${every} balls</b>: ${_n(p.sixes)} sixes from ${_n(p.balls)} balls faced in ${lab}.`, conf: bc(p) }); }
+  const elite = bq.filter(([id, p]) => p.pct && p.pct.avg >= 90 && p.pct.sr >= 90 && p.balls >= (lim ? 600 : 2500));
+  if (elite.length) { const [id, p] = elite[Math.floor(Math.random() * elite.length)];
+    add({ pid: id, name: p.name }, 'bat', { field: 'sr', tag: 'Complete batter', head: `${p.name} does both: scores big and scores fast`, num: `${elite.length}`, unit: `batters in the top 10% for both average and strike rate`,
+      body: `${p.name} averages <b>${p.avg}</b> at a strike rate of <b>${p.sr}</b>, top-10% for both in ${lab}. Only ${elite.length} regular batters manage that.`, conf: bc(p) }); }
+
+  /* bowling traits and records */
+  if ((x = top('bowl', 'bowl_sr', 'asc'))) { b = BW[x.pid] || {};
     add(x, 'bowl', { field: 'bowl_sr', tag: 'Strike bowler', head: `${x.name} strikes faster than anyone`, num: `${x.value}`, unit: 'balls per wicket',
-      body: `A wicket every <b>${x.value} balls</b>: ${p.wickets} in all at an average of ${p.bowl_avg}. The sharpest strike rate among frontline bowlers in ${lab}.`, conf: _conf(p.balls || 0, 2500, 900) }); }
-  if ((x = top('bowl', 'economy', 'asc'))) { p = BW[x.pid] || {};
+      body: `A wicket every <b>${x.value} balls</b>: ${b.wickets} in all at an average of ${b.bowl_avg}. The sharpest strike rate among frontline bowlers in ${lab}.`, conf: wc(b) }); }
+  if ((x = top('bowl', 'economy', 'asc'))) { b = BW[x.pid] || {};
     add(x, 'bowl', { field: 'economy', tag: 'Economist', head: `${x.name} is the hardest to score off`, num: `${x.value}`, unit: 'runs an over',
-      body: `${x.name} concedes just <b>${x.value} an over</b>, with ${p.dot_pct}% dot balls and ${p.wickets} wickets. The tightest frontline bowler in ${lab}.`, conf: _conf(p.balls || 0, 2500, 900) }); }
-  if ((x = top('bowl', 'dot_pct', 'desc'))) { p = BW[x.pid] || {};
+      body: `${x.name} concedes just <b>${x.value} an over</b>, with ${b.dot_pct}% dot balls and ${b.wickets} wickets. The tightest frontline bowler in ${lab}.`, conf: wc(b) }); }
+  if ((x = top('bowl', 'dot_pct', 'desc'))) { b = BW[x.pid] || {};
     add(x, 'bowl', { field: 'dot_pct', tag: 'Dot machine', head: `${x.name} builds pressure one dot at a time`, num: `${x.value}%`, unit: 'of deliveries are dot balls',
-      body: `<b>${x.value}%</b> of ${x.name}'s deliveries go unscored, at an economy of ${p.economy}. Nobody in ${lab} strangles an innings more.`, conf: _conf(p.balls || 0, 2500, 900) }); }
-  if ((x = top('bowl', 'era_index', 'desc')) && x.value > 110) { p = BW[x.pid] || {};
+      body: `<b>${x.value}%</b> of ${x.name}'s deliveries go unscored, at an economy of ${b.economy}. Nobody in ${lab} strangles an innings more.`, conf: wc(b) }); }
+  if ((x = top('bowl', 'era_index', 'desc')) && x.value > 110) { b = BW[x.pid] || {};
     add(x, 'bowl', { field: 'era_index', tag: 'Era-adjusted', head: `${x.name} outbowls their era`, num: `+${x.value - 100}%`, unit: 'better than the typical bowler of the time',
-      body: `Against bowlers of the same seasons, ${x.name} comes out <b>${x.value - 100}%</b> better: ${p.wickets} wickets at ${p.bowl_avg}, conceding ${p.economy} an over.`, conf: _conf(p.balls || 0, 2500, 900) }); }
+      body: `Against bowlers of the same seasons, ${x.name} comes out <b>${x.value - 100}%</b> better: ${b.wickets} wickets at ${b.bowl_avg}, conceding ${b.economy} an over.`, conf: wc(b) }); }
+  if ((x = top('bowl', 'bowl_avg', 'asc'))) { b = BW[x.pid] || {};
+    add(x, 'bowl', { field: 'bowl_sr', tag: 'Best average', head: `${x.name}'s wickets come cheapest`, num: `${x.value}`, unit: 'runs per wicket',
+      body: `Just <b>${x.value} runs</b> for each of ${x.name}'s ${b.wickets} wickets, the best bowling average among frontline bowlers in ${lab}.`, conf: wc(b) }); }
+  if ((x = top('bowl', 'bnd_pct', 'asc'))) { b = BW[x.pid] || {};
+    add(x, 'bowl', { field: 'economy', tag: 'Boundary-proof', head: `${x.name} is the hardest bowler to hit to the rope`, num: `${x.value}%`, unit: 'of balls go for four or six',
+      body: `Only <b>${x.value}%</b> of ${x.name}'s deliveries reach the boundary, the lowest share among frontline bowlers in ${lab}.`, conf: wc(b) }); }
+  if ((x = rec('most_wickets'))) { b = BW[x.pid] || {};
+    add(x, 'bowl', { field: 'bowl_sr', tag: 'Wicket machine', head: `${x.name} has taken more wickets than anyone`, num: _n(x.value), unit: `wickets in ${lab}`,
+      body: `<b>${_n(x.value)} wickets</b> at an average of ${b.bowl_avg} and an economy of ${b.economy}, the most in ${lab}.`, conf: 'High' }); }
   if (lim) {
-    const ph = (k, min) => Object.entries(BW).filter(([id, b]) => b.qualified && !_isId(b.name) && b.phases && b.phases[k] && b.phases[k].balls >= min);
-    const death = ph('death', 240).sort((a, b) => a[1].phases.death.economy - b[1].phases.death.economy)[0];
-    if (death) { const [id, b] = death, d = b.phases.death;
-      add({ pid: id, name: b.name }, 'bowl', { field: 'economy', tag: 'Death bowler', head: `${b.name} holds their nerve at the death`, num: `${d.economy}`, unit: 'runs an over at the death',
-        body: `In the final overs, when batters swing at everything, ${b.name} concedes only <b>${d.economy} an over</b> with ${d.dot_pct}% dots and ${d.wickets} wickets. The best death economy in ${lab}.`, conf: _conf(d.balls, 900, 360) }); }
-    const pp = ph('powerplay', 120).sort((a, b) => b[1].phases.powerplay.wickets - a[1].phases.powerplay.wickets)[0];
-    if (pp) { const [id, b] = pp, d = b.phases.powerplay;
-      add({ pid: id, name: b.name }, 'bowl', { field: 'bowl_sr', tag: 'New-ball threat', head: `${b.name} owns the powerplay`, num: `${d.wickets}`, unit: 'powerplay wickets',
+    const ph = (k, min) => wq.filter(([id, b]) => b.phases && b.phases[k] && b.phases[k].balls >= min);
+    const lo = (rows, k, f) => rows.slice().sort((a, b) => a[1].phases[k][f] - b[1].phases[k][f])[0];
+    if ((b = lo(ph('death', 240), 'death', 'economy'))) { const [id, w] = b, d = w.phases.death;
+      add({ pid: id, name: w.name }, 'bowl', { field: 'economy', tag: 'Death bowler', head: `${w.name} holds their nerve at the death`, num: `${d.economy}`, unit: 'runs an over at the death',
+        body: `In the final overs, when batters swing at everything, ${w.name} concedes only <b>${d.economy} an over</b> with ${d.dot_pct}% dots and ${d.wickets} wickets. The best death economy in ${lab}.`, conf: _conf(d.balls, 900, 360) }); }
+    if ((b = ph('powerplay', 120).sort((a, b) => b[1].phases.powerplay.wickets - a[1].phases.powerplay.wickets)[0])) { const [id, w] = b, d = w.phases.powerplay;
+      add({ pid: id, name: w.name }, 'bowl', { field: 'bowl_sr', tag: 'New-ball threat', head: `${w.name} owns the powerplay`, num: `${d.wickets}`, unit: 'powerplay wickets',
         body: `<b>${d.wickets} wickets</b> inside the fielding restrictions, more than anyone in ${lab}, at ${d.economy} an over.`, conf: _conf(d.balls, 900, 360) }); }
+    if ((b = lo(ph('powerplay', 300), 'powerplay', 'economy'))) { const [id, w] = b, d = w.phases.powerplay;
+      add({ pid: id, name: w.name }, 'bowl', { field: 'economy', tag: 'Powerplay miser', head: `${w.name} gives nothing away with the new ball`, num: `${d.economy}`, unit: 'runs an over in the powerplay',
+        body: `With only two fielders out, ${w.name} still concedes just <b>${d.economy} an over</b> (${d.dot_pct}% dots). The tightest powerplay bowler in ${lab}.`, conf: _conf(d.balls, 900, 360) }); }
+    if ((b = lo(ph('middle', 480), 'middle', 'economy'))) { const [id, w] = b, d = w.phases.middle;
+      add({ pid: id, name: w.name }, 'bowl', { field: 'economy', tag: 'Middle-overs squeeze', head: `${w.name} chokes the middle overs`, num: `${d.economy}`, unit: 'runs an over in the middle overs',
+        body: `Between the powerplay and the death, ${w.name} goes for only <b>${d.economy} an over</b> and has taken ${d.wickets} wickets there. Nobody in ${lab} is tighter in that phase.`, conf: _conf(d.balls, 1800, 700) }); }
+    if ((b = best(wq.filter(([id, w]) => w.phase_share && w.balls >= 600), ([id, w]) => w.phase_share.death || 0))) { const [id, w] = b;
+      add({ pid: id, name: w.name }, 'bowl', { field: 'economy', tag: 'Death specialist', head: `${w.name} is the go-to bowler for the final overs`, num: `${w.phase_share.death}%`, unit: 'of their overs bowled at the death',
+        body: `<b>${w.phase_share.death}%</b> of ${w.name}'s deliveries come at the death, more than any other regular bowler in ${lab}. They concede ${w.phases && w.phases.death ? w.phases.death.economy : w.economy} an over there.`, conf: wc(w) }); }
+  }
+  const ar = bq.filter(([id]) => BW[id] && BW[id].qualified).map(([id, p]) => [id, p, BW[id]]);
+  if ((b = best(ar, ([id, p, w]) => (p.runs || 0) * (w.wickets || 0)))) { const [id, p, w] = b;
+    add({ pid: id, name: p.name }, 'bat', { field: 'avg', tag: 'All-rounder', head: `${p.name} is the leading all-rounder`, num: `${_n(p.runs)} + ${w.wickets}`, unit: 'runs and wickets',
+      body: `<b>${_n(p.runs)} runs</b> at ${p.avg} and <b>${w.wickets} wickets</b> at ${w.bowl_avg}: the best combined record with bat and ball in ${lab}.`, conf: 'High' }); }
+
+  /* partnerships, spells and matchups: the top three of each */
+  (c.partnerships || []).filter(s => !_isId(s.n1) && !_isId(s.n2)).slice(0, 3).forEach((s, i) =>
+    add({ pid: s.p1, name: s.n1 }, 'bat', { field: 'avg', tag: 'Partnership', head: `${s.n1} and ${s.n2} put on ${s.runs} together`, num: `${s.runs}`, unit: `run stand from ${s.balls} balls`,
+      body: `<b>${s.runs} runs</b> in ${s.balls} balls (${s.rr} per 100 balls), the ${_ORD[i] ? _ORD[i] + '-' : ''}biggest partnership in ${lab}.`, conf: 'High' }));
+  const fast = (c.partnerships || []).filter(s => s.runs >= 100 && !_isId(s.n1) && !_isId(s.n2)).sort((a, b) => b.rr - a.rr)[0];
+  if (fast) add({ pid: fast.p1, name: fast.n1 }, 'bat', { field: 'sr', tag: 'Fastest big stand', head: `${fast.n1} and ${fast.n2} ran riot together`, num: `${fast.rr}`, unit: 'runs per 100 balls in a 100+ stand',
+    body: `${fast.n1} and ${fast.n2} added <b>${fast.runs} in ${fast.balls} balls</b>, the fastest hundred-plus partnership in ${lab}.`, conf: 'High' });
+  (c.spells || []).filter(s => !_isId(s.name)).slice(0, 3).forEach((s, i) =>
+    add(s, 'bowl', { field: 'bowl_sr', tag: 'Best spell', head: `${s.name} took ${s.wkts} for ${s.runs}`, num: `${s.wkts}/${s.runs}`, unit: `in ${s.overs} overs`,
+      body: `<b>${s.wkts} for ${s.runs}</b> in ${s.overs} overs (economy ${s.econ}), the ${_ORD[i] ? _ORD[i] + '-' : ''}best spell recorded in ${lab}.`, conf: 'High' }));
+  const MU = (c.matchups_top || []).filter(r => r.balls >= (lim ? 36 : 120) && !_isId(r.batter_name) && !_isId(r.bowler_name));
+  MU.slice().sort((a, b) => b.dominance - a.dominance).slice(0, 2).forEach(r =>
+    add({ pid: r.batter, name: r.batter_name }, 'bat', { field: 'avg', tag: 'Matchup', head: `${r.batter_name} has ${r.bowler_name}'s number`, num: `${r.sr}`, unit: `strike rate against ${r.bowler_name}`,
+      body: `${r.batter_name} has taken <b>${r.runs} runs off ${r.balls} balls</b> from ${r.bowler_name}${r.outs ? `, falling only ${r.outs} time${r.outs > 1 ? 's' : ''}` : ' without once getting out'}. One of the most one-sided rivalries in ${lab}.`, conf: _conf(r.balls, 150, 60) }));
+  MU.slice().sort((a, b) => a.dominance - b.dominance).slice(0, 2).forEach(r =>
+    add({ pid: r.bowler, name: r.bowler_name }, 'bowl', { field: 'bowl_sr', tag: 'Matchup', head: `${r.bowler_name} has ${r.batter_name}'s number`, num: `${r.outs}`, unit: `dismissals of ${r.batter_name}`,
+      body: `${r.bowler_name} has dismissed ${r.batter_name} <b>${r.outs} times</b> in ${r.balls} balls, conceding just ${r.runs} (strike rate ${r.sr}). One of the most one-sided rivalries in ${lab}.`, conf: _conf(r.balls, 150, 60) }));
+
+  /* venues and teams */
+  const V = (Array.isArray(c.venues) ? c.venues : []).filter(v => v.matches >= 10 && v.avg_first);
+  const vadd = (v, o) => v && out.push({ kind: 'venue', name: v.venue, go: ['venue', v.venue], ...o });
+  if (V.length >= 3) {
+    const hi = best(V, v => v.avg_first), lo = best(V, v => -v.avg_first), ch = best(V, v => v.chase_win_pct || 0), df = best(V, v => v.bat_first_win_pct || 0);
+    vadd(hi, { tag: 'Venue', head: `${hi.venue} is a batting paradise`, num: `${Math.round(hi.avg_first)}`, unit: 'average first-innings score',
+      body: `Teams batting first at ${hi.venue}${hi.city ? ` (${esc(hi.city)})` : ''} average <b>${hi.avg_first}</b> over ${hi.matches} matches, the highest of any regular ${lab} venue.`, conf: _conf(hi.matches, 30, 15) });
+    vadd(lo, { tag: 'Venue', head: `${lo.venue} is where bowlers rule`, num: `${Math.round(lo.avg_first)}`, unit: 'average first-innings score',
+      body: `First-innings totals at ${lo.venue} average just <b>${lo.avg_first}</b> across ${lo.matches} matches, the lowest of any regular ${lab} venue.`, conf: _conf(lo.matches, 30, 15) });
+    if (ch.chase_win_pct > 50) vadd(ch, { tag: 'Venue', head: `Win the toss at ${ch.venue}? Chase.`, num: `${Math.round(ch.chase_win_pct)}%`, unit: 'of matches won by the chasing side',
+      body: `Sides batting second have won <b>${ch.chase_win_pct}%</b> of ${ch.matches} matches at ${ch.venue}, the best chasing record of any regular ${lab} venue.`, conf: _conf(ch.matches, 30, 15) });
+    if (df.bat_first_win_pct > 50) vadd(df, { tag: 'Venue', head: `At ${df.venue}, runs on the board win`, num: `${Math.round(df.bat_first_win_pct)}%`, unit: 'of matches won batting first',
+      body: `Teams setting a target have won <b>${df.bat_first_win_pct}%</b> of ${df.matches} matches at ${df.venue}, the best defending record of any regular ${lab} venue.`, conf: _conf(df.matches, 30, 15) });
+  }
+  const TM = (Array.isArray(c.teams) ? c.teams : []).filter(t => t.matches >= (m.intl ? 40 : 25));
+  if (TM.length >= 3) { const t = best(TM, t => t.winpct), w = best(TM, t => -t.winpct), n = best(TM, t => t.matches);
+    out.push({ kind: 'team', name: t.team, go: ['team', t.team], tag: 'Team', head: `${t.team} win more often than anyone`, num: `${Math.round(t.winpct)}%`, unit: 'of matches won',
+      body: `<b>${t.wins} wins from ${t.matches}</b> matches, a ${t.winpct}% win rate, the best in ${lab}.`, conf: 'High' });
+    out.push({ kind: 'team', name: n.team, go: ['team', n.team], tag: 'Team', head: `${n.team} have played the most ${lab} cricket`, num: _n(n.matches), unit: 'matches',
+      body: `<b>${_n(n.matches)} matches</b> in the record, winning ${n.wins} of them (${n.winpct}%).`, conf: 'High' });
+    if (w !== t) out.push({ kind: 'team', name: w.team, go: ['team', w.team], tag: 'Team', head: `${w.team} are still searching for a winning formula`, num: `${Math.round(w.winpct)}%`, unit: 'of matches won',
+      body: `Only <b>${w.wins} wins in ${w.matches}</b> matches (${w.winpct}%), the lowest win rate among regular ${lab} sides.`, conf: 'High' });
   }
   return out;
 }
-/* today's picks: a fixed order per day and competition, one find per player.
-   In internationals, finds about full-member players lead so the card isn't mostly associates. */
+/* a fresh shuffle each time the Overview is drawn. In internationals, finds about full-member
+   players lead so the card isn't mostly associates. */
 const FULL_MEMBERS = new Set(['India', 'Australia', 'England', 'South Africa', 'New Zealand', 'Pakistan', 'Sri Lanka', 'West Indies', 'Bangladesh', 'Zimbabwe', 'Afghanistan', 'Ireland']);
-const _dayPicks = {};
-function dayPicks(c) {
-  const seed = new Date().toISOString().slice(0, 10) + '|' + dataKey();
-  if (_dayPicks[seed]) return _dayPicks[seed];
-  const all = discoveries(c), good = all.filter(t => t.conf !== 'Low'), pool = good.length >= 4 ? good : all, seen = new Set();
-  const fm = t => c.meta.intl && !FULL_MEMBERS.has((((t.kind === 'bowl' ? c.bowlers : c.players) || {})[t.pid] || {}).team) ? 1 : 0;
-  return (_dayPicks[seed] = pool.map(t => [fm(t), _hash(seed + t.tag + t.kind), t]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(r => r[2])
-    .filter(t => !seen.has(t.pid) && seen.add(t.pid)));
+let _picks = [];
+const _teamOf = (c, t) => t.kind === 'team' ? t.name : t.kind === 'venue' ? null : ((((t.kind === 'bowl' ? c.bowlers : c.players) || {})[t.pid]) || {}).team;
+function shufflePicks(c) {
+  const all = discoveries(c), good = all.filter(t => t.conf !== 'Low'), pool = good.length >= 6 ? good : all, seen = new Set();
+  const fm = t => c.meta.intl && t.kind !== 'venue' && !FULL_MEMBERS.has(_teamOf(c, t)) ? 1 : 0;
+  _picks = pool.map(t => [fm(t), Math.random(), t]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(r => r[2])
+    .filter(t => { const k = t.pid || t.name; return !seen.has(k) && seen.add(k); });
+  // the first card stays full-member in internationals; the rest mix freely
+  const head = _picks.slice(0, 1), rest = _picks.slice(1).sort(() => Math.random() - .5);
+  return (_picks = head.concat(rest));
 }
-discovery = c => dayPicks(c)[0] || null;
+discovery = c => shufflePicks(c)[0] || null;
+const _openFind = t => { state.player = state.bowler = null; state.venue = state.team = state.match = null;
+  if (t.go) { if (t.go[0] === 'venue') { state.view = 'venues'; state.venue = t.go[1]; } else { state.view = 'teams'; state.team = t.go[1]; } }
+  else if (t.kind === 'bowl') state.bowler = t.pid; else state.player = t.pid;
+  render(); };
 function heroDress(app, c) {
   const hero = app.querySelector('.dhero'); if (!hero || hero.dataset.dressed) return; hero.dataset.dressed = '1';
-  const d = hero._disc; if (!d || !d.pid) return;  // the same discovery the hero's text shows
-  const bowl = d.kind === 'bowl', p = ((bowl ? c.bowlers : c.players) || {})[d.pid] || {}, name = p.name || d.name || '';
-  hero.classList.add('dhero-x'); hero.style.setProperty('--tc', teamColor(p.team) || 'var(--fmt)');
-  const lbl = hero.querySelector('.dh-lbl');
-  if (lbl) lbl.textContent += ' · ' + new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-  hero.insertAdjacentHTML('beforeend', `<div class="dh-side">${faceHTML(d.pid, name, 'xl', p.team)}
+  const d = hero._disc; if (!d) return;  // the same discovery the hero's text shows
+  const bowl = d.kind === 'bowl', person = d.kind === 'bat' || bowl;
+  const p = person ? (((bowl ? c.bowlers : c.players) || {})[d.pid] || {}) : {}, name = p.name || d.name || '';
+  const tc = teamColor(_teamOf(c, d)) || 'var(--fmt)';
+  hero.classList.add('dhero-x'); hero.style.setProperty('--tc', tc);
+  hero.onclick = () => _openFind(d);
+  const pic = person ? faceHTML(d.pid, name, 'xl', p.team)
+    : `<span class="face xl dh-place"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${d.kind === 'venue'
+      ? '<ellipse cx="12" cy="12" rx="9" ry="6"/><rect x="10.5" y="9" width="3" height="6" rx=".5"/>' : '<path d="M12 3l7 3v5c0 4-3 7-7 9-4-2-7-5-7-9V6z"/>'}</svg></span>`;
+  hero.insertAdjacentHTML('beforeend', `<div class="dh-side">${pic}
     <div class="dh-stat"><span class="dh-num kpi-like">${esc(d.num)}</span><span class="dh-unit">${esc(d.unit)}</span></div></div>`);
-  // the player's career line in this competition
-  const fig = (v, l) => v == null ? '' : `<span class="dh-f"><b>${typeof v === 'number' ? v.toLocaleString() : esc(v)}</b>${l}</span>`;
-  const line = bowl ? [fig(p.wickets, 'wkts'), fig(p.economy, 'econ'), fig(p.bowl_avg, 'avg'), fig(p.bowl_sr, 'SR'), fig(p.dot_pct != null ? p.dot_pct + '%' : null, 'dots')]
-    : [fig(p.innings, 'inns'), fig(p.runs, 'runs'), fig(p.avg, 'avg'), fig(p.sr, 'SR'), fig(p.fifties != null ? `${p.fifties}/${p.hundreds}` : null, '50s/100s')];
-  const who = [p.team, p.archetype].filter(Boolean).map(esc).join(' · ');
-  // where they rank in the competition, as percentiles
-  const T = bowl ? [['economy', 'Economy'], ['bowl_sr', 'Strike rate'], ['dot_pct', 'Dot balls'], ['era_index', 'vs their era']]
-    : [['avg', 'Average'], ['sr', 'Strike rate'], [d.field, d.tag], ['boundary_pct', 'Boundaries'], ['consistency', 'Consistency']];
-  const seen = new Set(), bars = T.filter(([k]) => p.pct && p.pct[k] != null && !seen.has(k) && seen.add(k)).slice(0, 3);
-  hero.insertAdjacentHTML('beforeend', `<div class="dh-detail">
-    ${who ? `<div class="dh-who">${who}</div>` : ''}<div class="dh-line">${line.join('')}</div>
-    ${bars.length ? `<div class="dh-bars">${bars.map(([k, l]) => `<div class="dh-bar"><span class="dh-bl">${esc(l)}</span><span class="dh-bt"><i style="width:${p.pct[k]}%"></i></span><span class="dh-bv">better than ${Math.round(p.pct[k])}%</span></div>`).join('')}</div>` : ''}</div>`);
-  // more finds from today's list
-  const more = dayPicks(c).slice(1, 4);
+  if (person) {
+    // the player's career line in this competition
+    const fig = (v, l) => v == null ? '' : `<span class="dh-f"><b>${typeof v === 'number' ? v.toLocaleString() : esc(v)}</b>${l}</span>`;
+    const line = bowl ? [fig(p.wickets, 'wkts'), fig(p.economy, 'econ'), fig(p.bowl_avg, 'avg'), fig(p.bowl_sr, 'SR'), fig(p.dot_pct != null ? p.dot_pct + '%' : null, 'dots')]
+      : [fig(p.innings, 'inns'), fig(p.runs, 'runs'), fig(p.avg, 'avg'), fig(p.sr, 'SR'), fig(p.fifties != null ? `${p.fifties}/${p.hundreds}` : null, '50s/100s')];
+    const who = [p.team, p.archetype].filter(Boolean).map(esc).join(' · ');
+    // where they rank in the competition, as percentiles
+    const T = bowl ? [[d.field, d.tag], ['economy', 'Economy'], ['bowl_sr', 'Strike rate'], ['dot_pct', 'Dot balls'], ['era_index', 'vs their era']]
+      : [['avg', 'Average'], ['sr', 'Strike rate'], [d.field, d.tag], ['boundary_pct', 'Boundaries'], ['consistency', 'Consistency']];
+    const seen = new Set(), bars = T.filter(([k]) => p.pct && p.pct[k] != null && !seen.has(k) && seen.add(k)).slice(0, 3);
+    const lbl = { economy: 'Economy', bowl_sr: 'Strike rate', dot_pct: 'Dot balls', era_index: 'vs their era', avg: 'Average', sr: 'Strike rate', boundary_pct: 'Boundaries', consistency: 'Consistency' };
+    if (line.join('')) hero.insertAdjacentHTML('beforeend', `<div class="dh-detail">
+      ${who ? `<div class="dh-who">${who}</div>` : ''}<div class="dh-line">${line.join('')}</div>
+      ${bars.length ? `<div class="dh-bars">${bars.map(([k, l]) => `<div class="dh-bar"><span class="dh-bl">${esc(lbl[k] || l)}</span><span class="dh-bt"><i style="width:${p.pct[k]}%"></i></span><span class="dh-bv">better than ${Math.round(p.pct[k])}%</span></div>`).join('')}</div>` : ''}</div>`);
+  }
+  // more discoveries from the same shuffle
+  const more = _picks.filter(t => t !== d).slice(0, 3);
   if (more.length) {
-    const el = $(`<div class="dh-more"><div class="dh-mlbl">More finds today</div><div class="dh-mgrid">${more.map(t => { const q = ((t.kind === 'bowl' ? c.bowlers : c.players) || {})[t.pid] || {};
-      return `<a class="dh-mc" data-pid="${t.pid}">${faceHTML(t.pid, t.name, 'md', q.team)}<span class="dh-mt"><span class="dh-mtag">${esc(t.tag)}</span><span class="dh-mh">${esc(t.head)}</span></span><b class="dh-mn">${esc(t.num)}</b></a>`; }).join('')}</div></div>`);
-    el.querySelectorAll('.dh-mc').forEach(a => a.onclick = e => { e.stopPropagation(); state.player = a.dataset.pid; render(); });
+    const el = $(`<div class="dh-more"><div class="dh-mlbl">More discoveries</div><div class="dh-mgrid">${more.map((t, i) => {
+      const pic = t.pid ? faceHTML(t.pid, t.name, 'md', _teamOf(c, t)) : `<span class="face md"${teamColor(t.name) ? ` style="--fc:${teamColor(t.name)}"` : ''}><i>${esc(initials(t.name))}</i></span>`;
+      return `<a class="dh-mc" data-i="${i}">${pic}<span class="dh-mt"><span class="dh-mtag">${esc(t.tag)}</span><span class="dh-mh">${esc(t.head)}</span></span><b class="dh-mn">${esc(t.num)}</b></a>`; }).join('')}</div></div>`);
+    el.querySelectorAll('.dh-mc').forEach(a => a.onclick = e => { e.stopPropagation(); _openFind(more[+a.dataset.i]); });
     hero.appendChild(el);
   }
 }
