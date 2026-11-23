@@ -9,9 +9,7 @@
     }
   },
   "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "/api/index?__p=:path*"
-    }
+    { "source": "/api/:path*", "destination": "/api/index?__p=:path*" },
+    { "source": "/(.*)", "destination": "https://halcyonvector.github.io/Cricket-Intelligence-Lab/$1" }
   ]
 }
