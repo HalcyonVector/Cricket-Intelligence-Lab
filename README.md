@@ -8,7 +8,7 @@ Built with Python, SQLite, NumPy and a plain HTML/JavaScript dashboard, rebuilt 
 
 **Live demo:** [halcyonvector.github.io/Cricket-Intelligence-Lab](https://halcyonvector.github.io/Cricket-Intelligence-Lab/)
 
-![Dashboard: today's discovery, the last 30 days and the milestone watch for Men's T20 Internationals](docs/screenshots/dashboard.png)
+![Dashboard overview for the Indian Premier League: today's discovery with the player's photo and headline number, matches, runs, sixes and wickets at a glance, the last 30 days and the milestone watch](docs/screenshots/dashboard.png)
 
 ![Trends for the Indian Premier League: run rate by phase, first-innings totals, boundary and dot-ball share, and who won, season by season since 2008](docs/screenshots/trends.png)
 

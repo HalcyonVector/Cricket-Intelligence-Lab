@@ -232,11 +232,12 @@ function withSince(fn, app) {
 }
 const FILTER_VIEWS = ['players', 'bowlers', 'records', 'bowlto', 'matchups', 'home'];
 /* Background look, chosen from the swatches in the filters row and remembered on this device. */
-const BG_OPTS = [['lab', 'Lab (default)'], ['night', 'Floodlit night'], ['dusk', 'Stadium dusk']];
+const BG_OPTS = [['lab', 'Lab'], ['night', 'Floodlit night'], ['dusk', 'Stadium dusk']];
 function setBg(v) {
   if (!BG_OPTS.some(o => o[0] === v)) v = 'lab';
   document.body.dataset.bg = v; try { localStorage.setItem('cil-bg', v); } catch (e) {}
-  document.querySelectorAll('.bgpick [data-bgv]').forEach(b => { const on = b.dataset.bgv === v; b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on)); });
+  document.querySelectorAll('.themedrop').forEach(t => t.dataset.cur = v);
+  if (window._themeDrop && window._themeDrop.setValue) window._themeDrop.setValue(v);
 }
 (function () { let v = 'lab'; try { v = localStorage.getItem('cil-bg') || 'lab'; } catch (e) {} document.body.dataset.bg = v; })();
 function mountSinceControl() {
@@ -245,10 +246,13 @@ function mountSinceControl() {
   const wrap = document.createElement('div'); wrap.id = 'sinceHost'; wrap.className = 'hfilters';
   wrap.innerHTML = `<span class="hf-time" title="Time window for leaderboards, records and profiles"><svg class="hf-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span class="hf-drop"></span></span>
     <button type="button" id="fmbtn" class="fmsw" role="switch" aria-checked="false" title="Only count matches where both teams are ICC full members"><span class="trk"><span class="knob"></span></span>Full members</button>
-    <span class="bgpick" role="radiogroup" aria-label="Theme"><span class="bgl">Theme</span>${BG_OPTS.map(([v, l]) => `<button type="button" role="radio" data-bgv="${v}" title="${l}" aria-label="${l}"></button>`).join('')}</span>`;
+    <span class="themedrop" title="Theme"></span>`;
   host.after(wrap);
   const slot = wrap.querySelector('.hf-drop'), fmb = wrap.querySelector('#fmbtn');
-  wrap.querySelectorAll('.bgpick [data-bgv]').forEach(b => b.onclick = () => setBg(b.dataset.bgv));
+  const tslot = wrap.querySelector('.themedrop');
+  window._themeDrop = dropdown(BG_OPTS.map(([v, l]) => ({ v, label: l })), document.body.dataset.bg || 'lab', v => setBg(v));
+  window._themeDrop.querySelector('.drop-btn').setAttribute('aria-label', 'Theme');
+  tslot.appendChild(window._themeDrop);
   setBg(document.body.dataset.bg);
   fmb.onclick = () => { state.fm = !state.fm; render(); };
   let drop = null, dropKey = '';
@@ -608,6 +612,34 @@ const TEAM_COL = {
   // CPL
   'Trinbago Knight Riders': '#8B5CF6', 'Guyana Amazon Warriors': '#22C55E', 'Jamaica Tallawahs': '#FACC15', 'Barbados Royals': '#EC4899',
   'Saint Lucia Kings': '#60A5FA', 'St Kitts and Nevis Patriots': '#F43F5E',
+  // SA20
+  'Durban\'s Super Giants': '#22D3EE', 'Joburg Super Kings': '#FACC15', 'MI Cape Town': '#3B82F6', 'Paarl Royals': '#EC4899',
+  'Pretoria Capitals': '#60A5FA', 'Sunrisers Eastern Cape': '#F97316',
+  // ILT20
+  'Abu Dhabi Knight Riders': '#8B5CF6', 'Desert Vipers': '#EF4444', 'Dubai Capitals': '#60A5FA', 'Gulf Giants': '#F97316',
+  'MI Emirates': '#3B82F6', 'Sharjah Warriors': '#22C55E', 'Sharjah Warriorz': '#22C55E',
+  // Major League Cricket
+  'Los Angeles Knight Riders': '#8B5CF6', 'MI New York': '#3B82F6', 'San Francisco Unicorns': '#F97316', 'Seattle Orcas': '#22D3EE',
+  'Texas Super Kings': '#FACC15', 'Washington Freedom': '#EF4444',
+  // The Hundred (men's and women's sides share names)
+  'Birmingham Phoenix': '#F97316', 'London Spirit': '#60A5FA', 'Manchester Originals': '#C084FC', 'Northern Superchargers': '#FACC15',
+  'Oval Invincibles': '#22D3EE', 'Southern Brave': '#22C55E', 'Trent Rockets': '#EF4444', 'Welsh Fire': '#F43F5E',
+  // WPL (Delhi Capitals, Mumbai Indians and RCB are shared with the IPL above)
+  'Gujarat Giants': '#F97316', 'UP Warriorz': '#A78BFA',
+  // Vitality Blast / County Championship
+  'Birmingham Bears': '#60A5FA', 'Derbyshire': '#93C5FD', 'Durham': '#38BDF8', 'Essex': '#EF4444', 'Glamorgan': '#FACC15',
+  'Gloucestershire': '#F87171', 'Hampshire': '#60A5FA', 'Kent': '#22D3EE', 'Lancashire': '#F43F5E', 'Leicestershire': '#4ADE80',
+  'Middlesex': '#F472B6', 'Northamptonshire': '#A78BFA', 'Nottinghamshire': '#86EFAC', 'Somerset': '#FB7185', 'Surrey': '#A3A3A3',
+  'Sussex': '#3B82F6', 'Warwickshire': '#60A5FA', 'Worcestershire': '#22C55E', 'Yorkshire': '#FACC15',
+  // Super Smash / Plunket Shield
+  'Auckland': '#60A5FA', 'Canterbury': '#EF4444', 'Central Districts': '#22C55E', 'Northern Districts': '#FACC15', 'Otago': '#F97316', 'Wellington': '#A78BFA',
+  // BPL
+  'Chattogram Challengers': '#F97316', 'Chattogram Royals': '#F97316', 'Comilla Victorians': '#EF4444', 'Dhaka Capitals': '#60A5FA',
+  'Dhaka Dominators': '#60A5FA', 'Durdanto Dhaka': '#60A5FA', 'Fortune Barishal': '#C084FC', 'Khulna Tigers': '#FACC15',
+  'Rangpur Riders': '#22C55E', 'Sylhet Strikers': '#22D3EE', 'Durbar Rajshahi': '#F43F5E', 'Rajshahi Warriors': '#F43F5E',
+  // LPL
+  'Colombo Strikers': '#3B82F6', 'Dambulla Aura': '#FACC15', 'Dambulla Sixers': '#FACC15', 'Galle Gladiators': '#22C55E', 'Galle Marvels': '#22C55E',
+  'Galle Titans': '#22C55E', 'Jaffna Kings': '#C084FC', 'Kandy Falcons': '#EF4444', 'B-Love Kandy': '#EF4444',
 };
 function teamColor(name) {
   if (!name) return null;
