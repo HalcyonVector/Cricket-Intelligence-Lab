@@ -6,7 +6,7 @@ Built with Python, SQLite, NumPy and a plain HTML/JavaScript dashboard, rebuilt 
 
 > **What it's for:** look up any player and see where they rank within their competition and why, compare up to four side by side, find which bowlers have the best record against a given batter, and see how scoring, the toss and chasing have changed over time.
 
-**Live demo:** [halcyonvector.github.io/Cricket-Intelligence-Lab](https://halcyonvector.github.io/Cricket-Intelligence-Lab/)
+**Live demo:** [cricket-intelligence-lab.vercel.app](https://cricket-intelligence-lab.vercel.app/)
 
 ![Dashboard overview for the Indian Premier League: today's discovery with the player's photo and headline number, matches, runs, sixes and wickets at a glance, the last 30 days and the milestone watch](docs/screenshots/dashboard.png)
 
@@ -107,7 +107,7 @@ From the data, using complete seasons up to 2025:
 | **Dashboard** | Plain HTML, CSS and JavaScript | No framework or build step; hand-drawn SVG charts |
 | **Live scores** | Python serverless function | `serve.py`'s API, run on Vercel |
 | **Automation** | GitHub Actions | Weekly rebuild, data audit, tests and deploy |
-| **Hosting** | GitHub Pages | Static site; data published as a GitHub release |
+| **Hosting** | GitHub Pages behind Vercel | Static site built to GitHub Pages and served at the Vercel address; data published as a GitHub release |
 
 ---
 
@@ -183,7 +183,7 @@ Cricket-Intelligence-Lab/
 │       ├── playermeta.js, playerimg.js
 │       └── (generated, not in git) index.js, rankings.js, players.js, winprob.js,
 │           cohorts/<key>.js, cohorts/<key>__fm.js (full members), d/, matchups/, x/, f/ (innings), careers/, rivals/
-├── api/, vercel.json, vercel/     # Live-scores API on Vercel (wraps serve.py)
+├── api/, vercel.json, vercel/     # Vercel: live-scores API (wraps serve.py) and the pass-through to GitHub Pages
 ├── tests/                         # Unit + pipeline tests, data_consistency.py, browser/smoke.py
 └── docs/                          # Screenshots, ADR and the original design spec
 ```
@@ -202,7 +202,7 @@ all_json.zip ─► build_all.py ─► cil.db (SQLite) ─► pipeline.py + ext
 
 | Piece | Where | Notes |
 |-------|-------|-------|
-| Dashboard and landing page | GitHub Pages | Static files on a CDN |
+| Dashboard and landing page | GitHub Pages, served through Vercel | Pages hosts the built files; `vercel.json` passes every non-API request at `cricket-intelligence-lab.vercel.app` through to them, so one address serves the site and the API |
 | Weekly data build | GitHub Actions (`site.yml`) | Mondays 05:00 UTC: Cricsheet, data files, ICC rankings, audit, release, deploy |
 | Code deploys | GitHub Actions (`site.yml`) | A push touching `web/` redeploys with the latest data, without a rebuild |
 | Live scores API | Vercel (`api/index.py`) | Runs `serve.py`'s `/api/*`, CDN-cached (live 30 s, schedule 10 min) |
