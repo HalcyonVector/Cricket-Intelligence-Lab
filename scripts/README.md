@@ -26,6 +26,12 @@ python scripts/build_photo_wikidata.py
 ```
 Adds Wikimedia Commons photos (matched through Wikidata's ESPNcricinfo ID, then the freely licensed lead image of the player's English Wikipedia article) to players without a Cricbuzz headshot, with a credit link on the profile. Run it after `enrich_players_cricinfo.py`, which provides the ESPNcricinfo IDs. `build_player_images.py` and `build_photo_byid.py` build the Cricbuzz headshot map (`playerimg.js`).
 
+### Photos for players nobody else covers
+```
+python scripts/fetch_photos_cricapi.py
+```
+Searches CricketData.org for the most-played players who still have no photo and uses its headshot when the name matches exactly one player. Needs a free API key in `.env` (`CRICAPI_KEY=...`, git-ignored); the free plan allows 100 searches a day, so run it once a day. It remembers every lookup in `scripts/cricapi_lookups.json`.
+
 ### ICC rankings
 icc-cricket.com renders its tables with JavaScript, so this script uses a headless browser:
 ```

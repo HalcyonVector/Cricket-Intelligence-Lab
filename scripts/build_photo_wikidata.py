@@ -136,9 +136,10 @@ def main():
     print(f"Cricbuzz: {bridged:,} more players matched to a headshot through their full name -> {os.path.relpath(IMG, ROOT)}")
     added = 0
     for pid, m in meta.items():
-        m.pop("photo", None); m.pop("photo_page", None)
+        if m.get("photo_src") != "cricapi":  # keep photos from fetch_photos_cricapi.py
+            m.pop("photo", None); m.pop("photo_page", None)
         f = photos.get(str(m.get("cricinfo_id") or ""))
-        if not f or pid in byid:  # Cricbuzz headshots stay first choice where we have them
+        if not f or pid in byid or m.get("photo"):  # Cricbuzz and CricketData photos stay first choice
             continue
         q = urllib.parse.quote(f.replace(" ", "_"))
         m["photo"] = f"https://commons.wikimedia.org/wiki/Special:FilePath/{q}?width=240"

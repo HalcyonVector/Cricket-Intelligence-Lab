@@ -239,7 +239,7 @@ All three run in CI on every push.
 - **The win-probability models and projected totals don't know the teams,** the pitch, the weather or rain rules. They only see the score, balls and wickets (plus a per-competition scoring factor for projections). The Elo ratings aren't fed into them yet.
 - **Ratings are only as good as the schedule.** Elo can only compare teams that play each other, so associate nations that mostly play other associates can rate higher than their real strength (Uganda sits near the top of men's T20Is). The full-members switch avoids this.
 - **Small samples.** Matchups need only 12 balls (18 in Tests). Dominance is shrunk toward neutral to help, but short histories are still noisy.
-- **Photos are incomplete.** Headshots come from Cricbuzz (matched on the full name Wikidata gives for each ESPNcricinfo ID, since Cricsheet often has only initials) and freely licensed Wikimedia photos. Players with neither, mostly associate-nation players, show their initials in their team's colour.
+- **Photos are incomplete.** Headshots come from Cricbuzz (matched on the full name Wikidata gives for each ESPNcricinfo ID, since Cricsheet often has only initials), freely licensed Wikimedia photos and, for the most-played players neither covers, CricketData.org. Players with neither, mostly associate-nation players, show their initials in their team's colour.
 - **Seasons are calendar years.** Leagues that run across New Year (the BBL, for example) have one season split over two years on the Season review page.
 - **Live scores depend on Cricbuzz's pages,** which can change or rate-limit without notice.
 
