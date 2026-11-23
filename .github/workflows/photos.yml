@@ -1,0 +1,59 @@
+# Fill missing player photos from CricketData.org, a little every day.
+#
+# The free CricketData.org plan allows 100 API calls a day, and each player costs one search, so
+# this spends about 95 a day on the most-played players still without a photo
+# (scripts/fetch_photos_cricapi.py remembers every lookup, so nothing is repeated). New photos are
+# committed and the site is redeployed. When the list is used up the run does nothing.
+#
+# Needs a repository secret CRICAPI_KEY (Settings > Secrets and variables > Actions).
+name: Daily player photos
+
+on:
+  schedule:
+    - cron: "30 6 * * *"   # every day, 06:30 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write   # commit the new photos
+  actions: write    # start the site redeploy
+
+concurrency:
+  group: photos
+  cancel-in-progress: false
+
+jobs:
+  photos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      CRICAPI_KEY: ${{ secrets.CRICAPI_KEY }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - name: Skip without an API key
+        id: key
+        run: |
+          if [ -z "$CRICAPI_KEY" ]; then
+            echo "::notice::No CRICAPI_KEY secret yet; nothing to do."; echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Get the site data (the players index ranks who to look up)
+        if: steps.key.outputs.ok == 'true'
+        run: |
+          pip install requests
+          python scripts/fetch_data.py
+      - name: Look up today's batch
+        if: steps.key.outputs.ok == 'true'
+        run: python scripts/fetch_photos_cricapi.py --max 95 --top 1500
+      - name: Commit new photos and redeploy
+        if: steps.key.outputs.ok == 'true'
+        run: |
+          git add web/dashboard/playermeta.js scripts/cricapi_lookups.json
+          if git diff --cached --quiet; then echo "No new lookups today."; exit 0; fi
+          git -c user.name="Sagnik" -c user.email="basu.sagnik0606@gmail.com" commit -m "data(photos): daily CricketData.org lookups"
+          git push
+          gh workflow run site.yml --ref main -f rebuild=false
