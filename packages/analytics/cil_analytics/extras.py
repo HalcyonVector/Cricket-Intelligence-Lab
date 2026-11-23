@@ -12,6 +12,7 @@ Contents (all compact arrays, keyed by player index into `p`):
   recent  the latest matches with over-by-over runs/wickets and top performers
   week    standout innings / spells from the last 30 days of data
   trend   one row per season for the whole competition (columns in trend_cols)
+  seasons per season: the final, best innings and best spell (Season review page)
   elo     Elo rating per team (current, matches, end-of-season history) and how often the favourite won
 """
 from __future__ import annotations
@@ -381,6 +382,7 @@ def build_extras(conn, names, intl=False, fmt="t20", rpo=8.0):
     data = {"yb": yb, "yw": yw, "bp": bp, "wp": wp, "venues": venue_detail(conn, P), "teams": team_detail(conn, P),
             "recent": recent_matches(conn, P), "week": this_week(conn, P),
             "trend": season_trend(conn), "trend_cols": TREND_COLS}
+    data["seasons"] = season_review(conn, P, intl=intl)
     data["elo"], pre = team_elo(conn)
     for mt in data["recent"]:  # pre-match ratings on the match pages
         if mt.get("id") in pre:
@@ -429,6 +431,53 @@ def player_teams(conn):
     bowl = {r["pid"]: r["t"] for r in _rows(conn, """SELECT s.bowler_id pid, s.bowling_team t, MAX(m.match_date || s.match_id) k
             FROM sd s JOIN dim_match m ON m.match_id=s.match_id WHERE s.bowler_id IS NOT NULL GROUP BY s.bowler_id""")}
     return bat, bowl
+
+
+import re as _re
+# International finals worth calling a season's champion: World Cups, the Champions Trophy, the World
+# Test Championship and the Asia Cup. Qualifiers and regional events are left out.
+MAJOR_EVENT = _re.compile(r"^(ICC )?(Men's |Women's )?(Cricket )?(T20 |Twenty20 )?(World Cup|World Twenty20|World T20|Champions Trophy|"
+                          r"World Test Championship)$|^(Men's |Women's )?(T20 |Twenty20 )?Asia Cup$|^Asian Cricket Council Women's Twenty20 Asia Cup$", _re.I)
+
+
+def season_review(conn, P, intl=False):
+    """Per season (calendar year): the final(s) that decide a champion, and the season's best
+    innings and best spell. For internationals only the major events' finals count (MAJOR_EVENT).
+    Leaders, sixes and standings come from yb/yw/teams in the browser."""
+    out = defaultdict(dict)
+    for m in _rows(conn, """SELECT m.match_id id, m.match_date d, m.team_a a, m.team_b b, m.winner w, m.result_type rt, m.venue v, m.league ev
+            FROM dim_match m JOIN sm ON sm.match_id=m.match_id WHERE LOWER(m.stage)='final' ORDER BY m.match_date"""):
+        if intl and not MAJOR_EVENT.match((m["ev"] or "").strip()):
+            continue
+        inns = _rows(conn, f"""SELECT innings_no i, MAX(batting_team) t, SUM(runs_batter+runs_extras) r,
+                SUM(player_out_id IS NOT NULL) w, SUM(CASE WHEN {LEGAL} THEN 1 ELSE 0 END) b
+                FROM sd WHERE match_id=? GROUP BY innings_no ORDER BY innings_no""", (m["id"],))
+        out[int(m["d"][:4])].setdefault("finals", []).append({"id": m["id"], "date": m["d"], "teams": [m["a"], m["b"]], "winner": m["w"],
+            "result": m["rt"], "venue": m["v"], "event": m["ev"] if intl else None,
+            "inns": [[r["t"], r["r"] or 0, r["w"] or 0, r["b"] or 0] for r in inns]})
+    best_i, best_s = {}, {}
+    for r in _rows(conn, f"""SELECT s.yr yr, s.batter_id pid, s.match_id mid, MAX(s.batting_team) t, MAX(s.bowling_team) vs,
+            SUM(s.runs_batter) r, COUNT(*) b FROM sd s WHERE {BAT.replace('extra_type', 's.extra_type')} AND s.batter_id IS NOT NULL
+            GROUP BY s.yr, s.batter_id, s.match_id, s.innings_no"""):
+        if not r["yr"] or not str(r["yr"]).isdigit():
+            continue
+        k = int(r["yr"]); cur = best_i.get(k)
+        if cur is None or (r["r"], -r["b"]) > (cur["r"], -cur["b"]):
+            best_i[k] = r
+    for r in _rows(conn, f"""SELECT s.yr yr, s.bowler_id pid, s.match_id mid, MAX(s.bowling_team) t, MAX(s.batting_team) vs,
+            SUM(CASE WHEN {BOWLER_WKT.replace('wicket_kind', 's.wicket_kind')} THEN 1 ELSE 0 END) w,
+            SUM(s.runs_batter+s.runs_extras) r, SUM(CASE WHEN {LEGAL.replace('extra_type', 's.extra_type')} THEN 1 ELSE 0 END) b
+            FROM sd s WHERE s.bowler_id IS NOT NULL GROUP BY s.yr, s.bowler_id, s.match_id, s.innings_no"""):
+        if not r["yr"] or not str(r["yr"]).isdigit() or not r["w"]:
+            continue
+        k = int(r["yr"]); cur = best_s.get(k)
+        if cur is None or (r["w"], -r["r"]) > (cur["w"], -cur["r"]):
+            best_s[k] = r
+    for k, r in best_i.items():
+        out[k]["bi"] = [P(r["pid"]), r["r"], r["b"], r["t"], r["vs"], r["mid"]]
+    for k, r in best_s.items():
+        out[k]["bs"] = [P(r["pid"]), r["w"], r["r"], r["b"], r["t"], r["vs"], r["mid"]]
+    return {str(k): v for k, v in sorted(out.items())}
 
 
 def write_extras(path, key, data, write):

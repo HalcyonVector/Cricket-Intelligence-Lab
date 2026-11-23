@@ -862,6 +862,51 @@ def write_innings(jsdir, key, bat, bowl):
                 f"{json.dumps({'b': b, 'w': w}, separators=(',', ':'))});\n")
 
 
+RIVAL_MIN_BALLS = 30  # a batter-vs-bowler pair needs this many balls across all competitions
+
+
+def write_rivalries(conn, dashdir, names):
+    """rivals/<0-f>.js: every batter-vs-bowler pair that has met for RIVAL_MIN_BALLS+ balls across
+    all competitions, split by competition and season, sharded by the batter's id like careers/.
+    rivals/names.js holds the competition labels and every name the shards refer to."""
+    BAT = "(d.extra_type IS NULL OR d.extra_type <> 'wides')"
+    WKT = ("d.wicket_kind IS NOT NULL AND d.wicket_kind NOT IN ('run out','retired hurt','retired out',"
+           "'obstructing the field','timed out','handled the ball')")
+    rows = conn.execute(f"""SELECT d.batter_id, d.bowler_id, m.team_type, m.format, m.gender, m.league,
+            substr(m.match_date,1,4), SUM(CASE WHEN {BAT} THEN 1 ELSE 0 END),
+            SUM(CASE WHEN {BAT} THEN d.runs_batter ELSE 0 END),
+            SUM(CASE WHEN d.player_out_id = d.batter_id AND {WKT} THEN 1 ELSE 0 END)
+        FROM fact_delivery d JOIN dim_match m ON m.match_id = d.match_id
+        WHERE d.batter_id IS NOT NULL AND d.bowler_id IS NOT NULL
+        GROUP BY d.batter_id, d.bowler_id, m.team_type, m.format, m.gender, m.league, substr(m.match_date,1,4)""").fetchall()
+    FMT = {"t20": "T20Is", "odi": "ODIs", "test": "Tests"}
+    comps, cix = [], {}
+    def comp(tt, fmt, gender, league):
+        lab = (("Women's " if gender == "female" else "Men's ") + FMT.get(fmt, (fmt or "").upper())) if tt == "international" else (league or "Other")
+        if lab not in cix:
+            cix[lab] = len(comps); comps.append(lab)
+        return cix[lab]
+    pairs, total = defaultdict(list), defaultdict(int)
+    for bat, bowl, tt, fmt, gender, league, yr, balls, runs, outs in rows:
+        if not balls or not yr or not yr.isdigit():
+            continue
+        pairs[(bat, bowl)].append([comp(tt, fmt, gender, league), int(yr), balls, runs or 0, outs or 0])
+        total[(bat, bowl)] += balls
+    out = os.path.join(dashdir, "rivals")
+    os.makedirs(out, exist_ok=True)
+    parts, used = {k: {} for k in CAREER_SHARDS}, set()
+    for (bat, bowl), recs in pairs.items():
+        if total[(bat, bowl)] < RIVAL_MIN_BALLS:
+            continue
+        parts[career_shard(bat)].setdefault(bat, {})[bowl] = sorted(recs, key=lambda r: (r[1], r[0]))
+        used.update((bat, bowl))
+    for k, d in parts.items():
+        _awrite(os.path.join(out, f"{k}.js"), f"window.__rivalsLoaded({json.dumps(k)},{json.dumps(d, separators=(',', ':'))});\n")
+    _awrite(os.path.join(out, "names.js"), "window.__rivalNames(" + json.dumps(
+        {"c": comps, "n": {pid: names.get(pid, pid) for pid in sorted(used)}}, separators=(",", ":")) + ");\n")
+    return sum(len(v) for d in parts.values() for v in d.values())
+
+
 def write_career_shards(dashdir, career, venues):
     """Write careers/<0-f>.js so a profile downloads ~1/16th of the career data.
 
@@ -954,6 +999,7 @@ def build(db="cil.db", outdir="web/data", jsdir="web/dashboard/cohorts"):
     career, venues = global_profiles(conn)
     write_career_shards(os.path.dirname(jsdir), career, venues)
     print(f"  careers/: {len(career)} batters with career, {len(venues)} with venues")
+    print(f"  rivals/: {write_rivalries(conn, os.path.dirname(jsdir), names):,} batter-vs-bowler pairs with {RIVAL_MIN_BALLS}+ balls")
     conn.close()
     return index
 

@@ -48,6 +48,8 @@ From the data, using complete seasons up to 2025:
 
 ### Analysis
 
+- **Season review:** pick a season to see the champion (the final's winner, or for internationals the World Cup, Champions Trophy, World Test Championship or Asia Cup winner), the leading run-scorers and wicket-takers, the best innings and spell, the most sixes, the scoring rate against the all-time rate, and a results table. Seasons are calendar years.
+- **Rivalries:** one batter against one bowler across every competition they have met in, internationals and leagues together: runs, dismissals, strike rate, a season-by-season chart, a split by competition and the batter's most-faced bowlers. Covers every pair with 30+ balls (about 93,000).
 - **Trends:** how a whole competition has changed season by season: run rate overall and by phase, average first-innings total, boundary and dot-ball share, runs per wicket, and how often the side batting second and the toss winner won.
 - **Time window:** all time, the last two seasons or since 2015. Leaderboards, records, percentiles, archetypes and profiles are recomputed for the window.
 - **Full members only** (international competitions): every view switches to a version of the data built only from matches between the 12 ICC full members.
@@ -180,7 +182,7 @@ Cricket-Intelligence-Lab/
 │       ├── sw.js, manifest.webmanifest, config.js
 │       ├── playermeta.js, playerimg.js
 │       └── (generated, not in git) index.js, rankings.js, players.js, winprob.js,
-│           cohorts/<key>.js, cohorts/<key>__fm.js (full members), d/, matchups/, x/, f/ (innings), careers/
+│           cohorts/<key>.js, cohorts/<key>__fm.js (full members), d/, matchups/, x/, f/ (innings), careers/, rivals/
 ├── api/, vercel.json, vercel/     # Live-scores API on Vercel (wraps serve.py)
 ├── tests/                         # Unit + pipeline tests, data_consistency.py, browser/smoke.py
 └── docs/                          # Screenshots, ADR and the original design spec
@@ -222,8 +224,8 @@ pip install playwright && python -m playwright install chromium && python tests/
 ```
 
 - **Pipeline tests:** run a synthetic Cricsheet zip through ingest and the full build, then check every output file, including the full-members versions.
-- **Data audit (about 513,000 checks across 49 competitions and their full-members versions):** season totals add up to career totals, phase balls never exceed total balls, matchup players exist, record holders match the leaderboards, venue runs never exceed competition runs, full-members figures never exceed all-match figures, season trends add up to the competition, and every player's innings log adds up to their totals. The weekly build won't publish if any check fails.
-- **Browser test:** opens 23 views in headless Chromium against the real data and fails on any JavaScript error or missing content.
+- **Data audit (about 513,000 checks across 49 competitions and their full-members versions):** season totals add up to career totals, phase balls never exceed total balls, matchup players exist, record holders match the leaderboards, venue runs never exceed competition runs, full-members figures never exceed all-match figures, season trends add up to the competition, every player's innings log adds up to their totals, and every rivalry pair is complete and consistent. The weekly build won't publish if any check fails.
+- **Browser test:** opens 25 views in headless Chromium against the real data and fails on any JavaScript error or missing content.
 
 All three run in CI on every push.
 
@@ -237,7 +239,8 @@ All three run in CI on every push.
 - **The win-probability models and projected totals don't know the teams,** the pitch, the weather or rain rules. They only see the score, balls and wickets (plus a per-competition scoring factor for projections). The Elo ratings aren't fed into them yet.
 - **Ratings are only as good as the schedule.** Elo can only compare teams that play each other, so associate nations that mostly play other associates can rate higher than their real strength (Uganda sits near the top of men's T20Is). The full-members switch avoids this.
 - **Small samples.** Matchups need only 12 balls (18 in Tests). Dominance is shrunk toward neutral to help, but short histories are still noisy.
-- **Photos are incomplete.** Players without a Cricbuzz headshot or a freely licensed Wikipedia photo show initials.
+- **Photos are incomplete.** Headshots come from Cricbuzz (matched on the full name Wikidata gives for each ESPNcricinfo ID, since Cricsheet often has only initials) and freely licensed Wikimedia photos. Players with neither, mostly associate-nation players, show their initials in their team's colour.
+- **Seasons are calendar years.** Leagues that run across New Year (the BBL, for example) have one season split over two years on the Season review page.
 - **Live scores depend on Cricbuzz's pages,** which can change or rate-limit without notice.
 
 ---

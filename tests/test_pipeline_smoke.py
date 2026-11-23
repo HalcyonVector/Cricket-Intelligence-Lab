@@ -97,6 +97,10 @@ def test_full_build():
         fdir = os.path.join(cohorts, "f", "t20i_men")
         assert len(os.listdir(fdir)) == 16, "innings log is sharded like careers/"
         assert x["elo"]["teams"] and x["elo"]["acc"][0] <= x["elo"]["acc"][1]
+        assert x["seasons"] and all(k.isdigit() for k in x["seasons"]), "season review data"
+        assert any("bi" in v and "bs" in v for v in x["seasons"].values())
+        rv = os.path.join(dash, "rivals")
+        assert os.path.exists(os.path.join(rv, "names.js")) and len([f for f in os.listdir(rv) if f != "names.js"]) == 16, "rivalry shards"
         assert all("elo" in mt for mt in x["recent"] if mt["result"] != "no result"), "pre-match ratings on match pages"
         assert not any("matchups" in v for v in det["players"].values()), "matchups ship only in cohorts/matchups/"
         dsh = os.path.join(cohorts, "d", "t20i_men")

@@ -4,6 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Cricket Intelligence Lab</title>
+<link rel="apple-touch-icon" href="icon-180.png"/>
 <link rel="icon" type="image/svg+xml" href="icon.svg"/>
 <meta property="og:type" content="website"/>
 <meta property="og:site_name" content="Cricket Intelligence Lab"/>
@@ -12,7 +13,7 @@
 <meta property="og:url" content="https://halcyonvector.github.io/Cricket-Intelligence-Lab/dashboard/index.html"/>
 <meta property="og:image" content="https://halcyonvector.github.io/Cricket-Intelligence-Lab/og.png"/>
 <meta property="og:image:width" content="1200"/><meta property="og:image:height" content="630"/>
-<meta property="og:image:alt" content="Cricket Intelligence Lab: outlier map and archetype charts"/>
+<meta property="og:image:alt" content="Cricket Intelligence Lab: the dashboard overview with player photos, headline stats and the last 30 days"/>
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:title" content="Cricket Intelligence Lab: the dashboard"/>
 <meta name="twitter:description" content="Search any player across 49 competitions, compare them, find who should bowl to whom, and explore matches ball by ball."/>
@@ -1144,6 +1145,74 @@ body{--fmt-text:color-mix(in srgb,var(--fmt) 72%,#fff)}
   header .subnav.fade-l.fade-r{-webkit-mask-image:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent);mask-image:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent)}
 }
 @media(min-width:1300px){header .raterow>nav.subnav{justify-content:flex-end!important}}
+
+/* initials when there is no photo: tinted and ringed in the player's team colour */
+.face{--fc:#7a7f8c;background:radial-gradient(circle at 32% 26%,color-mix(in srgb,var(--fc) 42%,#20232a),#15171b 78%)!important;
+  box-shadow:0 0 0 1.5px color-mix(in srgb,var(--fc) 65%,transparent)!important}
+.face i{color:color-mix(in srgb,var(--fc) 30%,#fff)!important;font-weight:800!important;letter-spacing:.02em}
+.face img{z-index:1}
+
+/* ---------- Season review ---------- */
+.seasonpick{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0 12px}
+.seasonpick::-webkit-scrollbar{display:none}
+.seasonpick button{flex:none;padding:7px 13px;border-radius:999px;border:1px solid var(--hair2);background:rgba(255,255,255,.03);color:var(--muted);font:600 13px/1 inherit;cursor:pointer}
+.seasonpick button.on{background:rgba(242,178,76,.14);color:#F2B24C;border-color:rgba(242,178,76,.4)}
+.sr-hero{position:relative;display:block;padding:24px 26px 22px 110px;border-radius:16px;overflow:hidden;text-decoration:none!important;color:inherit;
+  border:1px solid color-mix(in srgb,var(--tc) 40%,var(--hair));
+  background:radial-gradient(600px 260px at 0% 0%,color-mix(in srgb,var(--tc) 30%,transparent),transparent 70%),linear-gradient(135deg,color-mix(in srgb,var(--tc) 14%,rgba(20,21,26,.9)),rgba(20,21,26,.85) 60%)}
+.sr-trophy{position:absolute;left:24px;top:50%;transform:translateY(-50%);width:66px;height:66px;border-radius:18px;display:grid;place-items:center;
+  color:var(--tc);background:color-mix(in srgb,var(--tc) 16%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--tc) 40%,transparent),0 0 40px color-mix(in srgb,var(--tc) 25%,transparent)}
+.sr-trophy svg{width:36px;height:36px}
+.sr-k{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:color-mix(in srgb,var(--tc) 70%,#fff)}
+.sr-champ{font-size:32px;font-weight:800;letter-spacing:-.02em;line-height:1.15;margin:4px 0 6px}
+.sr-how{color:var(--muted);font-size:14px}
+.sr-scores{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;font-size:13.5px}
+.sr-sc{display:inline-flex;align-items:center;gap:7px}
+.sr-sc i{width:9px;height:9px;border-radius:2px}
+.sr-row{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--hair)}
+.sr-row:first-of-type{border-top:none}
+.sr-who{flex:1;min-width:0;display:flex;flex-direction:column}
+.sr-who .dim{font-size:12px}
+.sr-row b.num{font-size:17px}
+.sr-tile{position:relative;padding-right:76px!important;min-height:120px}
+.sr-tile .hx-big small{font-size:14px;color:var(--dim)}
+.sr-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:8px;vertical-align:middle}
+@media(max-width:640px){
+  .sr-hero{padding:86px 16px 18px}
+  .sr-trophy{left:16px;top:16px;transform:none;width:54px;height:54px}
+  .sr-champ{font-size:25px}
+  .sr-tile{padding-right:12px!important;padding-top:50px!important}
+  .sr-tile .face.lg{left:12px;right:auto;top:10px;width:34px;height:34px}
+  .sr-tile .hx-k{position:absolute;top:18px;left:54px}
+}
+
+/* ---------- Rivalries ---------- */
+.riv-pick{display:flex;align-items:end;gap:14px;flex-wrap:wrap}
+.riv-pick .field{flex:1;min-width:200px}
+.riv-pick input{width:100%}
+.riv-vs{font-weight:800;color:var(--dim);padding-bottom:10px}
+.riv-hero{display:grid;grid-template-columns:1fr minmax(200px,1.2fr) 1fr;align-items:center;gap:18px;padding:22px;border-radius:16px;
+  border:1px solid var(--hair2);background:radial-gradient(500px 220px at 50% 0%,rgba(242,178,76,.14),transparent 70%),linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02)),rgba(12,13,17,.5)}
+.riv-side{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.riv-side .face.xl{width:104px;height:104px}
+.riv-nm{font-size:18px;font-weight:800}
+.riv-mid{text-align:center}
+.riv-vs2{font-size:34px;font-weight:900;letter-spacing:-.02em;color:#F2B24C;text-shadow:0 0 24px rgba(242,178,76,.35)}
+.riv-bar{height:10px;border-radius:6px;background:#E5484D;overflow:hidden;margin:12px 0 8px;box-shadow:0 0 14px rgba(229,72,77,.25)}
+.riv-bar span{display:block;height:100%;background:linear-gradient(90deg,#E59A2F,#F7C873)}
+.riv-edge{font-size:13px;color:var(--muted)}
+.riv-list{display:flex;flex-wrap:wrap;gap:8px}
+.riv-chip{display:inline-flex;align-items:center;gap:8px;padding:6px 12px 6px 6px;border-radius:999px;border:1px solid var(--hair2);background:rgba(255,255,255,.03);color:var(--ink);cursor:pointer;font:500 13px/1 inherit}
+.riv-chip .face.sm{margin:0}
+.riv-chip.on{border-color:rgba(242,178,76,.5);background:rgba(242,178,76,.12)}
+.riv-chip .dim{font-size:11.5px}
+@media(max-width:640px){
+  .riv-hero{grid-template-columns:1fr 1fr;padding:16px}
+  .riv-mid{grid-column:1/-1;order:3}
+  .riv-side .face.xl{width:72px;height:72px}
+  .riv-nm{font-size:15px}
+  .riv-vs{display:none}
+}
 </style>
 </head>
 <body><script>try{document.body.dataset.bg=localStorage.getItem('cil-bg')||'lab'}catch(e){document.body.dataset.bg='lab'}</script><div class="bgglow" aria-hidden="true"></div>
@@ -1391,8 +1460,8 @@ function init(){
   window._scopeDrop=dropdown(ditems,state.cohort,v=>{state.cohort=v;state.player=null;state.bowler=null;state.venue=state.team=state.match=null;render();});
   document.getElementById('scopeHost').appendChild(window._scopeDrop);
   window.MODES=[
-    ["DISCOVER",[["home","Overview"]]],
-    ["ANALYZE",[["players","Batters"],["bowlers","Bowlers"],["teams","Teams"],["compare","Compare"],["matchups","Matchups"],["bowlto","Bowl to…"],["matches","Matches"],["network","Network"],["venues","Venues"]]],
+    ["DISCOVER",[["home","Overview"],["season","Season review"]]],
+    ["ANALYZE",[["players","Batters"],["bowlers","Bowlers"],["teams","Teams"],["compare","Compare"],["matchups","Matchups"],["rivalry","Rivalries"],["bowlto","Bowl to…"],["matches","Matches"],["network","Network"],["venues","Venues"]]],
     ["RESEARCH",[["trends","Trends"],["research","Research Lab"],["records","Records"]].concat(window.CIL_RANKINGS?[["rankings","ICC Rankings"]]:[])],
     ["LIVE",[["live","Live Scores"],["schedule","Schedule"]]],
   ];

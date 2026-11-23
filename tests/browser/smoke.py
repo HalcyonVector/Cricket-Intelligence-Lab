@@ -32,6 +32,8 @@ PAGES = [
     ("records", "/dashboard/index.html#c=t20i_men&v=records", ".recchips"),
     ("research", "/dashboard/index.html#c=t20i_men&v=research", "#rsc svg"),
     ("trends", "/dashboard/index.html#c=t20i_men&v=trends", "text=Trends"),
+    ("season review", "/dashboard/index.html#c=t20i_men&v=season", ".seasonpick"),
+    ("rivalries", "/dashboard/index.html#c=t20i_men&v=rivalry", ".riv-pick"),
     ("network", "/dashboard/index.html#c=t20i_men&v=network", ".netn"),
     ("league", "/dashboard/index.html#c=indian_premier_league", ".homex .hx-tile"),
     ("overview, full members", "/dashboard/index.html#c=t20i_men&fm=1", ".fmnote"),

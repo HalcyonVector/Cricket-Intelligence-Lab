@@ -155,10 +155,20 @@ def main():
         ks = keys_for(name)
         if len(ks) > 1 and len(surn.get(ks[1], ())) == 1:
             mp.setdefault(ks[1], url)
+    # merge into the existing file: keep every photo already known (a player who has left a squad
+    # page keeps their headshot) and the other maps in the file (blocklist, id bridge)
+    old_text, old = "", {}
+    if os.path.exists(OUT):
+        old_text = open(OUT, encoding="utf-8").read()
+        m = re.search(r"window\.CIL_PLAYERIMG\s*=\s*", old_text)
+        if m:
+            old, end = json.JSONDecoder().raw_decode(old_text, m.end())
+            old_text = old_text[:m.start()] + old_text[end:].lstrip(";")
+    merged = dict(old); merged.update(mp)
     with open(OUT, "w", encoding="utf-8") as f:
-        f.write("window.CIL_PLAYERIMG=" + json.dumps(mp, separators=(",", ":")) + ";")
-    print(f"\nWrote {OUT}: {len(collected):,} players, {len(mp):,} lookup keys.")
-    print("Hard-refresh the dashboard - player photos now load.")
+        f.write("window.CIL_PLAYERIMG=" + json.dumps(merged, separators=(",", ":")) + ";" + old_text.strip())
+    print(f"\nWrote {OUT}: {len(collected):,} players crawled, {len(merged):,} lookup keys ({len(merged) - len(old):,} new).")
+    print("Then run scripts/build_photo_byid.py and scripts/build_photo_wikidata.py to link the new photos to players.")
 
 
 if __name__ == "__main__":

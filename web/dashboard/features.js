@@ -1009,7 +1009,160 @@ function trendsView(app) {
     box.appendChild($(`<div class="panel" style="margin-top:13px"><h3 style="margin:0 0 8px;font-size:14px">Season by season</h3><div class="tscroll"><table><thead><tr>${th.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${tb}</tbody></table></div></div>`));
   });
 }
-window.EXTRA_VIEWS = { bowlto: app => withSince(bowlToView, app), matches: matchesView, trends: trendsView };
+
+/* ---------- Season review: one season of a competition on one page ---------- */
+const TROPHY_IC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4"/><path d="M12 14v4M8 21h8M9 18h6"/></svg>';
+function seasonView(app) {
+  const c = cur(), key = dataKey();
+  app.appendChild($(`<div><h1>Season review</h1><p class="sub">One season of ${esc(c.meta.label)}: who won, who led the runs and wickets, the standout performances and how the season compared. Seasons are calendar years.</p></div>`));
+  const box = $('<div class="loadbox"><div class="spinner"></div><div>Loading seasons…</div></div>'); app.appendChild(box);
+  ensureExtras(key, x => {
+    box.className = ''; box.innerHTML = '';
+    if (!x || !x.yb) { box.innerHTML = '<div class="cov">Season data arrives with the next weekly data rebuild.</div>'; return; }
+    const years = [...new Set(x.yb.map(r => r[1]))].sort((a, b) => b - a);
+    if (!years.length) { box.innerHTML = '<div class="cov">No seasons in this competition yet.</div>'; return; }
+    if (!years.includes(state.season)) state.season = years[0];
+    const draw = () => {
+      const y = state.season, S = (x.seasons || {})[String(y)] || {}, nameOf = i => pName(x, i), idOf = i => pId(x, i);
+      const teamOf = id => ((c.players || {})[id] || (c.bowlers || {})[id] || {}).team;
+      // runs and wickets leaders from the per-season totals
+      const bat = x.yb.filter(r => r[1] === y).sort((a, b) => b[3] - a[3]).slice(0, 5);
+      const bowl = x.yw.filter(r => r[1] === y).sort((a, b) => b[4] - a[4] || a[3] - b[3]).slice(0, 5);
+      const six = x.yb.filter(r => r[1] === y).sort((a, b) => b[9] - a[9])[0];
+      // standings from team results
+      const stand = Object.entries(x.teams || {}).map(([t, d]) => { const r = (d.years || []).find(v => v[0] === y); return r ? { t, p: r[1], w: r[2], l: r[3] } : null; })
+        .filter(Boolean).sort((a, b) => b.w - a.w || (b.w / b.p) - (a.w / a.p));
+      // the champion: the final's winner, or the team with most wins where there is no final
+      const allF = S.finals || (S.final ? [S.final] : []), finals = allF.filter(f => f.winner), F = finals[finals.length - 1];
+      const tied = !F && allF.find(f => !f.winner && /tie/i.test(f.result || ''));
+      let hero = '';
+      if (tied) {
+        hero = `<div class="sr-hero" style="--tc:#F2B24C"><span class="sr-trophy">${TROPHY_IC}</span><div class="sr-k">${tied.event ? esc(tied.event) + ' ' + y : y + ' final'}</div>
+          <div class="sr-champ">${esc(tied.teams[0])} and ${esc(tied.teams[1])} tied the final</div>
+          <div class="sr-how">${esc(tied.date)} · ${(tied.inns || []).length > 2 ? 'the super over was tied as well, so the title went on a boundary count, which the data does not record' : 'decided by a tie-break the data does not record'}.</div>
+          <div class="sr-scores">${(tied.inns || []).map(i => `<span class="sr-sc"><i style="background:${teamColor(i[0]) || '#8B8E96'}"></i>${esc(i[0])} <b>${i[1]}/${i[2]}</b></span>`).join('')}</div></div>`;
+      } else if (F) {
+        const [i1, i2] = F.inns, win = F.winner, loser = F.teams.find(t => t !== win) || '';
+        let margin = '';
+        if (i1 && i2) margin = i2[0] === win ? `by ${10 - i2[2]} wicket${10 - i2[2] === 1 ? '' : 's'}` : `by ${i1[1] - i2[1]} run${i1[1] - i2[1] === 1 ? '' : 's'}`;
+        const sc = (F.inns || []).map(i => `<span class="sr-sc"><i style="background:${teamColor(i[0]) || '#8B8E96'}"></i>${esc(i[0])} <b>${i[1]}/${i[2]}</b> <span class="dim">(${oversOf(i[3])})</span></span>`).join('');
+        const link = (x.recent || []).some(r => r.id === F.id) ? goAttr('match', F.id) : '';
+        const others = finals.slice(0, -1).map(o => `${esc(o.event || 'Final')}: <b>${esc(o.winner)}</b> beat ${esc(o.teams.find(t => t !== o.winner) || '')}`).join(' · ');
+        hero = `<a class="sr-hero" style="--tc:${teamColor(win) || '#F2B24C'}" ${link}><span class="sr-trophy">${TROPHY_IC}</span>
+          <div class="sr-k">${F.event ? esc(F.event) + ' ' + y : y + ' champions'}</div><div class="sr-champ">${esc(win)}</div>
+          <div class="sr-how">Beat ${esc(loser)} ${margin} in the final · ${esc(F.date)}${F.venue ? ' · ' + esc(String(F.venue).split(',')[0]) : ''}</div><div class="sr-scores">${sc}</div>
+          ${others ? `<div class="sr-how" style="margin-top:10px">Also won in ${y}: ${others}</div>` : ''}</a>`;
+      } else if (stand.length) {
+        const FMS = new Set(['Afghanistan', 'Australia', 'Bangladesh', 'England', 'India', 'Ireland', 'New Zealand', 'Pakistan', 'South Africa', 'Sri Lanka', 'West Indies', 'Zimbabwe']);
+        const pool = stand.filter(s => s.p >= 5 && (!c.meta.intl || FMS.has(String(s.t).replace(/ Women$/, ''))));
+        const top = (pool.length ? pool : stand).slice().sort((a, b) => b.w / b.p - a.w / a.p || b.w - a.w)[0];
+        hero = `<div class="sr-hero" style="--tc:${teamColor(top.t) || '#F2B24C'}"><span class="sr-trophy">${TROPHY_IC}</span>
+          <div class="sr-k">${y} · best record</div><div class="sr-champ">${esc(top.t)}</div>
+          <div class="sr-how">Won ${top.w} of ${plural(top.p, 'match', 'matches')}${c.meta.intl ? '. No World Cup, Champions Trophy or Asia Cup final this year, so this is the full member with the best win rate (5+ matches).' : '.'}</div></div>`;
+      }
+      const lead = (title, rows, val, sub, bowler) => `<div class="panel s6"><h2>${title}</h2>${rows.map((r, i) => { const id = idOf(r[0]), nm = nameOf(r[0]);
+        return `<div class="sr-row"><span class="rank ${i < 3 ? 'r' + (i + 1) : ''}">${i + 1}</span>${faceHTML(id, nm, 'md', teamOf(id))}<span class="sr-who">${pidLink(id, nm, bowler)}<span class="dim">${sub(r)}</span></span><b class="num">${val(r)}</b></div>`; }).join('') || '<span class="note">No data.</span>'}</div>`;
+      const tile = (k, big, who, sub, pid, tm) => `<div class="s3"><div class="panel sr-tile">${pid ? faceHTML(pid, who, 'lg', tm) : ''}<div class="hx-k">${k}</div><div class="hx-big kpi-like">${big}</div><div class="hx-who">${esc(who)}</div><div class="hx-sub">${sub}</div></div></div>`;
+      const T = (x.trend || []), C = x.trend_cols || [], col = k => C.indexOf(k), tr = T.find(r => r[col('yr')] === y);
+      const rrAll = T.length ? 6 * T.reduce((a, r) => a + r[col('runs')], 0) / T.reduce((a, r) => a + r[col('balls')], 0) : null;
+      const rrY = tr && tr[col('balls')] ? 6 * tr[col('runs')] / tr[col('balls')] : null;
+      const tiles = [
+        S.bi ? tile('Best innings', `${S.bi[1]} <small>(${S.bi[2]})</small>`, nameOf(S.bi[0]), `${esc(S.bi[3] || '')} vs ${esc(S.bi[4] || '')}`, idOf(S.bi[0]), S.bi[3]) : '',
+        S.bs ? tile('Best spell', `${S.bs[1]}/${S.bs[2]}`, nameOf(S.bs[0]), `${esc(S.bs[4] ? 'vs ' + S.bs[5] : '')} · ${oversOf(S.bs[3])}`, idOf(S.bs[0]), S.bs[4]) : '',
+        six && six[9] ? tile('Most sixes', six[9], nameOf(six[0]), `${six[3].toLocaleString()} runs in ${six[5]} innings`, idOf(six[0]), teamOf(idOf(six[0]))) : '',
+        rrY ? tile('Scoring rate', rrY.toFixed(2), 'runs an over', rrAll ? `${rrY >= rrAll ? '+' : ''}${(rrY - rrAll).toFixed(2)} on the all-time ${rrAll.toFixed(2)}` : '', null) : '',
+      ].join('');
+      const stTable = stand.length ? `<div class="panel" style="margin-top:13px"><h2>Results table <span class="r">every match in ${y}, not only the league stage</span></h2><div class="tscroll"><table><thead><tr><th>#</th><th>Team</th><th class="n">P</th><th class="n">W</th><th class="n">L</th><th class="n">Win %</th></tr></thead><tbody>${stand.map((s, i) => `<tr><td class="dim">${i + 1}</td><td><span class="sr-dot" style="background:${faceCol(s.t)}"></span><a ${goAttr('team', s.t)}>${esc(s.t)}</a></td><td class="n">${s.p}</td><td class="n"><b>${s.w}</b></td><td class="n">${s.l}</td><td class="n">${Math.round(100 * s.w / s.p)}%</td></tr>`).join('')}</tbody></table></div></div>` : '';
+      body.innerHTML = `${hero}<div class="grid bento" style="margin-top:13px">${tiles}</div>
+        <div class="grid bento" style="margin-top:13px">${lead('Most runs', bat, r => r[3].toLocaleString(), r => `${r[5]} inns · SR ${r[2] ? (100 * r[3] / r[2]).toFixed(1) : '-'}`)}
+        ${lead('Most wickets', bowl, r => r[4], r => `${r[2] ? oversOf(r[2]) + ' · ' : ''}econ ${r[2] ? (6 * r[3] / r[2]).toFixed(2) : '-'}`, true)}</div>${stTable}`;
+      wireLinks(body);
+    };
+    const pick = $(`<div class="seasonpick">${years.map(v => `<button type="button" data-y="${v}" class="${v === state.season ? 'on' : ''}">${v}</button>`).join('')}</div>`);
+    const body = $('<div></div>');
+    pick.querySelectorAll('button').forEach(b => b.onclick = () => { state.season = +b.dataset.y; pick.querySelectorAll('button').forEach(o => o.classList.toggle('on', o === b)); draw(); });
+    box.appendChild(pick); box.appendChild(body); draw();
+  });
+}
+
+/* ---------- Rivalries: one batter against one bowler, across every competition ---------- */
+const _RIV = {}, _RIV_CB = {};
+let _RIVN = null, _RIVN_CB = null;
+window.__rivalsLoaded = (sh, d) => { _RIV[sh] = d; };
+window.__rivalNames = d => { _RIVN = d; };
+function ensureRivalNames(cb) {
+  if (_RIVN) return cb(_RIVN);
+  if (_RIVN_CB) { _RIVN_CB.push(cb); return; }
+  _RIVN_CB = [cb]; const s = document.createElement('script'); s.src = 'rivals/names.js';
+  const done = () => { const q = _RIVN_CB; _RIVN_CB = null; q.forEach(f => f(_RIVN)); }; s.onload = done; s.onerror = done; document.head.appendChild(s);
+}
+function ensureRivals(pid, cb) {
+  const sh = _shardOf(pid);
+  if (_RIV[sh]) return cb(_RIV[sh]);
+  if (_RIV_CB[sh]) { _RIV_CB[sh].push(cb); return; }
+  _RIV_CB[sh] = [cb]; const s = document.createElement('script'); s.src = 'rivals/' + sh + '.js';
+  const done = () => { const q = _RIV_CB[sh]; delete _RIV_CB[sh]; q.forEach(f => f(_RIV[sh] || null)); }; s.onload = done; s.onerror = done; document.head.appendChild(s);
+}
+function rivalryView(app) {
+  app.appendChild($(`<div><h1>Rivalries</h1><p class="sub">One batter against one bowler across every competition they have met in: internationals and leagues together, season by season. Pairs with ${30}+ balls between them.</p></div>`));
+  const box = $('<div class="loadbox"><div class="spinner"></div><div>Loading rivalries…</div></div>'); app.appendChild(box);
+  ensureRivalNames(N => {
+    box.className = ''; box.innerHTML = '';
+    if (!N) { box.innerHTML = '<div class="cov">Rivalries arrive with the next weekly data rebuild.</div>'; return; }
+    const nm = id => N.n[id] || id;
+    const allNames = Object.entries(N.n).map(([id, n]) => [n, id]).sort((a, b) => a[0].localeCompare(b[0]));
+    const byName = Object.fromEntries(allNames);
+    if (!state.rivBat) { const c = cur(), top = Object.entries(c.players || {}).sort((a, b) => (b[1].runs || 0) - (a[1].runs || 0))[0]; state.rivBat = top ? top[0] : allNames[0][1]; }
+    const pick = $(`<div class="panel riv-pick"><div class="field"><span class="flab">Batter</span><div class="swrap2 ac" style="position:relative"><input id="rvb" placeholder="batter name…" autocomplete="off" value="${esc(nm(state.rivBat))}"/><div class="aclist" style="display:none"></div></div></div>
+      <span class="riv-vs">vs</span><div class="field"><span class="flab">Bowler</span><div class="swrap2 ac" style="position:relative"><input id="rvw" placeholder="bowler name…" autocomplete="off"/><div class="aclist" style="display:none"></div></div></div></div>`);
+    const body = $('<div style="margin-top:13px"></div>'); box.appendChild(pick); box.appendChild(body);
+    const names = allNames.map(a => a[0]);
+    const draw = () => ensureRivals(state.rivBat, D => {
+      const mine = (D && D[state.rivBat]) || {};
+      const opp = Object.entries(mine).map(([bw, recs]) => ({ bw, balls: recs.reduce((a, r) => a + r[2], 0), runs: recs.reduce((a, r) => a + r[3], 0), outs: recs.reduce((a, r) => a + r[4], 0), recs }))
+        .sort((a, b) => b.balls - a.balls);
+      if (!opp.length) { body.innerHTML = `<div class="cov">${esc(nm(state.rivBat))} has no bowler they have faced for 30+ balls.</div>`; return; }
+      if (!state.rivBowl || !mine[state.rivBowl]) state.rivBowl = opp[0].bw;
+      pick.querySelector('#rvw').value = nm(state.rivBowl);
+      const R = opp.find(o => o.bw === state.rivBowl), bid = state.rivBat, wid = state.rivBowl;
+      const sr = R.balls ? 100 * R.runs / R.balls : 0, avg = R.outs ? R.runs / R.outs : null, bpd = R.outs ? R.balls / R.outs : null;
+      // who is on top: runs per dismissal against a par of 30, scaled by strike rate against 100 (simple, format-mixed)
+      // red-ball cricket (Tests, first-class) is judged on average; white-ball on average and strike rate
+      const red = /Tests|Championship|Shield|Trophy/;
+      const redShare = R.recs.reduce((a, r) => a + (red.test(N.c[r[0]]) ? r[2] : 0), 0) / R.balls;
+      const parAvg = 30 + 10 * redShare, parSR = 130 - 75 * redShare;
+      const batEdge = Math.max(0.08, Math.min(0.92, 0.5 + (0.28 + 0.12 * redShare) * Math.tanh(((avg == null ? R.runs : avg) - parAvg) / 22)
+        + (0.22 - 0.12 * redShare) * Math.tanh((sr - parSR) / 35)));
+      const byComp = {}; R.recs.forEach(r => { const k = N.c[r[0]]; const v = byComp[k] = byComp[k] || [0, 0, 0, Infinity, 0]; v[0] += r[2]; v[1] += r[3]; v[2] += r[4]; v[3] = Math.min(v[3], r[1]); v[4] = Math.max(v[4], r[1]); });
+      const byYear = {}; R.recs.forEach(r => { const v = byYear[r[1]] = byYear[r[1]] || [0, 0, 0]; v[0] += r[2]; v[1] += r[3]; v[2] += r[4]; });
+      const yrs = Object.keys(byYear).map(Number).sort((a, b) => a - b), maxR = Math.max(...yrs.map(y => byYear[y][1]), 1);
+      const W = CW(720), H = 190, pad = 34, bw = Math.min(46, (W - 2 * pad) / Math.max(yrs.length, 1) * 0.66);
+      const X = i => pad + (i + 0.5) * (W - 2 * pad) / yrs.length, Y = v => H - pad - v / maxR * (H - 2 * pad - 10);
+      const bars = yrs.map((y, i) => { const v = byYear[y]; return `<g><rect x="${(X(i) - bw / 2).toFixed(1)}" y="${Y(v[1]).toFixed(1)}" width="${bw.toFixed(1)}" height="${(H - pad - Y(v[1])).toFixed(1)}" rx="3" fill="#E59A2F" fill-opacity=".85"><title>${y}: ${v[1]} runs off ${v[0]} balls, out ${v[2]} time${v[2] === 1 ? '' : 's'}</title></rect>
+        ${Array.from({ length: v[2] }, (_, k) => `<circle cx="${X(i).toFixed(1)}" cy="${(Y(v[1]) - 9 - k * 11).toFixed(1)}" r="4.2" fill="#E5484D"/>`).join('')}
+        <text x="${X(i).toFixed(1)}" y="${H - pad + 14}" text-anchor="middle" fill="#8B8E96" font-size="9.5">'${String(y).slice(2)}</text></g>`; }).join('');
+      const chart = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Runs and dismissals by season">${axisTicksSVG(null, Y, null, [0, maxR], [pad, pad, W - pad, H - pad])}${bars}</svg>`;
+      const k = (l, v, s2) => `<div class="s3"><div class="panel kpi"><div class="l">${l}</div><div class="n">${v}</div>${s2 ? `<div class="s">${s2}</div>` : ''}</div></div>`;
+      body.innerHTML = `<div class="riv-hero"><div class="riv-side">${faceHTML(bid, nm(bid), 'xl')}<div class="riv-nm">${pidLink(bid, nm(bid))}</div><div class="dim">batter</div></div>
+          <div class="riv-mid"><div class="riv-vs2">vs</div><div class="riv-bar"><span style="width:${(100 * batEdge).toFixed(0)}%"></span></div>
+          <div class="riv-edge">${batEdge > 0.58 ? esc(nm(bid)) + ' has the upper hand' : batEdge < 0.42 ? esc(nm(wid)) + ' has the upper hand' : 'Evenly matched'}</div></div>
+          <div class="riv-side">${faceHTML(wid, nm(wid), 'xl')}<div class="riv-nm">${pidLink(wid, nm(wid), true)}</div><div class="dim">bowler</div></div></div>
+        <div class="grid bento" style="margin-top:13px">${k('Balls', R.balls.toLocaleString(), `${Object.keys(byComp).length} competition${Object.keys(byComp).length === 1 ? '' : 's'}`)}${k('Runs', R.runs.toLocaleString(), `strike rate ${sr.toFixed(1)}`)}
+          ${k('Dismissals', R.outs, bpd ? `one every ${bpd.toFixed(0)} balls` : 'never dismissed')}${k('Average', avg == null ? '-' : avg.toFixed(1), 'runs per dismissal')}</div>
+        <div class="grid bento" style="margin-top:13px"><div class="panel s7"><h2>Season by season <span class="r">bars = runs · red dots = dismissals</span></h2>${chart}</div>
+          <div class="panel s5"><h2>By competition</h2><div class="tscroll"><table><thead><tr><th>Competition</th><th class="n">Balls</th><th class="n">Runs</th><th class="n">Out</th><th class="n">SR</th></tr></thead><tbody>
+          ${Object.entries(byComp).sort((a, b) => b[1][0] - a[1][0]).map(([cn, v]) => `<tr><td>${esc(cn)} <span class="dim">${v[3] === v[4] ? v[3] : v[3] + '–' + v[4]}</span></td><td class="n">${v[0]}</td><td class="n"><b>${v[1]}</b></td><td class="n">${v[2]}</td><td class="n">${v[0] ? (100 * v[1] / v[0]).toFixed(1) : '-'}</td></tr>`).join('')}</tbody></table></div></div></div>
+        <div class="panel" style="margin-top:13px"><h2>${esc(nm(bid))}'s biggest rivalries <span class="r">bowlers faced most, all competitions</span></h2><div class="riv-list">
+          ${opp.slice(0, 12).map(o => `<button type="button" class="riv-chip${o.bw === wid ? ' on' : ''}" data-bw="${esc(o.bw)}">${faceHTML(o.bw, nm(o.bw), 'sm')}<span>${esc(nm(o.bw))}</span><span class="dim">${o.runs}/${o.outs} · ${o.balls}b</span></button>`).join('')}</div></div>`;
+      body.querySelectorAll('.riv-chip').forEach(b => b.onclick = () => { state.rivBowl = b.dataset.bw; draw(); });
+      wireLinks(body);
+    });
+    autocomplete(pick.querySelector('#rvb'), names, n => { if (n && byName[n]) { state.rivBat = byName[n]; state.rivBowl = null; draw(); } });
+    autocomplete(pick.querySelector('#rvw'), names, n => { if (n && byName[n]) { state.rivBowl = byName[n]; draw(); } });
+    draw();
+  });
+}
+window.EXTRA_VIEWS = { bowlto: app => withSince(bowlToView, app), matches: matchesView, trends: trendsView, season: seasonView, rivalry: rivalryView };
 /* Matchups view: under "full members only" swap in the full-member pair list. */
 const _matchupsView = matchupsView;
 matchupsView = function (app) {
@@ -1033,7 +1186,10 @@ function photoOf(pid, name) {
   const m = (window.CIL_PLAYERMETA || {})[pid] || {};
   return playerImg(name, m.name, pid) || m.photo || '';
 }
-const faceHTML = (pid, name, cls) => `<span class="face ${cls || ''}">${(() => { const u = photoOf(pid, name);
+/* a steady colour for teams without one of their own, picked from the name */
+const _FACE_PAL = ['#60A5FA', '#F472B6', '#34D399', '#FBBF24', '#A78BFA', '#F87171', '#22D3EE', '#FB923C', '#4ADE80', '#C084FC'];
+const faceCol = team => !team ? null : teamColor(team) || _FACE_PAL[[...String(team)].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7) % _FACE_PAL.length];
+const faceHTML = (pid, name, cls, team) => `<span class="face ${cls || ''}"${faceCol(team) ? ` style="--fc:${faceCol(team)}"` : ''}>${(() => { const u = photoOf(pid, name);
   return u ? `<img src="${esc(u)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()"/>` : ''; })()}<i>${esc(initials(name))}</i></span>`;
 const GLANCE_IC = {
   matches: '<path d="M4 20V10l8-6 8 6v10"/><path d="M9 20v-6h6v6"/>',
@@ -1083,16 +1239,16 @@ homeView = function (app) {
     const inns = wk ? wk.innings.filter(keep) : [], spells = wk ? wk.spells.filter(keep) : [];
     if (inns.length || spells.length) {
       const bi = inns[0], bs = spells[0];
-      const tile = (k, big, small, who, sub, mid, wkCol, pi) => `<a class="hx-tile" ${goAttr('match', mid)}>${pi != null ? faceHTML(pId(x, pi), who, 'lg') : ''}<div class="hx-k">${k}</div>
+      const tile = (k, big, small, who, sub, mid, wkCol, pi, tm) => `<a class="hx-tile" ${goAttr('match', mid)}>${pi != null ? faceHTML(pId(x, pi), who, 'lg', tm) : ''}<div class="hx-k">${k}</div>
         <div class="hx-big" style="color:${wkCol ? 'var(--wk)' : 'var(--accent2)'}">${big}${small ? ` <small>${small}</small>` : ''}</div>
         <div class="hx-who">${esc(who)}</div><div class="hx-sub">${sub}</div></a>`;
       const rows = [...inns.slice(1, 5).map(r => ({ r, bat: 1 })), ...spells.slice(1, 5).map(r => ({ r, bat: 0 }))];
       slot.appendChild($(`<div class="panel s6 hx-recent"><h2>Last 30 days <span class="r">${esc(wk.from)} to ${esc(wk.to)} · ${plural(wk.matches, 'match', 'matches')}${fmOn ? ' · full members' : ''}</span></h2>
         <div class="hx-feat">
-          ${bi ? tile('Top innings', bi[1], `(${bi[2]})`, pName(x, bi[0]), `vs ${esc(bi[4] || '')} · SR ${bi[2] ? (100 * bi[1] / bi[2]).toFixed(0) : '-'}`, bi[5], false, bi[0]) : ''}
-          ${bs ? tile('Best spell', `${bs[1]}/${bs[2]}`, '', pName(x, bs[0]), `vs ${esc(bs[4] || '')}${bs[7] != null ? ' · ' + oversOf(bs[7]) : ''}`, bs[5], true, bs[0]) : ''}
+          ${bi ? tile('Top innings', bi[1], `(${bi[2]})`, pName(x, bi[0]), `vs ${esc(bi[4] || '')} · SR ${bi[2] ? (100 * bi[1] / bi[2]).toFixed(0) : '-'}`, bi[5], false, bi[0], bi[6]) : ''}
+          ${bs ? tile('Best spell', `${bs[1]}/${bs[2]}`, '', pName(x, bs[0]), `vs ${esc(bs[4] || '')}${bs[7] != null ? ' · ' + oversOf(bs[7]) : ''}`, bs[5], true, bs[0], bs[6]) : ''}
         </div>
-        ${rows.map(({ r, bat }) => `<a class="hx-row" ${goAttr('match', r[5])}><span>${faceHTML(pId(x, r[0]), pName(x, r[0]), 'sm')}<span class="hx-tag${bat ? '' : ' wk'}">${bat ? 'bat' : 'bowl'}</span>${esc(pName(x, r[0]))} <span class="dim">vs ${esc(r[4] || '')}</span></span>
+        ${rows.map(({ r, bat }) => `<a class="hx-row" ${goAttr('match', r[5])}><span>${faceHTML(pId(x, r[0]), pName(x, r[0]), 'sm', r[6])}<span class="hx-tag${bat ? '' : ' wk'}">${bat ? 'bat' : 'bowl'}</span>${esc(pName(x, r[0]))} <span class="dim">vs ${esc(r[4] || '')}</span></span>
           <b>${bat ? `${r[1]} <span class="dim">(${r[2]})</span>` : `${r[1]}/${r[2]}`}</b></a>`).join('')}</div>`));
     }
     if (fmOn) fmTrending(app, c, x);
@@ -1110,7 +1266,7 @@ homeView = function (app) {
       const next = (Math.floor(have / WKS) + 1) * WKS, need = next - have; if (need <= WKS * 0.2) near.push({ id, name: b.name, have, need, next, unit: 'wicket', r: need / WKS, bowler: 1 }); }
     near.sort((a, b) => a.r - b.r);
     if (near.length) slot.appendChild($(`<div class="panel s6 hx-mile"><h2>Milestone watch <span class="r">active in ${lastY - 1} or ${lastY}${fmOn ? ' · vs full members' : ''}</span></h2>
-      ${near.slice(0, 5).map(n => `<div class="hx-ms">${faceHTML(n.id, n.name, 'md')}<div class="hx-msb"><div class="top">${pidLink(n.id, n.name, n.bowler)}<span class="dim"><b style="color:var(--ink)">${n.have.toLocaleString()}</b> / ${n.next.toLocaleString()} ${n.unit}s</span></div>
+      ${near.slice(0, 5).map(n => `<div class="hx-ms">${faceHTML(n.id, n.name, 'md', ((c.players || {})[n.id] || (c.bowlers || {})[n.id] || {}).team)}<div class="hx-msb"><div class="top">${pidLink(n.id, n.name, n.bowler)}<span class="dim"><b style="color:var(--ink)">${n.have.toLocaleString()}</b> / ${n.next.toLocaleString()} ${n.unit}s</span></div>
         <div class="hx-bar${n.bowler ? ' wk' : ''}"><span style="width:${(100 * n.have / n.next).toFixed(1)}%"></span></div>
         <div class="hx-go">${plural(n.need, n.unit)} to go</div></div></div>`).join('')}
       <div class="note" style="margin-top:8px">Counts are within ${esc(c.meta.label)}${fmOn ? ', matches between full members only' : ''}.</div></div>`));

@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """Add Wikimedia Commons photos to web/dashboard/playermeta.js, matched by ESPNcricinfo ID.
 
-Two sources: the photo on the player's Wikidata item (P18), then the freely licensed lead
-image of their English Wikipedia article when Wikidata has none.
+First it bridges more players to the Cricbuzz headshots already in playerimg.js: Cricsheet often
+knows a player only by initials ("MD Shanaka") while Cricbuzz files the photo under the full name
+("Dasun Shanaka"), so the player's full name is taken from Wikidata (matched on ESPNcricinfo ID)
+and looked up in the Cricbuzz map. Players still without a photo then get the one on their Wikidata
+item (P18), or the freely licensed lead image of their English Wikipedia article.
 
 Cricsheet's people register gives every player an ESPNcricinfo ID (stored as cricinfo_id in
 playermeta.js by enrich_players_cricinfo.py). Wikidata links those IDs (property P2697) to a
@@ -22,6 +25,58 @@ META = os.path.join(ROOT, "web", "dashboard", "playermeta.js")
 IMG = os.path.join(ROOT, "web", "dashboard", "playerimg.js")
 UA = "CricketIntelligenceLab/1.0 (https://github.com/HalcyonVector/Cricket-Intelligence-Lab)"
 QUERY = "SELECT ?ci ?img WHERE { ?p wdt:P2697 ?ci ; wdt:P18 ?img . }"
+# full names (English label and aliases) for every cricketer with an ESPNcricinfo ID
+QUERY_NAMES = """SELECT ?ci ?name WHERE { ?p wdt:P2697 ?ci .
+  { ?p rdfs:label ?name } UNION { ?p skos:altLabel ?name } FILTER(LANG(?name) = "en") }"""
+
+
+def name_keys(n):
+    """Same keys as the dashboard's photo lookup: full name squashed, and surname|first initial."""
+    t = [x for x in re.sub(r"[^a-z ]", "", (n or "").lower()).split() if x]
+    return ("".join(t), t[-1] + "|" + t[0][0]) if len(t) >= 2 else (None, None)
+
+
+def bridge_cricbuzz(sparql, meta, imgmap, byid):
+    """Give players without a Cricbuzz photo one via their full name from Wikidata. A photo already
+    used by another player is never handed out again, and a surname|initial key only counts when
+    exactly one player in the data could claim it."""
+    names = {}
+    for b in sparql(QUERY_NAMES):
+        names.setdefault(b["ci"]["value"].strip(), []).append(b["name"]["value"])
+    url_of = lambda k: imgmap.get(k)
+    taken = {url_of(k) for k in byid.values() if url_of(k)}
+    claims = {}
+    for pid, m in meta.items():
+        if pid in byid:
+            continue
+        for n in names.get(str(m.get("cricinfo_id") or ""), []):
+            full, short = name_keys(n)
+            if full and full in imgmap:
+                claims.setdefault(("full", full), set()).add(pid)
+            elif short and short in imgmap:
+                claims.setdefault(("short", short), set()).add(pid)
+    added = 0
+    for (kind, key), pids in sorted(claims.items(), key=lambda kv: kv[0][0] != "full"):
+        u = imgmap[key]
+        if len(pids) != 1 or u in taken:
+            continue
+        pid = next(iter(pids))
+        if pid in byid:
+            continue
+        byid[pid] = key; taken.add(u); added += 1
+    return added
+
+
+def save_byid(byid):
+    t = open(IMG, encoding="utf-8").read()
+    m = re.search(r"window\.CIL_PLAYERIMG_BYID\s*=\s*", t)
+    body = json.dumps(byid, separators=(",", ":"))
+    if m:
+        _, end = json.JSONDecoder().raw_decode(t, m.end())
+        t = t[:m.end()] + body + t[end:]
+    else:
+        t = t.rstrip() + "\nwindow.CIL_PLAYERIMG_BYID=" + body + ";\n"
+    open(IMG, "w", encoding="utf-8").write(t)
 # second source: the English Wikipedia article's lead image, for players whose Wikidata item has
 # no photo (P18). Wikipedia's API is asked for freely licensed images only (pilicense=free).
 QUERY_ARTICLES = """SELECT ?ci ?article WHERE { ?p wdt:P2697 ?ci . FILTER NOT EXISTS { ?p wdt:P18 ?i }
@@ -72,6 +127,13 @@ def main():
         byid = load_js_object(IMG, "CIL_PLAYERIMG_BYID")
     except Exception:
         byid = {}
+    def sparql(q):
+        rr = requests.get("https://query.wikidata.org/sparql", params={"query": q},
+                          headers={"User-Agent": UA, "Accept": "application/sparql-results+json"}, timeout=180)
+        rr.raise_for_status(); return rr.json()["results"]["bindings"]
+    bridged = bridge_cricbuzz(sparql, meta, load_js_object(IMG, "CIL_PLAYERIMG"), byid)
+    save_byid(byid)
+    print(f"Cricbuzz: {bridged:,} more players matched to a headshot through their full name -> {os.path.relpath(IMG, ROOT)}")
     added = 0
     for pid, m in meta.items():
         m.pop("photo", None); m.pop("photo_page", None)
@@ -83,10 +145,6 @@ def main():
         m["photo_page"] = f"https://commons.wikimedia.org/wiki/File:{q}"
         added += 1
     # second pass: Wikipedia lead images for players still without any photo
-    def sparql(q):
-        rr = requests.get("https://query.wikidata.org/sparql", params={"query": q},
-                          headers={"User-Agent": UA, "Accept": "application/sparql-results+json"}, timeout=180)
-        rr.raise_for_status(); return rr.json()["results"]["bindings"]
     art = {}
     for bnd in sparql(QUERY_ARTICLES):
         art.setdefault(bnd["ci"]["value"].strip(), urllib.parse.unquote(bnd["article"]["value"].rsplit("/wiki/", 1)[-1]).replace("_", " "))

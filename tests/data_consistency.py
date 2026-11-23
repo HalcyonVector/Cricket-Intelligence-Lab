@@ -212,6 +212,19 @@ def main():
                 check("innings log wickets and balls = bowler totals", b is not None and sum(r[3] for r in rows) == b["wickets"]
                       and sum(r[1] for r in rows) == b["balls"], f"{key} {pid}")
 
+    # rivalries: every pair has 30+ balls, outs never exceed balls, and competitions are named
+    rdir = os.path.join(DASH, "rivals")
+    if os.path.isdir(rdir):
+        names = js(os.path.join(rdir, "names.js")) or {"c": [], "n": {}}
+        for fn in os.listdir(rdir):
+            if fn == "names.js":
+                continue
+            for bat, opp in (js(os.path.join(rdir, fn)) or {}).items():
+                for bowl, recs in opp.items():
+                    balls = sum(r[2] for r in recs)
+                    check("rivalries: 30+ balls, outs <= balls, named", balls >= 30 and all(r[4] <= r[2] and r[0] < len(names["c"]) for r in recs)
+                          and bat in names["n"] and bowl in names["n"], f"{bat} v {bowl}")
+
     total = sum(checks.values())
     for name, n in sorted(checks.items()):
         bad = sum(1 for f in fails if f[0] == name)

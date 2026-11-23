@@ -49,6 +49,7 @@ web/dashboard/players.js
 web/dashboard/winprob.js
 web/dashboard/cohorts/
 web/dashboard/careers/
+web/dashboard/rivals/
 # Pages deploy writes these
 web/index.html
 web/.nojekyll
